@@ -1,0 +1,36 @@
+import { Module } from '@nestjs/common';
+import { RouterModule } from 'nest-router';
+import { ServeStaticModule } from '@nestjs/serve-static';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { join } from 'path';
+import { routes } from './routes';
+import { LowDbService } from './shared/lowdb/lowdb.service';
+import { MatchService } from './shared/db/match.service';
+import { SocketGateway } from './socket/socket.gateway';
+import { LobbyService } from './shared/db/lobby.service';
+import { UUIDService } from './shared/uuid/uuid.service';
+import { PlayerService } from './shared/db/player.service';
+import { SocketService } from './socket/socket.service';
+
+@Module({
+  imports: [
+    RouterModule.forRoutes(routes),
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'moar-munz')
+    })
+  ],
+  controllers: [AppController],
+  providers: [
+    AppService,
+    SocketGateway,
+    UUIDService,
+    LowDbService,
+    MatchService,
+    LobbyService,
+    PlayerService,
+    SocketService
+  ]
+})
+export class AppModule {}
