@@ -99,23 +99,9 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     private notifyStartGame(_lobby) {
         const lobby = cloneDeep(_lobby);
-        const players = [ ];
-        for (let i = 0; i < lobby.players.length; i++) {
-            const id = lobby.players[i];
-            const player = this.playerService.getPlayer(id);
-            players.push(player);
-        }
+        const players = lobby.players.map(id => this.playerService.getPlayer(id));
         const match = cloneDeep(this.matchService.generateMatch(...players));
-        let namespace;
-        for (let i = 0; i < players.length; i++) {
-            const player = players[i];
-            const id = player.id;
-            namespace = (namespace || this.socketService.getServer()).to(id);
-            match.players[i] = player;
-        }
-        if (!namespace) return;
-        this.matchService.postProcessMatch(match);
-        namespace.emit('match', match);
+        this.matchService.saveAndBroadcastMatch(match);
     }
 
     private getPlayerColors(i: number) {

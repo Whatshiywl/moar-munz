@@ -420,18 +420,19 @@ export class MatchService {
 
     postProcessMatch(match) {
         const lineLength = match.board.length / 4;
-        const w = 140;
-        const h = w / 2;
+        const w = 120;
+        const h = 55;
         match['lineLength'] = lineLength;
         match['w'] = w;
         match['h'] = h;
         for (let t = 0; t < match.board.length; t++) {
             const title = match.board[t];
             const markers = [ ];
-            title.players.forEach((playerId, i) => {
+            const playingPlayers = title.players.filter(p => !p.lost);
+            const d = Math.min(12, (h - 10) / playingPlayers.length);
+            playingPlayers.forEach((playerId, i) => {
                 const found = match.players.find(p => p.id === playerId);
-                if (found.lost) return;
-                markers.push({ ...found, x: 2 + 12 * i, y: h - 15 });
+                markers.push({ ...found, y: 2 + d * i, x: w - 15 });
             });
             title.players = markers;
             if (title.owner) {
