@@ -20,4 +20,4 @@ WORKDIR /app
 RUN rm -rf /repo && \
     npm cache clean -f
 
-ENTRYPOINT [ "node", "apps/api/main.js" ]
+ENTRYPOINT [ "node", "dist/apps/api/main.js" ]
