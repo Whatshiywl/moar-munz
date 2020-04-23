@@ -2,7 +2,6 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { FormControl } from '@angular/forms';
-import { sample } from 'lodash';
 
 import { debounceTime } from 'rxjs/operators';
 
@@ -22,6 +21,10 @@ export class PlayComponent implements OnInit, OnDestroy {
   isMyTurn: boolean;
 
   boardInput;
+
+  targetViewportDimentions = {
+    w: 0, h: 0
+  };
   
   constructor(
     private socket: SocketService,

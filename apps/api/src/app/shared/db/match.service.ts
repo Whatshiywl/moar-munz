@@ -430,9 +430,10 @@ export class MatchService {
             const markers = [ ];
             const playingPlayers = title.players.filter(p => !p.lost);
             const d = Math.min(12, (h - 10) / playingPlayers.length);
+            match['markerDistance'] = d;
             playingPlayers.forEach((playerId, i) => {
                 const found = match.players.find(p => p.id === playerId);
-                markers.push({ ...found, y: 2 + d * i, x: w - 15 });
+                markers.push({ ...found, i });
             });
             title.players = markers;
             if (title.owner) {
@@ -449,17 +450,17 @@ export class MatchService {
             const s = Math.floor(t / lineLength);
             const pos = [ ];
             if (s === 0) {
-                pos[0] = w * j;
+                pos[0] = j;
                 pos[1] = 0;
             } else if (s === 1) {
-                pos[0] = w * lineLength;
-                pos[1] = h * j
+                pos[0] = lineLength;
+                pos[1] = j
             } else if (s === 2) {
-                pos[0] = w * lineLength - w * j;
-                pos[1] = h * lineLength;
+                pos[0] = lineLength - j;
+                pos[1] = lineLength;
             } else {
                 pos[0] = 0;
-                pos[1] = h * lineLength - h * j;
+                pos[1] = lineLength - j;
             }
             title['x'] = pos[0];
             title['y'] = pos[1];

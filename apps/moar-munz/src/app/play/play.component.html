@@ -13,31 +13,12 @@
     </div>
 </div>
 <div *ngIf="match" class="game-wrapper">
-    <div class="info-column">
-        <h1>Game</h1>
-        <div class="dice">
-            <div>{{match?.lastDice[0]}}</div>
-            <div>{{match?.lastDice[1]}}</div>
-        </div>
-        <div [style.visibility]="isMyTurn ? 'visible' : 'hidden'" class="actions">
-            <button (click)="throwDice()">Play!</button>
-        </div>
-        <div class="player-list">
-            <div *ngFor="let player of match?.players; let i = index"
-            class="player-card"
-            [style.border]="match.playerTurn.id === player.id ? '1px solid '+player.color : '1px solid black'">
-                <span [style.textDecoration]="player.id == socketId ? 'underline' : 'none'"
-                [style.color]="player.color">{{player.name}}</span>
-                <span>{{player.money}}</span>
-                <span *ngFor="let property of player.properties"
-                style="font-size: smaller;">{{property}}</span>
-            </div>
-        </div>
-    </div>
     <div class="board">
         <div *ngFor="let title of match.board; let i = index"
-        [style.left.px]="title.x" [style.top.px]="title.y"
-        [style.width.px]="match.w" [style.height.px]="match.h"
+        [style.left.%]="title.x * 100 / (match.lineLength + 1)"
+        [style.top.%]="title.y * 100 / (match.lineLength + 2)"
+        [style.width.%]="100 / (match.lineLength + 1)"
+        [style.height.%]="100 / (match.lineLength + 2)"
         [style.border]="'1px solid ' + title.color"
         class="title">
             <p>{{title.name}}{{title.level ? ' ('+(title.level-1)+')' : ''}}{{title.worldcup ? ' WC' : ''}}</p>
@@ -46,18 +27,43 @@
             <p *ngIf="title.multiplier">Multiplier: x{{title.multiplier}}</p>
             <p *ngIf="title.tax">Tax: {{100 * title.tax}}%</p>
             <div *ngFor="let player of title.players" class="player-marker"
-            [style.left.px]="player.x" [style.top.px]="player.y"
+            [style.right.px]="2"
+            [style.top.px]="2 + player.i * match.markerDistance"
             [style.backgroundColor]="player.color"></div>
         </div>
         <div class="board-center"
-        [style.left.px]="match.w" [style.top.px]="match.h"
-        [style.width.px]="(match.lineLength - 1) * match.w"
-        [style.height.px]="(match.lineLength - 1) * match.h">
+        [style.left.%]="100 / (match.lineLength + 1)"
+        [style.top.%]="100 / (match.lineLength + 2)"
+        [style.width.%]="100 * (match.lineLength - 1) / (match.lineLength + 1)"
+        [style.height.%]="100 * (match.lineLength - 1) / (match.lineLength + 2)">
+            <div class="info-column">
+                <h1>Game</h1>
+                <div class="dice">
+                    <div>{{match?.lastDice[0]}}</div>
+                    <div>{{match?.lastDice[1]}}</div>
+                </div>
+                <div [style.visibility]="isMyTurn ? 'visible' : 'hidden'" class="actions">
+                    <button (click)="throwDice()">Play!</button>
+                </div>
+                <div class="player-list">
+                    <div *ngFor="let player of match?.players; let i = index"
+                    class="player-card"
+                    [style.border]="match.playerTurn.id === player.id ? '1px solid '+player.color : '1px solid black'"
+                    [style.border-left-width.px]="match.playerTurn.id === player.id ? 5 : 1">
+                        <span [style.textDecoration]="player.id == socketId ? 'underline' : 'none'"
+                        [style.color]="player.color">{{player.name}}</span>
+                        <span>{{player.money}}</span>
+                        <span *ngFor="let property of player.properties"
+                        style="font-size: smaller;">{{property}}</span>
+                    </div>
+                </div>
+            </div>
             <div *ngIf="boardInput" class="board-input">
                 <span>{{boardInput.question}}</span>
                 <button *ngFor="let option of boardInput.options"
                 (click)="onQuestionAnswer(option)">{{option}}</button>
             </div>
+            <div class="board-info"></div>
         </div>
     </div>
 </div>

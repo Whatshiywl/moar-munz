@@ -10,49 +10,10 @@
 .game-wrapper {
     display: flex;
 
-    .info-column {
-        display: flex;
-        flex-direction: column;
-        padding-right: 10px;
-        margin-right: 10px;
-        border-right: 1px solid black;
-
-        .dice {
-            display: flex;
-
-            >div {
-                display: flex;
-                border: 1px solid black;
-                border-radius: 3px;
-                background-color: lightgray;
-                width: 30px;
-                height: 30px;
-                align-items: center;
-                justify-content: center;
-                margin-right: 5px;
-                margin-bottom: 10px;
-            }
-        }
-
-        .actions {
-            margin-bottom: 10px;
-        }
-
-        .player-list {
-            display: flex;
-            flex-direction: column;
-
-            .player-card {
-                display: flex;
-                flex-direction: column;
-                padding: 2px 2px;
-                margin-bottom: 2px;
-            }
-        }
-    }
-
     .board {
         position: relative;
+        width: 100vw;
+        height: 100vh;
 
         >.title {
             position: absolute;
@@ -77,19 +38,74 @@
             border: 1px solid black;
             display: flex;
             align-items: center;
-            justify-content: center;
+            justify-content: space-between;
+
+            .info-column {
+                display: flex;
+                flex-direction: column;
+                padding: 0 10px;
+                margin: 10px;
+                width: 20%;
+                height: 100%;
+                overflow-y: auto;
+        
+                .dice {
+                    display: flex;
+        
+                    >div {
+                        display: flex;
+                        border: 1px solid black;
+                        border-radius: 3px;
+                        background-color: lightgray;
+                        width: 30px;
+                        height: 30px;
+                        align-items: center;
+                        justify-content: center;
+                        margin-right: 5px;
+                        margin-bottom: 10px;
+                    }
+                }
+        
+                .actions {
+                    margin-bottom: 10px;
+                }
+        
+                .player-list {
+                    display: flex;
+                    flex-direction: column;
+        
+                    .player-card {
+                        display: flex;
+                        flex-direction: column;
+                        padding: 2px 2px;
+                        margin-bottom: 2px;
+                        width: fit-content;
+                    }
+                }
+            }
 
             >.board-input {
                 text-align: center;
-                padding: 10px;
+                padding: 0 10px;
+                margin: 10px;
                 display: flex;
                 flex-direction: column;
                 border: 1px solid black;
                 border-radius: 10px;
+                flex-shrink: 10000;
+                overflow-y: auto;
 
                 >button {
                     margin: 2px 0;
                 }
+            }
+
+            >.board-info {
+                width: 20%;
+                height: 100%;
+                padding: 0 10px;
+                margin: 10px;
+                overflow-y: auto;
             }
         }
     }
