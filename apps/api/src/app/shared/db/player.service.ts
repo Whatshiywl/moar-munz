@@ -24,6 +24,7 @@ export class PlayerService {
     }
 
     savePlayer(player) {
+        if (typeof player === 'string') throw new TypeError('Expecting player as object, got string');
         return this.db.updatePlayer(player);
     }
 

@@ -41,7 +41,7 @@
         [style.border]="'1px solid ' + title.color"
         class="title">
             <p>{{title.name}}{{title.level ? ' ('+(title.level-1)+')' : ''}}{{title.worldcup ? ' WC' : ''}}</p>
-            <p *ngIf="title.price">Price: {{title.price}}</p>
+            <p *ngIf="title.price">{{title.value ? 'Value: '+title.value : 'Price: '+title.price}}</p>
             <p *ngIf="title.currentRent">Rent: {{title.currentRent}}</p>
             <p *ngIf="title.multiplier">Multiplier: x{{title.multiplier}}</p>
             <p *ngIf="title.tax">Tax: {{100 * title.tax}}%</p>

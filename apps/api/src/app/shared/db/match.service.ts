@@ -21,7 +21,7 @@ export class MatchService {
             turn: 0,
             lastDice: [ 1, 1 ],
             players: [ ],
-            board
+            board: cloneDeep(board)
         };
         players.forEach(player => {
             match.board[0].players.push(player.id);
@@ -199,8 +199,8 @@ export class MatchService {
                     for (let n = title.level; n < title.rent.length - 1; n++) {
                         const levelDifference = n - title.level;
                         const cost = title.building * levelDifference;
-                        if (cost > player.money - title.price) break;
-                        options.push(n);
+                        if (title.price + cost > player.money) break;
+                        options.push(`${n} (${title.price + cost})`);
                     }
                     if (options.length === 1) return;
                     const question = this.socketService.ask(player.id, 
@@ -208,13 +208,14 @@ export class MatchService {
                     options);
                     const answer = await question;
                     if (answer !== options[0]) {
+                        const answerValue = parseInt(answer.match(/^([^\(]+)/)[1].trim(), 10);
                         player.properties.push(title.name);
                         title.owner = player.id;
-                        const levelDifference = parseInt(answer, 10) - title.level;
+                        const levelDifference = answerValue - title.level;
                         const cost = title.building * levelDifference;
                         const amount = title.price + cost;
                         await this.givePlayer(match, player, -amount);
-                        title.level = answer + 1;
+                        title.level = answerValue + 1;
                     }
                 } else {
                     if (title.owner === player.id) {
@@ -223,7 +224,7 @@ export class MatchService {
                             const levelDifference = n + 1 - title.level;
                             const cost = title.building * levelDifference;
                             if (cost > player.money) break;
-                            options.push(n);
+                            options.push(`${n} (${cost})`);
                         }
                         if (options.length === 1) return;
                         const question = this.socketService.ask(player.id,
@@ -231,17 +232,35 @@ export class MatchService {
                         options);
                         const answer = await question;
                         if (answer !== options[0]) {
-                            const levelDifference = parseInt(answer, 10) + 1 - title.level;
+                            const answerValue = parseInt(answer.match(/^([^\(]+)/)[1].trim(), 10);
+                            const levelDifference = answerValue + 1 - title.level;
                             const cost = title.building * levelDifference;
                             await this.givePlayer(match, player, -cost);
-                            title.level = answer + 1;
+                            title.level = answerValue + 1;
                         }
                     } else {
                         const owner = this.playerService.getPlayer(title.owner);
                         let cost = title.rent[title.level - 1];
                         if (title.worldcup) cost *= 2;
-                        const amount = await this.givePlayer(match, player, -cost);
-                        await this.givePlayer(match, owner, -amount);
+                        await this.transferFromTo(match, player, owner, cost);
+                        const value = 2 * this.getTitleValue(title);
+                        if (player.money >= value) {
+                            const question = this.socketService.ask(player.id,
+                            `Would you like to buy ${title.name} from ${owner.name} for ${value}?`,
+                            [ 'No', 'Yes' ] as const);
+                            const answer = await question;
+                            if (answer === 'Yes') {
+                                await this.transferFromTo(match, player, owner, value);
+                                const titleIndex = owner.properties.findIndex(t => t.name === title.name);
+                                owner.properties.splice(titleIndex, 1);
+                                player.properties.push(title.name);
+                                title.owner = player.id;
+                                this.playerService.savePlayer(player);
+                                this.playerService.savePlayer(owner);
+                                this.saveAndBroadcastMatch(match);
+                                await this.afterLand(player, match, position, diceResult);
+                            }
+                        }
                     }
                 }
                 break;
@@ -261,8 +280,7 @@ export class MatchService {
                     if (title.owner !== player.id) {
                         const owner = this.playerService.getPlayer(title.owner);
                         const cost = diceResult * title.multiplier;
-                        const amount = await this.givePlayer(match, player, -cost);
-                        await this.givePlayer(match, owner, -amount);
+                        await this.transferFromTo(match, player, owner, cost);
                     }
                 }
                 break;
@@ -284,9 +302,8 @@ export class MatchService {
                 } else {
                     if (title.owner !== player.id) {
                         const owner = this.playerService.getPlayer(title.owner);
-                        const cost = diceResult * title.multiplier;
-                        const amount = await this.givePlayer(match, player, -cost);
-                        await this.givePlayer(match, owner, -amount);
+                        const cost = title.rent[title.level - 1];
+                        await this.transferFromTo(match, player, owner, cost);
                     }
                 }
                 break;
@@ -295,22 +312,29 @@ export class MatchService {
                 const propretyValue = ownedProperties.reduce((acc, t) => acc += this.getTitleValue(t), 0);
                 const totalValue = player.money + propretyValue;
                 const tax = title.tax;
-                const taxAmount = totalValue * tax;
+                const taxAmount = Math.ceil(totalValue * tax);
                 await this.givePlayer(match, player, -taxAmount);
                 break;
             case 'chance':
                 const cards = [
                     async () => this.sendToJail(match, title, player),
                     async () => this.givePlayer(match, player, 50),
+                    async () => this.givePlayer(match, player, 75),
                     async () => this.givePlayer(match, player, 100),
+                    async () => this.givePlayer(match, player, 125),
+                    async () => this.givePlayer(match, player, 150),
                     async () => this.givePlayer(match, player, 200),
+                    async () => this.givePlayer(match, player, 300),
                     async () => this.givePlayer(match, player, 500),
                     async () => this.givePlayer(match, player, 1500),
                     async () => this.givePlayer(match, player, -50),
+                    async () => this.givePlayer(match, player, -75),
                     async () => this.givePlayer(match, player, -100),
+                    async () => this.givePlayer(match, player, -125),
+                    async () => this.givePlayer(match, player, -150),
                     async () => this.givePlayer(match, player, -200),
-                    async () => this.givePlayer(match, player, -500),
-                    async () => this.givePlayer(match, player, -1500),
+                    async () => this.givePlayer(match, player, -300),
+                    async () => this.givePlayer(match, player, -500)
                 ];
                 const card = sample(cards);
                 await card();
@@ -355,10 +379,18 @@ export class MatchService {
         return player.money - startAmount;
     }
 
+    private async transferFromTo(match, from, to, amount: number) {
+        console.log(`Transfering ${amount} from ${from.name} to ${to.name}`);
+        amount = await this.givePlayer(match, from, -amount);
+        console.log(`${to.name} will receive ${-amount}`);
+        await this.givePlayer(match, to, -amount);
+        this.saveAndBroadcastMatch(match);
+    }
+
     private getTitleValue(title) {
         let value = title.price;
         if (title.building) {
-            value += title.building * title.level;
+            value += title.building * (title.level - 1);
         }
         return value;
     }
@@ -402,8 +434,11 @@ export class MatchService {
                 markers.push({ ...found, x: 2 + 12 * i, y: h - 15 });
             });
             title.players = markers;
-            if (title.level) {
-                title.currentRent = title.rent[title.level - 1];
+            if (title.owner) {
+                title.value = this.getTitleValue(title);
+                if (title.level) {
+                    title.currentRent = title.rent[title.level - 1];
+                }
             }
             if (match.worldcup === title.name) {
                 title.worldcup = true;

@@ -55,14 +55,14 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
 
     @SubscribeMessage('ready')
-    onReady(@MessageBody() data: boolean, @ConnectedSocket() client: Socket) {
+    onReady(@MessageBody() ready: boolean, @ConnectedSocket() client: Socket) {
         console.log('onReady', client.id);
         const player = this.playerService.getPlayer(client.id);
         if (!player) return;
         const lobby = this.lobbyService.getLobby(player.lobby);
         if (!lobby) return;
-        player.ready = data;
-        this.playerService.savePlayer(client.id);
+        player.ready = ready;
+        this.playerService.savePlayer(player);
         this.notifyLobbyChanges(lobby);
         for (const playerId of lobby.players) {
             const p = this.playerService.getPlayer(playerId);
