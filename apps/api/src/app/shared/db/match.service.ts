@@ -78,7 +78,8 @@ export class MatchService {
                 }
             }
         }
-        match.turn++;
+        if (player.playAgain) player.playAgain = false;
+        else match.turn++;
         match.locked = false;
         this.playerService.savePlayer(player);
         this.saveAndBroadcastMatch(match);
@@ -122,6 +123,7 @@ export class MatchService {
                 if (player.prision > 0) {
                     if (die[0] === die[1]) {
                         player.prision = 0;
+                        player.playAgain = true;
                     } else {
                         player.prision--;
                         console.log('not pairs, cant leave jail');
@@ -134,8 +136,11 @@ export class MatchService {
                     player.equalDie = (player.equalDie || 0) + 1;
                     if (player.equalDie === 3) {
                         this.sendToJail(match, player);
+                        player.equalDie = 0;
                         console.log('3 pairs, go to jail');
                         return false;
+                    } else {
+                        player.playAgain = true;
                     }
                 } else {
                     player.equalDie = 0;

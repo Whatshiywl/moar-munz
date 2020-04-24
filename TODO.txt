@@ -1,0 +1,27 @@
+Changelog
+
+1.1
+[OK] Aumentar marcadores de jogadores
+[OK] Mostrar aluguel na pergunta de copa do mundo
+[OK] Mecanica de dados iguais
+Mecanica terrenos de mesma cor
+[BUG] Perder pula a vez do jogador seguinte
+Finalizar jogo quando tem vencedor
+
+1.2
+Mostrar eventos
+- Chance
+- Deeds
+- Transactions
+- Perda
+Condicao de vitoria por monopolios
+
+1.3
+Escolher cidades clicando no tabuleiro
+Iluminar propriedades ao passar mouse pelo nome do jogador
+Iluminar jogador ao passar mouse pela propriedade
+Iluminar propriedade ao passar mouse pela opção
+
+Backlog
+[BUG] Connecticut nao apareceu na pergunta de worldcup (talvez comprada?)
+[BUG] Venda de uma propriedade vendeu ou reduziu level de outra
