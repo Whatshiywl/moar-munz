@@ -181,13 +181,14 @@ export class MatchService {
                     if (t.type !== 'deed') return false;
                     if (!t.owner || t.owner !== player.id) return false;
                     return true;
-                }).map(t => t.name);
+                }).map(t => `${t.name} (${t.rent[t.level - 1]})`);
                 if (!wcOptions.length) return;
                 const wcQuestions = this.socketService.ask(player.id,
                 `Set the location to host the next worldcup!`,
                 wcOptions);
-                const wcAnswers = await wcQuestions;
-                const worldcupIndex = match.board.findIndex(t => t.name === wcAnswers);
+                const wcAnswer = await wcQuestions;
+                const wcAnswerValue = wcAnswer.match(/^([^\(]+)/)[1].trim();
+                const worldcupIndex = match.board.findIndex(t => t.name === wcAnswerValue);
                 match.worldcup = match.board[worldcupIndex].name;
                 break;
             case 'worldtour':

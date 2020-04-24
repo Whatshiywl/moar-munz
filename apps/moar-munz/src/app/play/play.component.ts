@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { FormControl } from '@angular/forms';
-
+import { sample } from 'lodash';
 import { debounceTime } from 'rxjs/operators';
 
 @Component({
@@ -11,6 +11,7 @@ import { debounceTime } from 'rxjs/operators';
   styleUrls: ['./play.component.scss']
 })
 export class PlayComponent implements OnInit, OnDestroy {
+  debug = false;
 
   ready = new FormControl(false);
   socketId: string;
@@ -48,14 +49,19 @@ export class PlayComponent implements OnInit, OnDestroy {
         console.log('match', match);
         this.match = match;
         this.isMyTurn = match.playerTurn.id === this.socketId;
+        if (this.debug) {
+          if (this.isMyTurn) this.throwDice();
+        }
       })
       this.socket.on('ask question', (question, callback) => {
         this.boardInput = { ...question, callback };
         console.log(this.boardInput);
-        // if (question.options[0] === 'No') {
-        //   if (Math.random() < 0.6) this.onQuestionAnswer('No');
-        //   else this.onQuestionAnswer(sample(question.options));
-        // }
+        if (this.debug) {
+          if (question.options[0] === 'No') {
+            if (Math.random() < 0.6) this.onQuestionAnswer('No');
+            else this.onQuestionAnswer(sample(question.options));
+          }
+        }
       });
       this.socket.emit('enter lobby', { id }, socketId => this.socketId = socketId);
     });
