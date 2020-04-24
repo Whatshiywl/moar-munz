@@ -66,18 +66,15 @@ export class MatchService {
             this.saveAndBroadcastMatch(match);
             const titles = match.board;
             const start = player.position;
-            const startTitle = titles[start];
-            const index = startTitle.players.findIndex(id => id === player.id);
-            startTitle.players.splice(index, 1);
             for (let i = 1; i <= diceResult; i++) {
                 const position = (start + i) % titles.length;
+                await this.onPass(player, match, position);
+                this.saveAndBroadcastMatch(match);
+                await this.sleep(250);
                 if (i === diceResult) {
-                    await this.onLand(player, match, position);
                     this.saveAndBroadcastMatch(match);
-                    await this.afterLand(player, match, position, diceResult);
+                    await this.onLand(player, match, position, diceResult);
                     this.saveAndBroadcastMatch(match);
-                } else {
-                    await this.onPass(player, match, position);
                 }
             }
         }
@@ -136,7 +133,7 @@ export class MatchService {
                 if (die[0] === die[1]) {
                     player.equalDie = (player.equalDie || 0) + 1;
                     if (player.equalDie === 3) {
-                        this.sendToJail(match, title, player);
+                        this.sendToJail(match, player);
                         console.log('3 pairs, go to jail');
                         return false;
                     }
@@ -148,33 +145,14 @@ export class MatchService {
         return true;
     }
 
-    private async onLand(player, match, position: number) {
-        player.position = position;
-        const title = match.board[position];
-        title.players.push(player.id);
-        switch (title.type) {
-            case 'start':
-                this.onPass(player, match, position);
-                break;
-            case 'prision':
-                player.prision = 2;
-                break;
-            case 'worldcup':
-                break;
-            case 'worldtour':
-                break;
-            case 'deed':
-                break;
-        }
-    }
-
-    private async afterLand(player, match, position: number, diceResult: number) {
+    private async onLand(player, match, position: number, diceResult: number) {
         const title = match.board[position];
         console.log(player.id, player.name, 'landed on', title);
         switch (title.type) {
             case 'start':
                 break;
             case 'prision':
+                player.prision = 2;
                 break;
             case 'worldcup':
                 const wcOptions = match.board.filter(t => {
@@ -259,7 +237,7 @@ export class MatchService {
                                 this.playerService.savePlayer(player);
                                 this.playerService.savePlayer(owner);
                                 this.saveAndBroadcastMatch(match);
-                                await this.afterLand(player, match, position, diceResult);
+                                await this.onLand(player, match, position, diceResult);
                             }
                         }
                     }
@@ -318,7 +296,7 @@ export class MatchService {
                 break;
             case 'chance':
                 const cards = [
-                    async () => this.sendToJail(match, title, player),
+                    async () => this.sendToJail(match, player),
                     async () => this.givePlayer(match, player, 50),
                     async () => this.givePlayer(match, player, 75),
                     async () => this.givePlayer(match, player, 100),
@@ -396,16 +374,13 @@ export class MatchService {
         return value;
     }
 
-    private sendToJail(match, title, player) {
-        player.position = 10;
-        const playerIndex = title.players.find(p => p === player.id);
-        title.players.splice(playerIndex, 1);
-        match.board[10].players.push(player.id);
-        this.playerService.savePlayer(player);
+    private sendToJail(match, player) {
+        this.move(match, player, 10);
     }
 
     private async onPass(player, match, position: number) {
         const title = match.board[position];
+        this.move(match, player, position);
         switch (title.type) {
             case 'start':
                 await this.givePlayer(match, player, 300);
@@ -475,6 +450,24 @@ export class MatchService {
         if (!namespace) return;
         this.postProcessMatch(match);
         namespace.emit('match', match);
+    }
+
+    private move(match, player, to: number) {
+        const fromTitle = match.board[player.position];
+        const toTitle = match.board[to];
+        const playerIndex = fromTitle.players.findIndex(p => p === player.id);
+        fromTitle.players.splice(playerIndex, 1);
+        toTitle.players.push(player.id);
+        player.position = to;
+        this.playerService.savePlayer(player);
+    }
+
+    private sleep(n: number) {
+        return new Promise(r => {
+            setTimeout(() => {
+                r();
+            }, n);
+        });
     }
 
 }
