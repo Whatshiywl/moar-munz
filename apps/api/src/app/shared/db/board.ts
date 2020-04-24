@@ -3,7 +3,7 @@ export const board = [
   {
     name: 'Start',
     type: 'start',
-    color: 'black',
+    color: 'grey',
     players: [],
   },
   {
@@ -19,7 +19,7 @@ export const board = [
   {
     name: 'Chance',
     type: 'chance',
-    color: 'black',
+    color: 'grey',
     players: [],
   },
   {
@@ -35,7 +35,7 @@ export const board = [
   {
     name: 'Telecom Company',
     type: 'company',
-    color: 'black',
+    color: 'grey',
     players: [],
     price: 150,
     multiplier: 40
@@ -43,7 +43,7 @@ export const board = [
   {
     name: 'First Rail',
     type: 'railroad',
-    color: 'black',
+    color: 'grey',
     players: [],
     level: 0,
     price: 200,
@@ -52,7 +52,7 @@ export const board = [
   {
     name: 'Oriental Av',
     type: 'deed',
-    color: 'lightblue',
+    color: 'deepskyblue',
     players: [],
     level: 0,
     price: 100,
@@ -62,13 +62,13 @@ export const board = [
   {
     name: 'Chance',
     type: 'chance',
-    color: 'black',
+    color: 'grey',
     players: [],
   },
   {
     name: 'Vermont Av',
     type: 'deed',
-    color: 'lightblue',
+    color: 'deepskyblue',
     players: [],
     level: 0,
     price: 100,
@@ -78,7 +78,7 @@ export const board = [
   {
     name: 'Connecticut Av',
     type: 'deed',
-    color: 'lightblue',
+    color: 'deepskyblue',
     players: [],
     level: 0,
     price: 120,
@@ -90,13 +90,13 @@ export const board = [
   {
     name: 'Prision',
     type: 'prision',
-    color: 'black',
+    color: 'grey',
     players: [],
   },
   {
     name: 'St. Charles Pl',
     type: 'deed',
-    color: 'pink',
+    color: 'darkviolet',
     players: [],
     level: 0,
     price: 140,
@@ -106,7 +106,7 @@ export const board = [
   {
     name: 'Eletric Company',
     type: 'company',
-    color: 'black',
+    color: 'grey',
     players: [],
     price: 200,
     multiplier: 50
@@ -114,7 +114,7 @@ export const board = [
   {
     name: 'States Av',
     type: 'deed',
-    color: 'pink',
+    color: 'darkviolet',
     players: [],
     level: 0,
     price: 140,
@@ -124,7 +124,7 @@ export const board = [
   {
     name: 'Virginia Av',
     type: 'deed',
-    color: 'pink',
+    color: 'darkviolet',
     players: [],
     level: 0,
     price: 160,
@@ -134,7 +134,7 @@ export const board = [
   {
     name: 'Second Railroad',
     type: 'railroad',
-    color: 'black',
+    color: 'grey',
     players: [],
     level: 0,
     price: 200,
@@ -153,7 +153,7 @@ export const board = [
   {
     name: 'Chance',
     type: 'chance',
-    color: 'black',
+    color: 'grey',
     players: [],
   },
   {
@@ -181,7 +181,7 @@ export const board = [
   {
     name: 'World Cup',
     type: 'worldcup',
-    color: 'black',
+    color: 'grey',
     players: [],
   },
   {
@@ -197,7 +197,7 @@ export const board = [
   {
     name: 'Chance',
     type: 'chance',
-    color: 'black',
+    color: 'grey',
     players: [],
   },
   {
@@ -223,7 +223,7 @@ export const board = [
   {
     name: 'Third Rail',
     type: 'railroad',
-    color: 'black',
+    color: 'grey',
     players: [],
     level: 0,
     price: 200,
@@ -252,7 +252,7 @@ export const board = [
   {
     name: 'Water Works',
     type: 'company',
-    color: 'black',
+    color: 'grey',
     players: [],
     price: 200,
     multiplier: 50,
@@ -271,14 +271,14 @@ export const board = [
   {
     name: 'World Tour',
     type: 'worldtour',
-    color: 'black',
+    color: 'grey',
     players: [],
     cost: 50
   },
   {
     name: 'Pacific Av',
     type: 'deed',
-    color: 'green',
+    color: 'forestgreen',
     players: [],
     level: 0,
     price: 300,
@@ -288,7 +288,7 @@ export const board = [
   {
     name: 'North Caroline Av',
     type: 'deed',
-    color: 'green',
+    color: 'forestgreen',
     players: [],
     level: 0,
     price: 300,
@@ -298,13 +298,13 @@ export const board = [
   {
     name: 'Chance',
     type: 'chance',
-    color: 'black',
+    color: 'grey',
     players: [],
   },
   {
     name: 'Pennsylvania Av',
     type: 'deed',
-    color: 'green',
+    color: 'forestgreen',
     players: [],
     level: 0,
     price: 320,
@@ -314,7 +314,7 @@ export const board = [
   {
     name: 'Fourth Rail',
     type: 'railroad',
-    color: 'black',
+    color: 'grey',
     players: [],
     level: 0,
     price: 200,
@@ -323,7 +323,7 @@ export const board = [
   {
     name: 'Freedom Oil',
     type: 'company',
-    color: 'black',
+    color: 'grey',
     players: [],
     price: 200,
     multiplier: 50
@@ -331,7 +331,7 @@ export const board = [
   {
     name: 'Park Pl',
     type: 'deed',
-    color: 'darkblue',
+    color: 'blue',
     players: [],
     level: 0,
     price: 350,
@@ -341,14 +341,14 @@ export const board = [
   {
     name: 'Income tax',
     type: 'tax',
-    color: 'black',
+    color: 'grey',
     players: [],
     tax: 0.1
   },
   {
     name: 'Broadwalk',
     type: 'deed',
-    color: 'darkblue',
+    color: 'blue',
     players: [],
     level: 0,
     price: 400,

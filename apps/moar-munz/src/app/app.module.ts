@@ -9,6 +9,7 @@ import { RoutingModule } from './routing.module';
 import { PlayComponent } from './play/play.component';
 import { HomeComponent } from './home/home.component';
 import { SocketService } from './shared/socket/socket.service';
+import { LightenPipe } from './shared/pipes/lighten.pipe';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -16,7 +17,8 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
   declarations: [
     AppComponent,
     HomeComponent,
-    PlayComponent
+    PlayComponent,
+    LightenPipe
   ],
   imports: [
     BrowserModule,

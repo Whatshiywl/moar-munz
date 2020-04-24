@@ -20,16 +20,17 @@
         [style.width.%]="100 / (match.lineLength + 1)"
         [style.height.%]="100 / (match.lineLength + 2)"
         [style.border]="'1px solid ' + title.color"
+        [style.backgroundColor]="title.color | lighten: 0.9"
         class="title">
             <p>{{title.name}}{{title.level ? ' ('+(title.level-1)+')' : ''}}{{title.worldcup ? ' WC' : ''}}</p>
             <p *ngIf="title.price">{{title.value ? 'Value: '+title.value : 'Price: '+title.price}}</p>
             <p *ngIf="title.currentRent">Rent: {{title.currentRent}}</p>
             <p *ngIf="title.multiplier">Multiplier: x{{title.multiplier}}</p>
             <p *ngIf="title.tax">Tax: {{100 * title.tax}}%</p>
-            <div *ngFor="let player of title.players" class="player-marker"
-            [style.right.px]="2"
-            [style.top.px]="2 + player.i * match.markerDistance"
-            [style.backgroundColor]="player.color"></div>
+            <div class="marker-wrapper">
+                <div *ngFor="let player of title.players" class="player-marker"
+                [style.backgroundColor]="player.color"></div>
+            </div>
         </div>
         <div class="board-center"
         [style.left.%]="100 / (match.lineLength + 1)"
