@@ -50,11 +50,9 @@ export class MatchService {
 
     async play(match: any, player: any) {
         if (match.locked) return;
-        if (player.lost) {
-            match.turn += 2;
-            this.saveAndBroadcastMatch(match);
-            return;
-        }
+        const playerTurn = match.players[match.turn % match.players.length];
+        if (playerTurn !== player.id) return;
+        if (player.lost) return;
         match.locked = true;
         this.saveAndBroadcastMatch(match);
         const move = await this.onStart(player, match);
@@ -79,7 +77,15 @@ export class MatchService {
             }
         }
         if (player.playAgain) player.playAgain = false;
-        else match.turn++;
+        else {
+            while(true) {
+                match.turn++;
+                const index = match.turn % match.players.length;
+                const id = match.players[index];
+                const nextPlayer = this.playerService.getPlayer(id);
+                if (!nextPlayer.lost) break;
+            }
+        }
         match.locked = false;
         this.playerService.savePlayer(player);
         this.saveAndBroadcastMatch(match);
@@ -164,7 +170,7 @@ export class MatchService {
                     if (t.type !== 'deed') return false;
                     if (!t.owner || t.owner !== player.id) return false;
                     return true;
-                }).map(t => `${t.name} (${t.rent[t.level - 1]})`);
+                }).map(t => `${t.name} (${this.getRawRent(t)})`);
                 if (!wcOptions.length) return;
                 const wcQuestions = this.socketService.ask(player.id,
                 `Set the location to host the next worldcup!`,
@@ -224,8 +230,7 @@ export class MatchService {
                         }
                     } else {
                         const owner = this.playerService.getPlayer(title.owner);
-                        let cost = title.rent[title.level - 1];
-                        if (title.worldcup) cost *= 2;
+                        const cost = this.getFullRent(match, title);
                         await this.transferFromTo(match, player, owner, cost);
                         const value = 2 * this.getTitleValue(title);
                         if (player.money >= value) {
@@ -286,7 +291,7 @@ export class MatchService {
                 } else {
                     if (title.owner !== player.id) {
                         const owner = this.playerService.getPlayer(title.owner);
-                        const cost = title.rent[title.level - 1];
+                        const cost = this.getRawRent(title);
                         await this.transferFromTo(match, player, owner, cost);
                     }
                 }
@@ -324,6 +329,27 @@ export class MatchService {
                 await card();
                 break;
         }
+    }
+
+    private getRawRent(title) {
+        return title.rent[title.level - 1];
+    }
+
+    private getFullRent(match, title) {
+        let rent = this.getRawRent(title);
+        if (match.worldcup === title.name) rent *= 2;
+        if (title.type === 'deed') {
+            const sameColor = match.board.filter(t => t.type === 'deed' && t.color === title.color);
+            const sameColorOwner = sameColor.filter(t => t.owner === title.owner);
+            if (sameColor.length === sameColorOwner.length) rent *= 2;
+            const titleIndex = match.board.findIndex(t => t.name === title.name);
+            const lineLength = match.board.length / 4;
+            const line = Math.floor(titleIndex / lineLength);
+            const sameLine = match.board.filter((t, i) => t.type === 'deed' && Math.floor(i / lineLength) === line);
+            const sameTileOwner = sameLine.filter(t => t.owner === title.owner);
+            if (sameLine.length === sameTileOwner.length) rent *= 2;
+        }
+        return rent;
     }
 
     private async givePlayer(match, player, amount: number) {
@@ -413,13 +439,10 @@ export class MatchService {
             if (title.owner) {
                 title.value = this.getTitleValue(title);
                 if (title.level) {
-                    title.currentRent = title.rent[title.level - 1];
+                    title.currentRent = this.getFullRent(match, title);
                 }
             }
-            if (match.worldcup === title.name) {
-                title.worldcup = true;
-                title.currentRent *= 2;
-            }
+            title.worldcup = match.worldcup === title.name;
             const j = t % lineLength;
             const s = Math.floor(t / lineLength);
             const pos = [ ];

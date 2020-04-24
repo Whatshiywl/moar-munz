@@ -4,8 +4,8 @@ Changelog
 [OK] Aumentar marcadores de jogadores
 [OK] Mostrar aluguel na pergunta de copa do mundo
 [OK] Mecanica de dados iguais
-Mecanica terrenos de mesma cor
-[BUG] Perder pula a vez do jogador seguinte
+[OK] Mecanica terrenos de mesma cor
+[OK] [BUG] Perder pula a vez do jogador seguinte
 Finalizar jogo quando tem vencedor
 
 1.2

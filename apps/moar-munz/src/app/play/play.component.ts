@@ -57,10 +57,7 @@ export class PlayComponent implements OnInit, OnDestroy {
         this.boardInput = { ...question, callback };
         console.log(this.boardInput);
         if (this.debug) {
-          if (question.options[0] === 'No') {
-            if (Math.random() < 0.6) this.onQuestionAnswer('No');
-            else this.onQuestionAnswer(sample(question.options));
-          }
+          this.onQuestionAnswer(sample(question.options));
         }
       });
       this.socket.emit('enter lobby', { id }, socketId => this.socketId = socketId);
