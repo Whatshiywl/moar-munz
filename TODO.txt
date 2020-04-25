@@ -6,7 +6,6 @@ Changelog
 [OK] Mecanica de dados iguais
 [OK] Mecanica terrenos de mesma cor
 [OK] [BUG] Perder pula a vez do jogador seguinte
-Finalizar jogo quando tem vencedor
 
 1.2
 Mostrar eventos
@@ -15,6 +14,7 @@ Mostrar eventos
 - Transactions
 - Perda
 Condicao de vitoria por monopolios
+Finalizar jogo quando tem vencedor
 
 1.3
 Escolher cidades clicando no tabuleiro

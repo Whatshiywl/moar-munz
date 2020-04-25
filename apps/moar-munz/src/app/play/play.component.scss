@@ -19,6 +19,7 @@
             position: absolute;
             display: flex;
             flex-direction: column;
+            box-sizing: border-box;
             
             >p {
                 margin: 2px 2px;
@@ -51,6 +52,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
+            box-sizing: border-box;
 
             .info-column {
                 display: flex;
