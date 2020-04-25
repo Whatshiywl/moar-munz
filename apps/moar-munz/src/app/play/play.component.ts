@@ -21,7 +21,11 @@ export class PlayComponent implements OnInit, OnDestroy {
   match;
   isMyTurn: boolean;
 
-  boardInput;
+  notificationData: {
+    message: string;
+    options?: string[];
+    callback?: (answer: string) => void;
+  };
 
   targetViewportDimentions = {
     w: 0, h: 0
@@ -54,11 +58,13 @@ export class PlayComponent implements OnInit, OnDestroy {
         }
       })
       this.socket.on('ask question', (question, callback) => {
-        this.boardInput = { ...question, callback };
-        console.log(this.boardInput);
+        this.notificationData = { ...question, callback };
         if (this.debug) {
           this.onQuestionAnswer(sample(question.options));
         }
+      });
+      this.socket.on('notification', (message: string) => {
+        this.notificationData = { message };
       });
       this.socket.emit('enter lobby', { id }, socketId => this.socketId = socketId);
     });
@@ -74,8 +80,8 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   onQuestionAnswer(answer: string) {
-    this.boardInput.callback(answer);
-    this.boardInput = undefined;
+    this.notificationData.callback(answer);
+    this.notificationData = undefined;
   }
 
 }

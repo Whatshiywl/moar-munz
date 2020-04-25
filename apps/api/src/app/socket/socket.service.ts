@@ -38,12 +38,19 @@ export class SocketService implements OnGatewayInit, OnGatewayConnection, OnGate
         const client = this.clientMap[id];
         if (!client) return undefined;
         return new Promise<A>((resolve, reject) => {
+            console.log(`Question: ${question}`);
             client.emit('ask question', {
-                question, options
+                message: question, options
             }, (answer: A) => {
-                console.log('ANSWER', answer);
+                console.log(`Answer: ${answer}`);
                 resolve(answer);
             });
         });
+    }
+
+    notify(id: string, message: string) {
+        const client = this.clientMap[id];
+        if (!client) return undefined;
+        client.emit('notification', message);
     }
 }

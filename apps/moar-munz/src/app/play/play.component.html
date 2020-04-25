@@ -59,10 +59,12 @@
                     </div>
                 </div>
             </div>
-            <div *ngIf="boardInput" class="board-input">
-                <span>{{boardInput.question}}</span>
-                <button *ngFor="let option of boardInput.options"
+            <div *ngIf="notificationData" class="board-input">
+                <pre>{{notificationData.message}}</pre>
+                <button *ngFor="let option of notificationData?.options"
                 (click)="onQuestionAnswer(option)">{{option}}</button>
+                <button *ngIf="!notificationData.options"
+                (click)="notificationData = undefined">OK</button>
             </div>
             <div class="board-info"></div>
         </div>

@@ -109,6 +109,10 @@
                 flex-shrink: 10000;
                 overflow-y: auto;
 
+                >pre {
+                    font: inherit;
+                }
+
                 >button {
                     margin: 2px 0;
                 }
