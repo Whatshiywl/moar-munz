@@ -5,6 +5,7 @@ Escolher cidades clicando no tabuleiro
 Iluminar propriedades ao passar mouse pelo nome do jogador
 Iluminar jogador ao passar mouse pela propriedade
 Iluminar propriedade ao passar mouse pela opção
+Condicao de vitoria por monopolios
 
 1.2
 [OK] Mostrar eventos
@@ -12,8 +13,7 @@ Iluminar propriedade ao passar mouse pela opção
 - Deeds
 - Transactions
 - Perda
-Condicao de vitoria por monopolios
-Finalizar jogo quando tem vencedor
+[OK] Finalizar jogo quando tem vencedor
 
 [OK] 1.1
 [OK] Aumentar marcadores de jogadores

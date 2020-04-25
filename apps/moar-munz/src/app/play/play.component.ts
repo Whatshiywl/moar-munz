@@ -54,13 +54,17 @@ export class PlayComponent implements OnInit, OnDestroy {
         this.match = match;
         this.isMyTurn = match.playerTurn.id === this.socketId;
         if (this.debug) {
-          if (this.isMyTurn) this.throwDice();
+          setTimeout(() => {
+            if (this.isMyTurn) this.throwDice();
+          }, 100);
         }
       })
       this.socket.on('ask question', (question, callback) => {
         this.notificationData = { ...question, callback };
         if (this.debug) {
-          this.onQuestionAnswer(sample(question.options));
+          setTimeout(() => {
+            this.onQuestionAnswer(sample(question.options));
+          }, 100);
         }
       });
       this.socket.on('notification', (message: string) => {

@@ -73,12 +73,10 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     @SubscribeMessage('throw dice')
     async onThrowDice(@ConnectedSocket() client: Socket) {
-        console.log('onThrowDice', client.id);
         const player = this.playerService.getPlayer(client.id);
         if (!player) return;
         const match = this.matchService.getMatch(player.lobby);
         if (!match) return;
-        console.log('play', client.id);
         await this.matchService.play(match, player);
     }
 

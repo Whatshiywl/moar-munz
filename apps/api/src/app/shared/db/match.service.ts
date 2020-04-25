@@ -54,6 +54,7 @@ export class MatchService {
         if (playerTurn !== player.id) return;
         if (player.lost) return;
         match.locked = true;
+        console.log(`${player.name}'s turn`);
         this.saveAndBroadcastMatch(match);
         const move = await this.onStart(player, match);
         this.saveAndBroadcastMatch(match);
@@ -344,8 +345,8 @@ export class MatchService {
     private async givePlayer(match, player, amount: number, origin?: string | boolean) {
         while (player.properties.length && player.money + amount < 0) {
             const options = player.properties.map(name => {
-                const title = match.board.find(t => t.name === name);
-                const value = this.getTitleValue(title);
+                const prop = match.board.find(t => t.name === name);
+                const value = this.getTitleValue(prop);
                 return `${name} (${value})`;
             });
             const question = this.socketService.ask(player.id,
@@ -369,10 +370,13 @@ export class MatchService {
         }
         const startAmount = player.money;
         player.money += amount;
+        const title = match.board[player.position];
         if (player.money < 0) {
             console.log(`${player.name} LOSES`);
             player.money = 0;
             player.lost = true;
+            const playerIndex = title.players.findIndex(id => id === player.id);
+            title.players.splice(playerIndex, 1);
             const lost = [ ];
             const notLost = match.players.filter(id => {
                 if (id === player.id) return false;
@@ -396,7 +400,6 @@ export class MatchService {
             }
         } else {
             if (origin !== false) {
-                const title = match.board[player.position];
                 const ori = origin === true ? title.name : origin;
                 const got = amount > 0;
                 const val = Math.abs(amount);
