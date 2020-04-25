@@ -49,7 +49,7 @@ export class MatchService {
     }
 
     async play(match: any, player: any) {
-        if (match.locked) return;
+        if (match.locked || match.over) return;
         const playerTurn = match.players[match.turn % match.players.length];
         if (playerTurn !== player.id) return;
         if (player.lost) return;
@@ -370,10 +370,30 @@ export class MatchService {
         const startAmount = player.money;
         player.money += amount;
         if (player.money < 0) {
-            console.log(`${player.id} LOSES`);
+            console.log(`${player.name} LOSES`);
             player.money = 0;
             player.lost = true;
-            this.socketService.notify(player.id, `You have lost. Git gud.`);
+            const lost = [ ];
+            const notLost = match.players.filter(id => {
+                if (id === player.id) return false;
+                const otherPlayer = this.playerService.getPlayer(id);
+                if (otherPlayer.lost) {
+                    lost.push(id);
+                    return false;
+                } else return true;
+            });
+            if (notLost.length === 1) {
+                const winner = this.playerService.getPlayer(notLost[0]);
+                console.log(`${player.name} WINS`);
+                this.socketService.notify(winner.id, 'You have won!');
+                lost.forEach(id => {
+                    this.socketService.notify(id, `${winner.name} has won!`);
+                });
+                winner.won = true;
+                match.over = true;
+            } else {
+                this.socketService.notify(player.id, `You have lost. Git gud.`);
+            }
         } else {
             if (origin !== false) {
                 const title = match.board[player.position];
@@ -393,7 +413,7 @@ export class MatchService {
         console.log(`Transfering ${amount} from ${from.name} to ${to.name}`);
         amount = await this.givePlayer(match, from, -amount, to.name);
         console.log(`${to.name} will receive ${-amount}`);
-        await this.givePlayer(match, to, -amount, from.name);
+        await this.givePlayer(match, to, -amount, !to.won ? from.name : false);
         this.saveAndBroadcastMatch(match);
     }
 
