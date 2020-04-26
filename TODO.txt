@@ -5,9 +5,9 @@ Changelog
 
 1.3
 [OK] Escolher cidades clicando no tabuleiro
-Iluminar propriedades ao passar mouse pelo nome do jogador
-Iluminar jogador ao passar mouse pela propriedade
-Iluminar propriedade ao passar mouse pela opção
+[OK] Iluminar propriedades ao passar mouse pelo nome do jogador
+[OK] Iluminar jogador ao passar mouse pela propriedade
+[OK] Iluminar propriedade ao passar mouse pela opção
 Condicao de vitoria por monopolios
 
 1.2.1

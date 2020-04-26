@@ -107,4 +107,47 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.titleClicked$.next(title);
   }
 
+  onTitleMouseEnter(title) {
+    this.highlightTitle(title, true);
+  }
+
+  onTitleMouseLeave(title) {
+    this.highlightTitle(title, false);
+  }
+
+  onPlayerMouseEnter(player) {
+    player.properties.map(p => {
+      return this.match.board.find(title => title.name === p);
+    }).forEach(t => {
+      this.highlightTitle(t, true)
+    });
+  }
+
+  onPlayerMouseLeave(player) {
+    player.properties.map(p => {
+      return this.match.board.find(title => title.name === p);
+    }).forEach(t => {
+      this.highlightTitle(t, false)
+    });
+  }
+
+  onOptionMouseEnter(option) {
+    const title = this.match.board.find(t => option.includes(t.name));
+    if (!title) return;
+    this.highlightTitle(title, true);
+  }
+
+  onOptionMouseLeave(option) {
+    const title = this.match.board.find(t => option.includes(t.name));
+    if (!title) return;
+    this.highlightTitle(title, false);
+  }
+
+  highlightTitle(title, state: boolean) {
+    title.highlighted = state;
+    const owner = this.match.players.find(p => p.id === title.owner);
+    if (!owner) return;
+    owner.highlighted = state;
+  }
+
 }
