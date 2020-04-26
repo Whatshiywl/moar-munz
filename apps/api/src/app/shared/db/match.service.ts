@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { cloneDeep, sample } from 'lodash';
+import { cloneDeep, sample, groupBy } from 'lodash';
 import { LowDbService } from '../lowdb/lowdb.service';
 import { PlayerService } from './player.service';
 import { board } from './board';
@@ -196,6 +196,10 @@ export class MatchService {
                         const amount = title.price + cost;
                         await this.givePlayer(match, player, -amount, false);
                         title.level = answerValue + 1;
+                        const monopolies = this.getPlayerMonopolies(match, player);
+                        if (monopolies >= 4) {
+                            this.win(match, player);
+                        }
                     }
                 } else {
                     if (title.owner === player.id) {
@@ -297,6 +301,7 @@ export class MatchService {
             case 'chance':
                 const cards = [
                     async () => this.sendToJail(match, player),
+                    async () => this.move(match, player, 0),
                     async () => this.givePlayer(match, player, 50, true),
                     async () => this.givePlayer(match, player, 75, true),
                     async () => this.givePlayer(match, player, 100, true),
@@ -319,6 +324,19 @@ export class MatchService {
                 await card();
                 break;
         }
+    }
+
+    private getPlayerMonopolies(match, player) {
+        const colorGroups = groupBy(match.board, 'color');
+        let monopolies = 0;
+        Object.keys(colorGroups)
+        .filter(key => key !== 'undefined')
+        .map(key => colorGroups[key])
+        .forEach(group => {
+            const ownedByPlayer = group.filter(p => p.owner === player.id);
+            if (ownedByPlayer.length === group.length) monopolies++;
+        });
+        return monopolies;
     }
 
     private getRawRent(title) {
@@ -388,13 +406,7 @@ export class MatchService {
             });
             if (notLost.length === 1) {
                 const winner = this.playerService.getPlayer(notLost[0]);
-                console.log(`${player.name} WINS`);
-                this.socketService.notify(winner.id, 'You have won!');
-                lost.forEach(id => {
-                    this.socketService.notify(id, `${winner.name} has won!`);
-                });
-                winner.won = true;
-                match.over = true;
+                this.win(match, winner);
             } else {
                 this.socketService.notify(player.id, `You have lost. Git gud.`);
             }
@@ -410,6 +422,20 @@ export class MatchService {
         }
         this.playerService.savePlayer(player);
         return player.money - startAmount;
+    }
+
+    private win(match, winner) {
+        console.log(`${winner.name} WINS`);
+        this.socketService.notify(winner.id, 'You have won!');
+        const lost = match.players.filter(p => p !== winner.id);
+        lost.forEach(id => {
+            this.socketService.notify(id, `${winner.name} has won!`);
+            const player = this.playerService.getPlayer(id);
+            player.lost = true;
+            this.playerService.savePlayer(player);
+        });
+        winner.won = true;
+        match.over = true;
     }
 
     private async transferFromTo(match, from, to, amount: number) {
