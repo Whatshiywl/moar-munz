@@ -77,7 +77,7 @@ export class MatchService {
                 }
             }
         }
-        if (player.playAgain) player.playAgain = false;
+        if (player.playAgain && !player.lost) player.playAgain = false;
         else {
             while(true) {
                 match.turn++;

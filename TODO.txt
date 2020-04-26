@@ -1,11 +1,17 @@
 Changelog
 
+1.4
+...
+
 1.3
 Escolher cidades clicando no tabuleiro
 Iluminar propriedades ao passar mouse pelo nome do jogador
 Iluminar jogador ao passar mouse pela propriedade
 Iluminar propriedade ao passar mouse pela opção
 Condicao de vitoria por monopolios
+
+1.2.1
+[OK] [BUG] Perder com dado duplo buga o jogo
 
 1.2
 [OK] Mostrar eventos
