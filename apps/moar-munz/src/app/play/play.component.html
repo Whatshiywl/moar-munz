@@ -21,7 +21,7 @@
         [style.height.%]="100 / (match.lineLength + 2)"
         [style.border]="'1px solid ' + title.color"
         [style.backgroundColor]="title.color | lighten: 0.9"
-        class="title">
+        class="title" (click)="onTitleClicked(title)">
             <p>{{title.name}}{{title.level ? ' ('+(title.level-1)+')' : ''}}{{title.worldcup ? ' WC' : ''}}</p>
             <p *ngIf="title.price">{{title.value ? 'Value: '+title.value : 'Price: '+title.price}}</p>
             <p *ngIf="title.currentRent">Rent: {{title.currentRent}}</p>

@@ -3,7 +3,8 @@ import { ActivatedRoute } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { FormControl } from '@angular/forms';
 import { sample } from 'lodash';
-import { debounceTime } from 'rxjs/operators';
+import { debounceTime, first } from 'rxjs/operators';
+import { Subject, Subscription } from 'rxjs';
 
 @Component({
   selector: 'moar-munz-play',
@@ -26,10 +27,13 @@ export class PlayComponent implements OnInit, OnDestroy {
     options?: string[];
     callback?: (answer: string) => void;
   };
+  answerSubscription: Subscription;
 
   targetViewportDimentions = {
     w: 0, h: 0
   };
+
+  titleClicked$: Subject<any>;
   
   constructor(
     private socket: SocketService,
@@ -42,6 +46,7 @@ export class PlayComponent implements OnInit, OnDestroy {
       if (value === undefined) return;
       this.socket.emit('ready', value);
     });
+    this.titleClicked$ = new Subject<any>();
     this.route.params.subscribe(params => {
       const id = params.id;
       this.socket.connect();
@@ -60,12 +65,22 @@ export class PlayComponent implements OnInit, OnDestroy {
         }
       })
       this.socket.on('ask question', (question, callback) => {
+        console.log('question asked')
         this.notificationData = { ...question, callback };
         if (this.debug) {
           setTimeout(() => {
             this.onQuestionAnswer(sample(question.options));
           }, 100);
         }
+        if (this.answerSubscription) this.answerSubscription.unsubscribe();
+        this.answerSubscription = this.titleClicked$
+        .subscribe(title => {
+          const clickAnswer = question.options.find(o => o.includes(title.name));
+          if (clickAnswer) {
+            this.onQuestionAnswer(clickAnswer);
+            this.answerSubscription.unsubscribe();
+          }
+        });
       });
       this.socket.on('notification', (message: string) => {
         this.notificationData = { message };
@@ -86,6 +101,10 @@ export class PlayComponent implements OnInit, OnDestroy {
   onQuestionAnswer(answer: string) {
     this.notificationData.callback(answer);
     this.notificationData = undefined;
+  }
+
+  onTitleClicked(title) {
+    this.titleClicked$.next(title);
   }
 
 }
