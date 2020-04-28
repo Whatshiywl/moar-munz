@@ -12,7 +12,7 @@ import { Subject, Subscription } from 'rxjs';
   styleUrls: ['./play.component.scss']
 })
 export class PlayComponent implements OnInit, OnDestroy {
-  debug = true;
+  debug = false;
 
   ready = new FormControl(false);
   socketId: string;
