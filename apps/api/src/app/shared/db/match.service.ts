@@ -234,7 +234,7 @@ export class MatchService {
                             const answer = await question;
                             if (answer === 'Yes') {
                                 await this.transferFromTo(match, player, owner, value);
-                                const titleIndex = owner.properties.findIndex(t => t.name === title.name);
+                                const titleIndex = owner.properties.findIndex(name => name === title.name);
                                 owner.properties.splice(titleIndex, 1);
                                 player.properties.push(title.name);
                                 title.owner = player.id;
