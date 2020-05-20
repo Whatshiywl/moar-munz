@@ -2,6 +2,7 @@ Changelog
 
 1.4.1
 Corrige bug na compra de propriedades de outros jogadores
+Slight improvement on inner interface
 
 1.4
 Melhorar indicadores de casas, copas e monopolios

@@ -41,7 +41,7 @@
         [style.width.%]="100 * (match.lineLength - 1) / (match.lineLength + 1)"
         [style.height.%]="100 * (match.lineLength - 1) / (match.lineLength + 2)">
             <div class="info-column">
-                <h1>Game</h1>
+                <p>Last roll:</p>
                 <div class="dice">
                     <div>{{match?.lastDice[0]}}</div>
                     <div>{{match?.lastDice[1]}}</div>
@@ -59,7 +59,7 @@
                     (mouseleave)="onPlayerMouseLeave(player)">
                         <span [style.textDecoration]="player.id == socketId ? 'underline' : 'none'"
                         [style.color]="player.color">{{player.name}}</span>
-                        <span>{{player.money}}</span>
+                        <span><strong>$ {{player.money}}</strong></span>
                         <span *ngFor="let property of player.properties"
                         style="font-size: smaller;">{{property}}</span>
                     </div>
