@@ -1,11 +1,11 @@
 Changelog
 
-1.4.1
-Corrige bug na compra de propriedades de outros jogadores
-Slight improvement on inner interface
-
 1.4
 Melhorar indicadores de casas, copas e monopolios
+
+1.3.1
+[OK] Corrige bug na compra de propriedades de outros jogadores
+[OK] Slight improvement on inner interface
 
 1.3
 [OK] Escolher cidades clicando no tabuleiro
