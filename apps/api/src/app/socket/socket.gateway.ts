@@ -27,9 +27,9 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     @SubscribeMessage('enter lobby')
     onEnterLobby(@MessageBody() data: { id: string }, @ConnectedSocket() client: Socket) {
         const lobby = this.lobbyService.getLobby(data.id);
-        if (!lobby) return;
+        if (!lobby || !lobby.open) return false;
         const player = this.playerService.generatePlayer(client.id);
-        if (!player) return;
+        if (!player) return false;
         if (!lobby.players.includes(client.id)) {
             lobby.players.push(client.id);
             player.lobby = data.id;
@@ -63,12 +63,14 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         if (!lobby) return;
         player.ready = ready;
         this.playerService.savePlayer(player);
-        this.notifyLobbyChanges(lobby);
-        for (const playerId of lobby.players) {
-            const p = this.playerService.getPlayer(playerId);
-            if (!p.ready) return;
+        const everyoneReady = this.isEveryoneReady(lobby);
+        if (everyoneReady) {
+            lobby.open = false;
+            this.lobbyService.saveLobby(lobby);
+            this.notifyStartGame(lobby);
+        } else {
+            this.notifyLobbyChanges(lobby);
         }
-        this.notifyStartGame(lobby);
     }
 
     @SubscribeMessage('throw dice')
@@ -78,6 +80,14 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         const match = this.matchService.getMatch(player.lobby);
         if (!match) return;
         await this.matchService.play(match, player);
+    }
+
+    private isEveryoneReady(lobby) {
+        for (const playerId of lobby.players) {
+            const p = this.playerService.getPlayer(playerId);
+            if (!p.ready) return false;
+        }
+        return true;
     }
 
     private notifyLobbyChanges(l) {

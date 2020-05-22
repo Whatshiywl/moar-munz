@@ -1,5 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { FormControl } from '@angular/forms';
 import { sample } from 'lodash';
@@ -37,7 +37,8 @@ export class PlayComponent implements OnInit, OnDestroy {
   
   constructor(
     private socket: SocketService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) { }
 
   ngOnInit() {
@@ -85,7 +86,15 @@ export class PlayComponent implements OnInit, OnDestroy {
       this.socket.on('notification', (message: string) => {
         this.notificationData = { message };
       });
-      this.socket.emit('enter lobby', { id }, socketId => this.socketId = socketId);
+      this.socket.emit('enter lobby', { id }, socketId => {
+        console.log('socketId', socketId);
+        if (socketId) {
+          this.socketId = socketId;
+        } else {
+          alert('This lobby has closed! :(');
+          this.router.navigate([ '/' ]);
+        }
+      });
     });
   }
 

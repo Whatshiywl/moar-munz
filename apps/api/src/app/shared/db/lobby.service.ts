@@ -13,6 +13,7 @@ export class LobbyService {
     generateLobby() {
         const lobby = {
             id: this.uuidService.generateUUID(),
+            open: true,
             players: [ ]
         };
         this.db.createLobby(lobby);
