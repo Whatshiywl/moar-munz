@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { FormControl } from '@angular/forms';
 import { sample } from 'lodash';
-import { debounceTime, first } from 'rxjs/operators';
+import { debounceTime } from 'rxjs/operators';
 import { Subject, Subscription } from 'rxjs';
 
 @Component({
@@ -15,7 +15,7 @@ export class PlayComponent implements OnInit, OnDestroy {
   debug = false;
 
   ready = new FormControl(false);
-  socketId: string;
+  uuid: string;
 
   lobby;
 
@@ -42,6 +42,8 @@ export class PlayComponent implements OnInit, OnDestroy {
   ) { }
 
   ngOnInit() {
+    console.log('play component on init', this.debug);
+    this.uuid = sessionStorage.getItem('uuid');
     this.ready.setValue(false);
     this.ready.valueChanges.pipe(debounceTime(300)).subscribe(value => {
       if (value === undefined) return;
@@ -58,7 +60,7 @@ export class PlayComponent implements OnInit, OnDestroy {
       this.socket.on('match', match => {
         console.log('match', match);
         this.match = match;
-        this.isMyTurn = match.playerTurn.id === this.socketId;
+        this.isMyTurn = match.playerTurn.id === this.uuid;
         if (this.debug) {
           setTimeout(() => {
             if (this.isMyTurn) this.throwDice();
@@ -86,11 +88,8 @@ export class PlayComponent implements OnInit, OnDestroy {
       this.socket.on('notification', (message: string) => {
         this.notificationData = { message };
       });
-      this.socket.emit('enter lobby', { id }, socketId => {
-        console.log('socketId', socketId);
-        if (socketId) {
-          this.socketId = socketId;
-        } else {
+      this.socket.emit('enter lobby', { id }, (response: { token: string, uuid: string }) => {
+        if (!response) {
           alert('This lobby has closed! :(');
           this.router.navigate([ '/' ]);
         }

@@ -517,7 +517,8 @@ export class MatchService {
         let namespace;
         for (let i = 0; i < match.players.length; i++) {
             const id = match.players[i];
-            namespace = (namespace || this.socketService.getServer()).to(id);
+            const socketId = this.socketService.getClient(id).id;
+            namespace = (namespace || this.socketService.getServer()).to(socketId);
             const player = this.playerService.getPlayer(id);
             match.players[i] = player;
         }

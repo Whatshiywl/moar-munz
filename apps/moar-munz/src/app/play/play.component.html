@@ -2,12 +2,12 @@
     <h1>Lobby</h1>
     <div class="player-wrapper">
         <div *ngFor="let player of lobby?.players">
-            <input *ngIf="player.id == socketId" type="checkbox"
+            <input *ngIf="player.id == uuid" type="checkbox"
             [formControl]="ready">
-            <input *ngIf="player.id != socketId" type="checkbox"
+            <input *ngIf="player.id != uuid" type="checkbox"
             [checked]="player.ready" disabled>
     
-            <span [style.textDecoration]="player.id == socketId ? 'underline' : 'none'"
+            <span [style.textDecoration]="player.id == uuid ? 'underline' : 'none'"
             [style.color]="player.color">{{player.name}}</span>
         </div>
     </div>
@@ -45,9 +45,7 @@
                 <div class="dice">
                     <div>{{match?.lastDice[0]}}</div>
                     <div>{{match?.lastDice[1]}}</div>
-                </div>
-                <div [style.visibility]="isMyTurn ? 'visible' : 'hidden'" class="actions">
-                    <button (click)="throwDice()">Play!</button>
+                    <button [style.visibility]="isMyTurn ? 'visible' : 'hidden'" (click)="throwDice()">Play!</button>
                 </div>
                 <div class="player-list">
                     <div *ngFor="let player of match?.players; let i = index"
@@ -57,7 +55,7 @@
                     [style.box-shadow]="player.highlighted ? '0 0 10px 0 ' + player.color : ''"
                     (mouseenter)="onPlayerMouseEnter(player)"
                     (mouseleave)="onPlayerMouseLeave(player)">
-                        <span [style.textDecoration]="player.id == socketId ? 'underline' : 'none'"
+                        <span [style.textDecoration]="player.id == uuid ? 'underline' : 'none'"
                         [style.color]="player.color">{{player.name}}</span>
                         <span><strong>$ {{player.money}}</strong></span>
                         <span *ngFor="let property of player.properties"

@@ -1,63 +1,78 @@
-import { WebSocketGateway, SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect, WebSocketServer } from '@nestjs/websockets';
+import { WebSocketGateway, SubscribeMessage, MessageBody, ConnectedSocket, OnGatewayInit, OnGatewayDisconnect } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { cloneDeep } from 'lodash';
 import { LobbyService } from '../shared/db/lobby.service';
 import { PlayerService } from '../shared/db/player.service';
 import { MatchService } from '../shared/db/match.service';
 import { SocketService } from './socket.service';
+import { JWTService } from '../shared/jwt/jwt.service';
+import { UUIDService } from '../shared/uuid/uuid.service';
 
 @WebSocketGateway()
-export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class SocketGateway implements OnGatewayInit, OnGatewayDisconnect {
 
     constructor(
         private lobbyService: LobbyService,
         private playerService: PlayerService,
         private matchService: MatchService,
-        private socketService: SocketService
+        private socketService: SocketService,
+        private uuidService: UUIDService,
+        private jwtService: JWTService
     ) { }
 
     afterInit() {
-        console.log('server init');
+        // console.log('server init');
     }
 
-    handleConnection(@ConnectedSocket() client: Socket) {
-        console.log('handleConnection', client.id);
-    }
+    // handleConnection(@ConnectedSocket() client: Socket) {
+    //     const token = client.handshake.query.token;
+    //     const data = this.jwtService.getPayload(token);
+    //     console.log(`handleConnection ${data.uuid} ${client.id}`);
+    // }
 
     @SubscribeMessage('enter lobby')
-    onEnterLobby(@MessageBody() data: { id: string }, @ConnectedSocket() client: Socket) {
-        const lobby = this.lobbyService.getLobby(data.id);
+    onEnterLobby(@MessageBody() lobbyQuery: { id: string }, @ConnectedSocket() client: Socket) {
+        const lobby = this.lobbyService.getLobby(lobbyQuery.id);
         if (!lobby || !lobby.open) return false;
-        const player = this.playerService.generatePlayer(client.id);
+        let token = client.handshake.query.token;
+        if (!token) {
+            const uuid = this.uuidService.generateUUID(2);
+            token = this.jwtService.genToken({ uuid });
+        }
+        const payload = this.jwtService.getPayload(token);
+        const player = this.playerService.generatePlayer(payload.uuid);
         if (!player) return false;
-        if (!lobby.players.includes(client.id)) {
-            lobby.players.push(client.id);
-            player.lobby = data.id;
+        if (!lobby.players.includes(payload.uuid)) {
+            lobby.players.push(payload.uuid);
+            player.lobby = lobbyQuery.id;
         }
         this.lobbyService.saveLobby(lobby);
         this.playerService.savePlayer(player);
         this.notifyLobbyChanges(lobby);
-        return client.id;
+        return { token, uuid: payload.uuid };
     }
 
     handleDisconnect(@ConnectedSocket() client: Socket) {
-        console.log('handleDisconnect', client.id);
-        const player = this.playerService.getPlayer(client.id);
+        const token = client.handshake.query.token;
+        const payload = this.jwtService.getPayload(token);
+        const player = this.playerService.getPlayer(payload.uuid);
         if (!player) return;
         const lobby = this.lobbyService.getLobby(player.lobby);
         if (!lobby) return;
-        const index = lobby.players.findIndex(s => s === client.id);
+        const index = lobby.players.findIndex(s => s === payload.uuid);
         lobby.players.splice(index, 1);
         this.lobbyService.saveLobby(lobby);
-        this.playerService.deletePlayer(client.id);
+        this.playerService.deletePlayer(payload.uuid);
         this.notifyLobbyChanges(lobby);
         return lobby;
     }
 
     @SubscribeMessage('ready')
     onReady(@MessageBody() ready: boolean, @ConnectedSocket() client: Socket) {
-        console.log('onReady', client.id);
-        const player = this.playerService.getPlayer(client.id);
+        const token = client.handshake.query.token;
+        const payload = this.jwtService.getPayload(token);
+        console.log('onReady', payload.uuid);
+        const player = this.playerService.getPlayer(payload.uuid);
         if (!player) return;
         const lobby = this.lobbyService.getLobby(player.lobby);
         if (!lobby) return;
@@ -75,7 +90,9 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     @SubscribeMessage('throw dice')
     async onThrowDice(@ConnectedSocket() client: Socket) {
-        const player = this.playerService.getPlayer(client.id);
+        const token = client.handshake.query.token;
+        const payload = this.jwtService.getPayload(token);
+        const player = this.playerService.getPlayer(payload.uuid);
         if (!player) return;
         const match = this.matchService.getMatch(player.lobby);
         if (!match) return;
@@ -95,7 +112,8 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         let namespace;
         for (let i = 0; i < lobby.players.length; i++) {
             const id = lobby.players[i];
-            namespace = (namespace || this.socketService.getServer()).to(id);
+            const socketId = this.socketService.getClient(id).id;
+            namespace = (namespace || this.socketService.getServer()).to(socketId);
             const player = this.playerService.getPlayer(id);
             player.color = this.getPlayerColors(i);
             this.playerService.savePlayer(player);

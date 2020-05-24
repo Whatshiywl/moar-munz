@@ -1,13 +1,16 @@
 Changelog
 
-1.5
+1.6
 Melhorar indicadores de casas, copas e monopolios
+
+1.5
+Implementar jogadores AI
+Permitir saída de jogadores no meio da partida (entra AI no lugar)
 
 1.4
 [OK] Impedir entrada de novos jogadores no meio da partida
+Remover jogadores que sairem no meio da partida
 Reconectar jogador se reconexão ocorrer dentro de um timeout
-Implementar jogadores AI
-Permitir saída de jogadores no meio da partida (entra AI no lugar)
 
 1.3.1
 [OK] Corrige bug na compra de propriedades de outros jogadores

@@ -5,7 +5,13 @@ import { Socket } from 'ngx-socket-io';
 export class SocketService extends Socket {
 
     constructor() {
-        super ({ url: window.location.origin, options: { autoConnect: false } });
+        super ({
+            url: window.location.origin,
+            options: {
+                autoConnect: false,
+                query: `token=${sessionStorage.getItem('token')}`
+            }
+        });
     }
 
 }

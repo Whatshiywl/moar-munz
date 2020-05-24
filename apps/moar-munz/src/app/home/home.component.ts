@@ -14,9 +14,8 @@ export class HomeComponent {
     ) {}
 
   async createNewGame() {
-    //http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
-    const response = await this.http.get<{uuid: string}>('/api/v1/uuid').toPromise();
-    this.router.navigate([ `/play/${response.uuid}` ]);
+    const lobbyResponse = await this.http.post<{ id: string }>('/api/v1/lobby', undefined).toPromise();
+    this.router.navigate([ `/play/${lobbyResponse.id}` ]);
   }
 
 }

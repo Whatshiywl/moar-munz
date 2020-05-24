@@ -3,9 +3,9 @@ import { Injectable } from '@nestjs/common';
 @Injectable()
 export class UUIDService {
 
-    generateUUID() {
+    //http://stackoverflow.com/questions/105034/how-to-create-a-guid-uuid-in-javascript
+    generateUUID(batches = 1) {
         const radix = 36;
-        const batches = 1;
         const batchSize = 8;
         const arr = [ ];
         for (let i = 0; i < batches; i++) {

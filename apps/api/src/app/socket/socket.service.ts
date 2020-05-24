@@ -1,41 +1,59 @@
 import { WebSocketServer, WebSocketGateway, ConnectedSocket, OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { JWTService } from '../shared/jwt/jwt.service';
 
 @WebSocketGateway()
 export class SocketService implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server;
 
-    clientMap: {
-        [id: string]: Socket
+    sessions: {
+        [id: string]: {
+            token: string,
+            data: {
+                uuid: string
+            },
+            client: Socket
+        }
     };
 
-    constructor() { }
+    constructor(
+        private jwtService: JWTService
+    ) { }
 
     getServer() {
         return this.server;
     }
 
     getClient(id: string) {
-        return this.clientMap[id];
+        return (this.sessions[id] || { }).client;
     }
 
     afterInit() {
-        this.clientMap = { };
+        this.sessions = { };
     }
 
     handleConnection(@ConnectedSocket() client: Socket) {
-        console.log('mapped', client.id);
-        this.clientMap[client.id] = client;
+        const token = client.handshake.query.token;
+        const data = this.jwtService.getPayload(token);
+        console.log(`mapped ${data.uuid} ${client.id}`);
+        this.sessions[data.uuid] = {
+            token,
+            data,
+            client
+        }
     }
 
     handleDisconnect(@ConnectedSocket() client: Socket) {
-        delete this.clientMap[client.id];
+        const token = client.handshake.query.token;
+        const data = this.jwtService.getPayload(token);
+        console.log(`unmapped ${data.uuid} ${client.id}`);
+        delete this.sessions[data.uuid];
     }
 
     ask<T extends ReadonlyArray<unknown>>(id: string, question: string, options: T) {
         type A = typeof options[number];
-        const client = this.clientMap[id];
+        const client = this.getClient(id);
         if (!client) return undefined;
         return new Promise<A>((resolve, reject) => {
             console.log(`Question: ${question}`);
@@ -49,7 +67,7 @@ export class SocketService implements OnGatewayInit, OnGatewayConnection, OnGate
     }
 
     notify(id: string, message: string) {
-        const client = this.clientMap[id];
+        const client = this.getClient(id);
         if (!client) return undefined;
         client.emit('notification', message);
     }

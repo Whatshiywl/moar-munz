@@ -11,6 +11,7 @@ import { MatchService } from './shared/db/match.service';
 import { SocketGateway } from './socket/socket.gateway';
 import { LobbyService } from './shared/db/lobby.service';
 import { UUIDService } from './shared/uuid/uuid.service';
+import { JWTService } from './shared/jwt/jwt.service';
 import { PlayerService } from './shared/db/player.service';
 import { SocketService } from './socket/socket.service';
 
@@ -26,6 +27,7 @@ import { SocketService } from './socket/socket.service';
     AppService,
     SocketGateway,
     UUIDService,
+    JWTService,
     LowDbService,
     MatchService,
     LobbyService,
