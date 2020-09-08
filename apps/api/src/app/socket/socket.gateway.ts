@@ -9,7 +9,7 @@ import { JWTService } from '../shared/jwt/jwt.service';
 import { UUIDService } from '../shared/uuid/uuid.service';
 
 @WebSocketGateway()
-export class SocketGateway implements OnGatewayInit, OnGatewayDisconnect {
+export class SocketGateway implements OnGatewayDisconnect {
 
     constructor(
         private lobbyService: LobbyService,
@@ -19,16 +19,6 @@ export class SocketGateway implements OnGatewayInit, OnGatewayDisconnect {
         private uuidService: UUIDService,
         private jwtService: JWTService
     ) { }
-
-    afterInit() {
-        // console.log('server init');
-    }
-
-    // handleConnection(@ConnectedSocket() client: Socket) {
-    //     const token = client.handshake.query.token;
-    //     const data = this.jwtService.getPayload(token);
-    //     console.log(`handleConnection ${data.uuid} ${client.id}`);
-    // }
 
     @SubscribeMessage('enter lobby')
     onEnterLobby(@MessageBody() lobbyQuery: { id: string }, @ConnectedSocket() client: Socket) {
@@ -64,6 +54,8 @@ export class SocketGateway implements OnGatewayInit, OnGatewayDisconnect {
         this.lobbyService.saveLobby(lobby);
         this.playerService.deletePlayer(payload.uuid);
         this.notifyLobbyChanges(lobby);
+        this.matchService.removePlayer(player.lobby, payload.uuid);
+        this.socketService.disconnect(client);
         return lobby;
     }
 

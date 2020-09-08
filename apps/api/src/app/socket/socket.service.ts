@@ -1,9 +1,9 @@
-import { WebSocketServer, WebSocketGateway, ConnectedSocket, OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit } from '@nestjs/websockets';
+import { WebSocketServer, WebSocketGateway, ConnectedSocket, OnGatewayConnection, OnGatewayInit } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JWTService } from '../shared/jwt/jwt.service';
 
 @WebSocketGateway()
-export class SocketService implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
+export class SocketService implements OnGatewayInit, OnGatewayConnection {
     @WebSocketServer()
     server: Server;
 
@@ -44,7 +44,7 @@ export class SocketService implements OnGatewayInit, OnGatewayConnection, OnGate
         }
     }
 
-    handleDisconnect(@ConnectedSocket() client: Socket) {
+    disconnect(client: Socket) {
         const token = client.handshake.query.token;
         const data = this.jwtService.getPayload(token);
         console.log(`unmapped ${data.uuid} ${client.id}`);
