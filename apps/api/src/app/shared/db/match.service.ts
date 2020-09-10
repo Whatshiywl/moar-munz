@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { cloneDeep, sample, groupBy } from 'lodash';
 import { LowDbService } from '../lowdb/lowdb.service';
 import { PlayerService } from './player.service';
-import { board } from './board';
+import { BoardService } from './board.service';
 import { SocketService } from '../../socket/socket.service';
 
 @Injectable()
@@ -11,17 +11,19 @@ export class MatchService {
     constructor(
         private db: LowDbService,
         private playerService: PlayerService,
-        private socketService: SocketService
+        private socketService: SocketService,
+        private boardService: BoardService
     ) { }
 
-    generateMatch(...players: any[]) {
+    generateMatch(boardName: string, ...players: any[]) {
         const id = players[0].lobby;
+        const board = this.boardService.getBoard(boardName);
         const match = {
             id,
             turn: 0,
             lastDice: [ 1, 1 ],
             players: [ ],
-            board: cloneDeep(board)
+            board
         };
         players.forEach(player => {
             match.board[0].players.push(player.id);

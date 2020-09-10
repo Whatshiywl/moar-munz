@@ -45,7 +45,7 @@
                 <div class="dice">
                     <div>{{match?.lastDice[0]}}</div>
                     <div>{{match?.lastDice[1]}}</div>
-                    <button [style.visibility]="isMyTurn ? 'visible' : 'hidden'" (click)="throwDice()">Play!</button>
+                    <button mat-flat-button color="primary" [style.visibility]="isMyTurn ? 'visible' : 'hidden'" (click)="throwDice()">Play!</button>
                 </div>
                 <div class="player-list">
                     <div *ngFor="let player of match?.players; let i = index"
@@ -65,11 +65,11 @@
             </div>
             <div *ngIf="notificationData" class="board-input">
                 <pre>{{notificationData.message}}</pre>
-                <button *ngFor="let option of notificationData?.options"
+                <button mat-stroked-button color="primary" *ngFor="let option of notificationData?.options"
                 (click)="onQuestionAnswer(option)"
                 (mouseenter)="onOptionMouseEnter(option)"
                 (mouseleave)="onOptionMouseLeave(option)">{{option}}</button>
-                <button *ngIf="!notificationData.options"
+                <button mat-stroked-button color="primary" *ngIf="!notificationData.options"
                 (click)="notificationData = undefined">OK</button>
             </div>
             <div class="board-info"></div>

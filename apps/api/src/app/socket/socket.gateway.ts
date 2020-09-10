@@ -118,7 +118,7 @@ export class SocketGateway implements OnGatewayDisconnect {
     private notifyStartGame(_lobby) {
         const lobby = cloneDeep(_lobby);
         const players = lobby.players.map(id => this.playerService.getPlayer(id));
-        const match = cloneDeep(this.matchService.generateMatch(...players));
+        const match = cloneDeep(this.matchService.generateMatch(_lobby.board, ...players));
         this.matchService.saveAndBroadcastMatch(match);
     }
 

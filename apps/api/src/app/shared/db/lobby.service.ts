@@ -10,9 +10,10 @@ export class LobbyService {
         private uuidService: UUIDService
     ) { }
 
-    generateLobby() {
+    generateLobby(board: string) {
         const lobby = {
             id: this.uuidService.generateUUID(),
+            board,
             open: true,
             players: [ ]
         };

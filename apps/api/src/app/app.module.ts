@@ -14,6 +14,7 @@ import { UUIDService } from './shared/uuid/uuid.service';
 import { JWTService } from './shared/jwt/jwt.service';
 import { PlayerService } from './shared/db/player.service';
 import { SocketService } from './socket/socket.service';
+import { BoardService } from './shared/db/board.service';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { SocketService } from './socket/socket.service';
     MatchService,
     LobbyService,
     PlayerService,
-    SocketService
+    SocketService,
+    BoardService
   ]
 })
 export class AppModule {}
