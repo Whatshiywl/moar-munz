@@ -12,6 +12,7 @@ export class BoardService {
   constructor() {
     const boardFiles = readdirSync(this.baseFolder);
     for (const fileName of boardFiles) {
+      console.log(`Loading ${fileName}`);
       const name = fileName.replace('.jsonc', '');
       const pathToFile = path.join(this.baseFolder, fileName);
       try {
