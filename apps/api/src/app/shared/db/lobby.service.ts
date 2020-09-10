@@ -14,7 +14,8 @@ export class LobbyService {
         const lobby = {
             id: this.uuidService.generateUUID(),
             open: true,
-            players: [ ]
+            players: [ ],
+            ready: { }
         };
         this.db.createLobby(lobby);
         return lobby;

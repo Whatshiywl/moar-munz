@@ -23,14 +23,14 @@ export class SocketGateway implements OnGatewayDisconnect {
     @SubscribeMessage('enter lobby')
     onEnterLobby(@MessageBody() lobbyQuery: { id: string }, @ConnectedSocket() client: Socket) {
         const lobby = this.lobbyService.getLobby(lobbyQuery.id);
-        if (!lobby || !lobby.open) return false;
+        if (!lobby) return false;
         let token = client.handshake.query.token;
         if (!token) {
             const uuid = this.uuidService.generateUUID(2);
             token = this.jwtService.genToken({ uuid });
         }
         const payload = this.jwtService.getPayload(token);
-        const player = this.playerService.generatePlayer(payload.uuid);
+        const player = this.getSavedOrNewPlayer(lobby, payload.uuid);
         if (!player) return false;
         if (!lobby.players.includes(payload.uuid)) {
             lobby.players.push(payload.uuid);
@@ -42,11 +42,29 @@ export class SocketGateway implements OnGatewayDisconnect {
         return { token, uuid: payload.uuid };
     }
 
-    handleDisconnect(@ConnectedSocket() client: Socket) {
+    private getSavedOrNewPlayer(lobby: any, uuid: string) {
+        const savedPlayer = this.playerService.getPlayer(uuid);
+        if (savedPlayer) {
+            savedPlayer.away = false;
+            this.playerService.savePlayer(savedPlayer);
+            return savedPlayer;
+        } else {
+            if (!lobby.open) return false;
+            const newPlayer = this.playerService.generatePlayer(uuid);
+            return newPlayer;
+        }
+    }
+
+    async handleDisconnect(@ConnectedSocket() client: Socket) {
         const token = client.handshake.query.token;
         const payload = this.jwtService.getPayload(token);
-        const player = this.playerService.getPlayer(payload.uuid);
+        let player = this.playerService.getPlayer(payload.uuid);
         if (!player) return;
+        player.away = true;
+        this.playerService.savePlayer(player);
+        await this.sleep(5000);
+        player = this.playerService.getPlayer(payload.uuid);
+        if (!player || !player.away) return;
         const lobby = this.lobbyService.getLobby(player.lobby);
         if (!lobby) return;
         const index = lobby.players.findIndex(s => s === payload.uuid);
@@ -68,12 +86,11 @@ export class SocketGateway implements OnGatewayDisconnect {
         if (!player) return;
         const lobby = this.lobbyService.getLobby(player.lobby);
         if (!lobby) return;
-        player.ready = ready;
-        this.playerService.savePlayer(player);
+        lobby.ready[payload.uuid] = ready;
+        this.lobbyService.saveLobby(lobby);
         const everyoneReady = this.isEveryoneReady(lobby);
         if (everyoneReady) {
             lobby.open = false;
-            this.lobbyService.saveLobby(lobby);
             this.notifyStartGame(lobby);
         } else {
             this.notifyLobbyChanges(lobby);
@@ -93,8 +110,8 @@ export class SocketGateway implements OnGatewayDisconnect {
 
     private isEveryoneReady(lobby) {
         for (const playerId of lobby.players) {
-            const p = this.playerService.getPlayer(playerId);
-            if (!p.ready) return false;
+            const ready = lobby.ready[playerId];
+            if (!ready) return false;
         }
         return true;
     }
@@ -109,6 +126,7 @@ export class SocketGateway implements OnGatewayDisconnect {
             const player = this.playerService.getPlayer(id);
             player.color = this.getPlayerColors(i);
             this.playerService.savePlayer(player);
+            player.ready = lobby.ready[id] || false;
             lobby.players[i] = player;
         }
         if (!namespace) return;
@@ -127,6 +145,14 @@ export class SocketGateway implements OnGatewayDisconnect {
             'red', 'blue', 'darkorange', 'green', 'blueviolet', 'deepskyblue'
         ];
         return colors[i];
+    }
+
+    private sleep(n: number) {
+        return new Promise(r => {
+            setTimeout(() => {
+                r();
+            }, n);
+        });
     }
 
 }
