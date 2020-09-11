@@ -31,8 +31,8 @@ export class AppController {
   }
 
   @Post('lobby')
-  postLobby(@Body() body: { board: string } = { board: 'main' }) {
-    const lobby = this.lobbyService.generateLobby(body.board || 'main');
+  postLobby(@Body() body: { board: string } = { board: 'classic' }) {
+    const lobby = this.lobbyService.generateLobby(body.board || 'classic');
     return lobby;
   }
 

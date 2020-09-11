@@ -4,7 +4,6 @@ Changelog
 Melhorar indicadores de casas, copas e monopolios
 
 1.5
-Reconectar jogador se reconexão ocorrer dentro de um timeout
 Implementar jogadores AI
 Permitir saída de jogadores no meio da partida (entra AI no lugar)
 Mostrar versão na tela
@@ -49,3 +48,4 @@ Mostrar versão na tela
 Backlog
 [BUG] Connecticut nao apareceu na pergunta de worldcup (talvez comprada?)
 [BUG] Venda de uma propriedade vendeu ou reduziu level de outra
+[FEAT] Reconectar jogador se reconexão ocorrer dentro de um timeout
