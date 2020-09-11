@@ -1,4 +1,14 @@
-<div style="text-align:center">
+<div style="text-align:center; margin-bottom: 10px;">
     <h1>Welcome to Moar Munz!</h1>
-    <button (click)="createNewGame()" style="font-size: large;">Create a new game</button>
+    <button mat-raised-button color="primary" (click)="createNewGame()" style="font-size: large;">Create a new game</button>
+</div>
+<div style="text-align:center" [formGroup]="matchOptions">
+    <mat-form-field appearance="fill">
+        <mat-label>Board</mat-label>
+        <mat-select formControlName="board">
+          <mat-option *ngFor="let board of boards" [value]="board">
+            {{board}}
+          </mat-option>
+        </mat-select>
+      </mat-form-field>
 </div>

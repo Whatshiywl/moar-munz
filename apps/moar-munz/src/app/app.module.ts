@@ -11,6 +11,9 @@ import { HomeComponent } from './home/home.component';
 import { SocketService } from './shared/socket/socket.service';
 import { LightenPipe } from './shared/pipes/lighten.pipe';
 import { SessionGuard } from './shared/guards/session.guard';
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { MatButtonModule } from '@angular/material/button';
+import { MatSelectModule } from '@angular/material/select';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -26,7 +29,10 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     HttpClientModule,
     RoutingModule,
     SocketIoModule,
-    ReactiveFormsModule
+    ReactiveFormsModule,
+    BrowserAnimationsModule,
+    MatButtonModule,
+    MatSelectModule
   ],
   providers: [
     SocketService,
