@@ -44,9 +44,10 @@ export class SocketService {
         }
     }
 
-    disconnect(clientId: string, token: string) {
+    disconnect(client: Socket) {
+        const token = client.handshake.query.token;
         const data = this.jwtService.getPayload(token);
-        console.log(`unmapped ${data.uuid} ${clientId}`);
+        console.log(`unmapped ${data.uuid} ${client.id}`);
         delete this.sessions[data.uuid];
     }
 

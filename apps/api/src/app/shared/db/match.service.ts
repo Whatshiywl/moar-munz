@@ -46,19 +46,17 @@ export class MatchService {
         this.db.updateMatch(match);
     }
 
-    removePlayer(id: string, uuid: string) {
-        const match = this.getMatch(id);
-        if (!match) return;
-        const index = match.players.findIndex(s => s === uuid);
+    removePlayer(match, player) {
+        const index = match.players.findIndex(s => s === player.id);
         const fullTurns = Math.floor(match.turn / match.players.length) + (match.turn % match.players.length > index ? 1 : 0);
         match.turn -= fullTurns;
         match.players.splice(index, 1);
         match.board.forEach(title => {
-            if (title.owner === uuid) {
+            if (title.owner === player.id) {
                 title.owner = undefined;
                 if (title.level) title.level = 0;
             }
-            const playerIndex = title.players.findIndex(s => s === uuid);
+            const playerIndex = title.players.findIndex(s => s === player.id);
             if (playerIndex >= 0) title.players.splice(playerIndex, 1);
         });
         this.saveAndBroadcastMatch(match);

@@ -42,11 +42,12 @@ export class LobbyService {
         return this.db.deleteLobby(id);
     }
 
-    removePlayer(lobby, player) {
+    removePlayer(lobby, match, player) {
         const index = lobby.players.findIndex(s => s === player.id);
         lobby.players.splice(index, 1);
-        this.saveLobby(lobby);
-        this.notifyLobbyChanges(lobby);
+        this.saveAndBroadcastLobby(lobby);
+        if (match) this.matchService.removePlayer(match, player);
+        this.playerService.deletePlayer(player.id);
     }
 
     onEnterLobby(lobby, token: string) {
@@ -63,17 +64,17 @@ export class LobbyService {
             player.lobby = lobby.id;
         }
         this.playerService.savePlayer(player);
-        this.saveLobby(lobby);
-        this.notifyLobbyChanges(lobby);
+        this.saveAndBroadcastLobby(lobby);
         return { token, uuid: player.id };
     }
 
     onPlayerReady(lobby, player, ready: boolean) {
         this.playerService.onPlayerReady(player, ready);
         const everyoneReady = this.isEveryoneReady(lobby);
+        console.log(`Everyone ready? ${everyoneReady}`);
         if (everyoneReady) {
             lobby.open = false;
-            this.saveLobby(lobby);
+            this.saveAndBroadcastLobby(lobby);
             this.notifyStartGame(lobby);
         } else {
             this.notifyLobbyChanges(lobby);
@@ -88,7 +89,12 @@ export class LobbyService {
         return true;
     }
 
-    notifyLobbyChanges(_lobby) {
+    private saveAndBroadcastLobby(lobby) {
+        this.saveLobby(lobby);
+        this.notifyLobbyChanges(lobby);
+    }
+
+    private notifyLobbyChanges(_lobby) {
         const lobby = cloneDeep(_lobby);
         let namespace;
         for (let i = 0; i < lobby.players.length; i++) {
@@ -111,7 +117,7 @@ export class LobbyService {
         return colors[i];
     }
 
-    notifyStartGame(_lobby) {
+    private notifyStartGame(_lobby) {
         const lobby = cloneDeep(_lobby);
         const players = lobby.players.map(id => this.playerService.getPlayer(id));
         this.matchService.generateMatch(_lobby.board, ...players);
