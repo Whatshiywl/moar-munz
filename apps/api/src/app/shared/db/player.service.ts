@@ -32,6 +32,11 @@ export class PlayerService {
         return this.db.deletePlayer(id);
     }
 
+    onPlayerReady(player, ready: boolean) {
+        player.ready = ready;
+        this.savePlayer(player);
+    }
+
     private generateRandomName() {
         const firstNames = [
             'Amazing', 'Beautiful', 'Cocky', 'Dreadful', 'Elegant', 'Fabulous',

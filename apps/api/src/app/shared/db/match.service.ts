@@ -34,6 +34,7 @@ export class MatchService {
             this.playerService.savePlayer(player);
         });
         this.db.createMatch(match);
+        this.saveAndBroadcastMatch(match);
         return match;
     }
 
