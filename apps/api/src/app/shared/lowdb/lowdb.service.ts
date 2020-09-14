@@ -3,7 +3,10 @@ import { Injectable } from '@nestjs/common';
 import * as lowdb from 'lowdb';
 import * as FileSync from 'lowdb/adapters/FileSync';
 import { join } from 'path';
+import { Lobby } from '../../lobby/lobby.service';
+import { Match } from '../../match/match.service';
 import { MatchCRUD, LobbyCRUD, PlayerCRUD } from '../db/db.interface';
+import { Player } from '../db/player.service';
 
 @Injectable()
 export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
@@ -36,7 +39,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
 
     // MATCH
 
-    createMatch(match: any) {
+    createMatch(match: Match) {
         const id = match.id;
         this.db.set(`matches.${id}`, { ...match, mtime: Date.now()}).write();
         return id;
@@ -46,7 +49,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
         return this.db.get(`matches.${id}`).value();
     }
 
-    updateMatch(match: any) {
+    updateMatch(match: Match) {
         return this.db.set(`matches.${match.id}`, { ...match, mtime: Date.now() }).write();
     }
 
@@ -56,7 +59,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
 
     // LOBBY
     
-    createLobby(lobby: any) {
+    createLobby(lobby: Lobby) {
         const id = lobby.id;
         this.db.set(`lobbys.${id}`, { ...lobby, mtime: Date.now()}).write();
         return id;
@@ -66,7 +69,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
         return this.db.get(`lobbys.${id}`).value();
     }
 
-    updateLobby(lobby: any) {
+    updateLobby(lobby: Lobby) {
         return this.db.set(`lobbys.${lobby.id}`, { ...lobby, mtime: Date.now()}).write();
     }
 
@@ -76,7 +79,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
 
     // Player
     
-    createPlayer(player: any) {
+    createPlayer(player: Player) {
         const id = player.id;
         this.db.set(`players.${id}`, { ...player, mtime: Date.now()}).write();
         return id;
@@ -86,7 +89,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
         return this.db.get(`players.${id}`).value();
     }
 
-    updatePlayer(player: any) {
+    updatePlayer(player: Player) {
         return this.db.set(`players.${player.id}`, { ...player, mtime: Date.now()}).write();
     }
 

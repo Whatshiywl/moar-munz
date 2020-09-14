@@ -3,11 +3,31 @@ import { cloneDeep } from 'lodash';
 import * as path from 'path';
 import { jsonc } from 'jsonc';
 
+export interface Tile {
+  name: string,
+  type: string,
+  color: string,
+  players: string[],
+  level?: number,
+  price?: number,
+  rent?: number[],
+  building?: 50,
+  owner?: string,
+  cost?: number,
+  multiplier?: number,
+  tax?: number
+}
+
+export interface Board {
+  lineLength: number,
+  tiles: Tile[]
+}
+
 export class BoardService {
 
   baseFolder = `${__dirname}/assets/boards`;
 
-  boards: { [name: string]: any } = { };
+  boards: { [name: string]: Board } = { };
 
   constructor() {
     const boardFiles = readdirSync(this.baseFolder);
@@ -17,7 +37,8 @@ export class BoardService {
       const pathToFile = path.join(this.baseFolder, fileName);
       try {
         const file = readFileSync(pathToFile).toString();
-        const board = jsonc.parse(file);
+        const board = jsonc.parse(file) as Board;
+        board.lineLength = board.tiles.length / 4;
         this.boards[name] = board;
       } catch (error) {
         console.error(`Error loading ${fileName}`);

@@ -7,6 +7,13 @@ import { SocketService } from '../socket/socket.service';
 import { MatchService } from '../match/match.service';
 import { JWTService } from '../shared/jwt/jwt.service';
 
+export interface Lobby {
+    id: string,
+    board: string,
+    open: boolean,
+    players: string[]
+}
+
 @Injectable()
 export class LobbyService {
 
@@ -20,7 +27,7 @@ export class LobbyService {
     ) { }
 
     generateLobby(board: string) {
-        const lobby = {
+        const lobby: Lobby = {
             id: this.uuidService.generateUUID(),
             board,
             open: true,

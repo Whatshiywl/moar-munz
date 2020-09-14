@@ -14,32 +14,32 @@
 </div>
 <div *ngIf="match" class="game-wrapper">
     <div class="board">
-        <div *ngFor="let title of match.board; let i = index"
-        [style.left.%]="title.x * 100 / (match.lineLength + 1)"
-        [style.top.%]="title.y * 100 / (match.lineLength + 2)"
-        [style.width.%]="100 / (match.lineLength + 1)"
-        [style.height.%]="100 / (match.lineLength + 2)"
-        [style.border]="'1px solid ' + title.color"
-        [style.backgroundColor]="title.color | lighten: 0.9"
-        [style.box-shadow]="title.highlighted ? '0 0 10px 0 ' + title.color : ''"
-        class="title" (click)="onTitleClicked(title)"
-        (mouseenter)="onTitleMouseEnter(title)"
-        (mouseleave)="onTitleMouseLeave(title)">
-            <p>{{title.name}}{{title.level ? ' ('+(title.level-1)+')' : ''}}{{title.worldcup ? ' WC' : ''}}</p>
-            <p *ngIf="title.price">{{title.value ? 'Value: '+title.value : 'Price: '+title.price}}</p>
-            <p *ngIf="title.currentRent">Rent: {{title.currentRent}}</p>
-            <p *ngIf="title.multiplier">Multiplier: x{{title.multiplier}}</p>
-            <p *ngIf="title.tax">Tax: {{100 * title.tax}}%</p>
+        <div *ngFor="let tile of match.board.tiles; let i = index"
+        [style.left.%]="tile.x * 100 / (match.board.lineLength + 1)"
+        [style.top.%]="tile.y * 100 / (match.board.lineLength + 2)"
+        [style.width.%]="100 / (match.board.lineLength + 1)"
+        [style.height.%]="100 / (match.board.lineLength + 2)"
+        [style.border]="'1px solid ' + tile.color"
+        [style.backgroundColor]="tile.color | lighten: 0.9"
+        [style.box-shadow]="tile.highlighted ? '0 0 10px 0 ' + tile.color : ''"
+        class="tile" (click)="onTileClicked(tile)"
+        (mouseenter)="onTileMouseEnter(tile)"
+        (mouseleave)="onTileMouseLeave(tile)">
+            <p>{{tile.name}}{{tile.level ? ' ('+(tile.level-1)+')' : ''}}{{tile.worldcup ? ' WC' : ''}}</p>
+            <p *ngIf="tile.price">{{tile.value ? 'Value: '+tile.value : 'Price: '+tile.price}}</p>
+            <p *ngIf="tile.currentRent">Rent: {{tile.currentRent}}</p>
+            <p *ngIf="tile.multiplier">Multiplier: x{{tile.multiplier}}</p>
+            <p *ngIf="tile.tax">Tax: {{100 * tile.tax}}%</p>
             <div class="marker-wrapper">
-                <div *ngFor="let player of title.players" class="player-marker"
+                <div *ngFor="let player of tile.players" class="player-marker"
                 [style.backgroundColor]="player.color"></div>
             </div>
         </div>
         <div class="board-center"
-        [style.left.%]="100 / (match.lineLength + 1)"
-        [style.top.%]="100 / (match.lineLength + 2)"
-        [style.width.%]="100 * (match.lineLength - 1) / (match.lineLength + 1)"
-        [style.height.%]="100 * (match.lineLength - 1) / (match.lineLength + 2)">
+        [style.left.%]="100 / (match.board.lineLength + 1)"
+        [style.top.%]="100 / (match.board.lineLength + 2)"
+        [style.width.%]="100 * (match.board.lineLength - 1) / (match.board.lineLength + 1)"
+        [style.height.%]="100 * (match.board.lineLength - 1) / (match.board.lineLength + 2)">
             <div class="info-column">
                 <p>Last roll:</p>
                 <div class="dice">

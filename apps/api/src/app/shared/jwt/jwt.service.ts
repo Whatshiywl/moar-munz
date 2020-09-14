@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
-import { UUIDService } from '../uuid/uuid.service';
 
 interface TokenPayload {
     uuid: string;

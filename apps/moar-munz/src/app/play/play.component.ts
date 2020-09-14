@@ -33,7 +33,7 @@ export class PlayComponent implements OnInit, OnDestroy {
     w: 0, h: 0
   };
 
-  titleClicked$: Subject<any>;
+  tileClicked$: Subject<any>;
   
   constructor(
     private socket: SocketService,
@@ -49,7 +49,7 @@ export class PlayComponent implements OnInit, OnDestroy {
       if (ready === undefined) return;
       this.socket.emit('ready', { ready });
     });
-    this.titleClicked$ = new Subject<any>();
+    this.tileClicked$ = new Subject<any>();
     this.route.params.subscribe(params => {
       const id = params.id;
       this.socket.connect();
@@ -76,9 +76,9 @@ export class PlayComponent implements OnInit, OnDestroy {
           }, 100);
         }
         if (this.answerSubscription) this.answerSubscription.unsubscribe();
-        this.answerSubscription = this.titleClicked$
-        .subscribe(title => {
-          const clickAnswer = question.options.find(o => o.includes(title.name));
+        this.answerSubscription = this.tileClicked$
+        .subscribe(tile => {
+          const clickAnswer = question.options.find(o => o.includes(tile.name));
           if (clickAnswer) {
             this.onQuestionAnswer(clickAnswer);
             this.answerSubscription.unsubscribe();
@@ -111,49 +111,49 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.notificationData = undefined;
   }
 
-  onTitleClicked(title) {
-    this.titleClicked$.next(title);
+  onTileClicked(tile) {
+    this.tileClicked$.next(tile);
   }
 
-  onTitleMouseEnter(title) {
-    this.highlightTitle(title, true);
+  onTileMouseEnter(tile) {
+    this.highlightTile(tile, true);
   }
 
-  onTitleMouseLeave(title) {
-    this.highlightTitle(title, false);
+  onTileMouseLeave(tile) {
+    this.highlightTile(tile, false);
   }
 
   onPlayerMouseEnter(player) {
     player.properties.map(p => {
-      return this.match.board.find(title => title.name === p);
+      return this.match.board.tiles.find(tile => tile.name === p);
     }).forEach(t => {
-      this.highlightTitle(t, true)
+      this.highlightTile(t, true)
     });
   }
 
   onPlayerMouseLeave(player) {
     player.properties.map(p => {
-      return this.match.board.find(title => title.name === p);
+      return this.match.board.tiles.find(tile => tile.name === p);
     }).forEach(t => {
-      this.highlightTitle(t, false)
+      this.highlightTile(t, false)
     });
   }
 
   onOptionMouseEnter(option) {
-    const title = this.match.board.find(t => option.includes(t.name));
-    if (!title) return;
-    this.highlightTitle(title, true);
+    const tile = this.match.board.tiles.find(t => option.includes(t.name));
+    if (!tile) return;
+    this.highlightTile(tile, true);
   }
 
   onOptionMouseLeave(option) {
-    const title = this.match.board.find(t => option.includes(t.name));
-    if (!title) return;
-    this.highlightTitle(title, false);
+    const tile = this.match.board.tiles.find(t => option.includes(t.name));
+    if (!tile) return;
+    this.highlightTile(tile, false);
   }
 
-  highlightTitle(title, state: boolean) {
-    title.highlighted = state;
-    const owner = this.match.players.find(p => p.id === title.owner);
+  highlightTile(tile, state: boolean) {
+    tile.highlighted = state;
+    const owner = this.match.players.find(p => p.id === tile.owner);
     if (!owner) return;
     owner.highlighted = state;
   }
