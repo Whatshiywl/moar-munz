@@ -1,49 +1,48 @@
 import { Injectable } from '@nestjs/common';
+import { Lobby } from '../../lobby/lobby.service';
+import { JWTService } from '../jwt/jwt.service';
 import { LowDbService } from '../lowdb/lowdb.service';
+import { UUIDService } from '../uuid/uuid.service';
 
 export interface Player {
     id: string,
     name: string,
-    lobby: string,
-    properties: string[], // TODO: remove
-    lost: boolean, // TODO: remove
-    won: boolean, // TODO: remove
-    position: number, // TODO: remove
-    playAgain: boolean, // TODO: remove
-    money: number, // TODO: remove
-    prision: number, // TODO: remove
-    equalDie: number, // TODO: remove
-    tiles: string[] // TODO: remove
+    lobby: string
+}
+
+export enum VictoryState {
+    UNDEFINED, LOST, WON
 }
 
 @Injectable()
 export class PlayerService {
 
     constructor(
-        private db: LowDbService
+        private db: LowDbService,
+        private uuidService: UUIDService,
+        private jwtService: JWTService
     ) { }
 
-    generatePlayer(socketId: string) {
+    generatePlayer(id: string, lobby: Lobby) {
         const player: Player = {
-            id: socketId,
+            id,
             name: this.generateRandomName(),
-            lobby: '',
-            properties: [ ],
-            lost: false,
-            won: false,
-            position: 0,
-            playAgain: false,
-            money: 2000,
-            prision: 0,
-            equalDie: 0,
-            tiles: [ ]
-
+            lobby: lobby.id
         };
         this.db.createPlayer(player);
         return player;
     }
 
-    getPlayer(id: string) {
+    getOrGenPlayerByToken(token: string, lobby: Lobby) {
+        if (!token) {
+            const uuid = this.uuidService.generateUUID(2);
+            token = this.jwtService.genToken({ uuid });
+        }
+        const payload = this.jwtService.getPayload(token);
+        return { token, player: this.generatePlayer(payload.uuid, lobby) };
+    }
+
+    getPlayer(id: string): Player {
         return this.db.readPlayer(id);
     }
 
@@ -54,11 +53,6 @@ export class PlayerService {
 
     deletePlayer(id: string) {
         return this.db.deletePlayer(id);
-    }
-
-    onPlayerReady(player, ready: boolean) {
-        player.ready = ready;
-        this.savePlayer(player);
     }
 
     private generateRandomName() {

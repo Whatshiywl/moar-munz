@@ -1,14 +1,14 @@
 <div *ngIf="!match">
     <h1>Lobby</h1>
     <div class="player-wrapper">
-        <div *ngFor="let player of lobby?.players">
-            <input *ngIf="player.id == uuid" type="checkbox"
+        <div *ngFor="let id of lobby?.playerOrder">
+            <input *ngIf="id == uuid" type="checkbox"
             [formControl]="ready">
-            <input *ngIf="player.id != uuid" type="checkbox"
-            [checked]="player.ready" disabled>
+            <input *ngIf="id != uuid" type="checkbox"
+            [checked]="lobby.players[id].ready" disabled>
     
-            <span [style.textDecoration]="player.id == uuid ? 'underline' : 'none'"
-            [style.color]="player.color">{{player.name}}</span>
+            <span [style.textDecoration]="id == uuid ? 'underline' : 'none'"
+            [style.color]="lobby.players[id].color">{{lobby.players[id].name}}</span>
         </div>
     </div>
 </div>
@@ -31,7 +31,7 @@
             <p *ngIf="tile.multiplier">Multiplier: x{{tile.multiplier}}</p>
             <p *ngIf="tile.tax">Tax: {{100 * tile.tax}}%</p>
             <div class="marker-wrapper">
-                <div *ngFor="let player of tile.players" class="player-marker"
+                <div *ngFor="let player of getPlayersInTile(i)" class="player-marker"
                 [style.backgroundColor]="player.color"></div>
             </div>
         </div>
@@ -48,18 +48,18 @@
                     <button mat-flat-button color="primary" [style.visibility]="isMyTurn ? 'visible' : 'hidden'" (click)="throwDice()">Play!</button>
                 </div>
                 <div class="player-list">
-                    <div *ngFor="let player of match?.players; let i = index"
+                    <div *ngFor="let player of players; let i = index"
                     class="player-card"
-                    [style.border]="match.playerTurn.id === player.id ? '1px solid '+player.color : '1px solid black'"
-                    [style.border-left-width.px]="match.playerTurn.id === player.id ? 5 : 1"
+                    [style.border]="playerTurn === player.id ? '1px solid '+player.color : '1px solid black'"
+                    [style.border-left-width.px]="playerTurn === player.id ? 5 : 1"
                     [style.box-shadow]="player.highlighted ? '0 0 10px 0 ' + player.color : ''"
                     (mouseenter)="onPlayerMouseEnter(player)"
                     (mouseleave)="onPlayerMouseLeave(player)">
                         <span [style.textDecoration]="player.id == uuid ? 'underline' : 'none'"
                         [style.color]="player.color">{{player.name}}</span>
                         <span><strong>$ {{player.money}}</strong></span>
-                        <span *ngFor="let property of player.properties"
-                        style="font-size: smaller;">{{property}}</span>
+                        <span *ngFor="let property of getPlayerProperties(player)"
+                        style="font-size: smaller;">{{property.name}}</span>
                     </div>
                 </div>
             </div>

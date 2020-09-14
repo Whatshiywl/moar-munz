@@ -1,19 +1,30 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { cloneDeep, sample, groupBy } from 'lodash';
 import { LowDbService } from '../shared/lowdb/lowdb.service';
-import { Player, PlayerService } from '../shared/db/player.service';
+import { Player, PlayerService, VictoryState } from '../shared/db/player.service';
 import { Board, BoardService, Tile } from '../shared/db/board.service';
 import { SocketService } from '../socket/socket.service';
+import { Lobby } from '../lobby/lobby.service';
+import { Namespace } from 'socket.io';
 
 export interface Match {
     id: string,
     turn: 0,
     lastDice: [ number, number ],
-    players: string[],
+    playerOrder: string[],
+    playerState: { [id: string]: PlayerState }
     board: Board,
     locked: boolean,
-    over: boolean,
-    worldcup: string
+    over: boolean
+}
+
+export interface PlayerState {
+    victory: VictoryState,
+    position: number,
+    playAgain: boolean,
+    money: number,
+    prision: number,
+    equalDie: number
 }
 
 @Injectable()
@@ -26,30 +37,33 @@ export class MatchService {
         private boardService: BoardService
     ) { }
 
-    generateMatch(boardName: string, ...players: Player[]) {
-        const id = players[0].lobby;
-        const board = this.boardService.getBoard(boardName);
+    generateMatch(lobby: Lobby) {
+        const id = lobby.id;
+        const playerOrder = [ ...lobby.playerOrder ];
+        const playerState = { };
+        playerOrder.forEach(playerId => {
+            playerState[playerId] = {
+                position: 0,
+                money: 2000,
+                victory: VictoryState.UNDEFINED,
+                playAgain: false,
+                prision: 0,
+                equalDie: 0
+            };
+        });
+        const board = this.boardService.getBoard(lobby.board);
         const match: Match = {
             id,
             turn: 0,
             lastDice: [ 1, 1 ],
-            players: [ ],
+            playerOrder,
+            playerState,
             board,
             locked: false,
-            over: false,
-            worldcup: ''
+            over: false
         };
-        players.forEach(player => {
-            match.board.tiles[0].players.push(player.id);
-            match.players.push(player.id);
-            player.position = 0;
-            player.money = 2000;
-            player.tiles = [ ];
-            this.playerService.savePlayer(player);
-        });
         this.db.createMatch(match);
         this.saveAndBroadcastMatch(match);
-        return match;
     }
 
     getMatch(id: string) {
@@ -61,10 +75,11 @@ export class MatchService {
     }
 
     removePlayer(match: Match, player: Player) {
-        const index = match.players.findIndex(s => s === player.id);
-        const fullTurns = Math.floor(match.turn / match.players.length) + (match.turn % match.players.length > index ? 1 : 0);
+        const index = match.playerOrder.findIndex(s => s === player.id);
+        if (index < 0) return;
+        const fullTurns = Math.floor(match.turn / match.playerOrder.length) + (match.turn % match.playerOrder.length > index ? 1 : 0);
         match.turn -= fullTurns;
-        match.players.splice(index, 1);
+        match.playerOrder.splice(index, 1);
         match.board.tiles.forEach(tile => {
             if (tile.owner === player.id) {
                 tile.owner = undefined;
@@ -83,9 +98,10 @@ export class MatchService {
 
     async play(match: Match, player: Player) {
         if (match.locked || match.over) return;
-        const playerTurn = match.players[match.turn % match.players.length];
+        const playerTurn = match.playerOrder[match.turn % match.playerOrder.length];
         if (playerTurn !== player.id) return;
-        if (player.lost) return;
+        const playerState = this.getPlayerState(match, player);
+        if (playerState.victory === VictoryState.LOST) return;
         match.locked = true;
         console.log(`${player.name}'s turn`);
         this.saveAndBroadcastMatch(match);
@@ -97,7 +113,7 @@ export class MatchService {
         if (await this.onPlay(match, player, dice)) {
             this.saveAndBroadcastMatch(match);
             const tiles = match.board.tiles;
-            const start = player.position;
+            const start = playerState.position;
             for (let i = 1; i <= diceResult; i++) {
                 const position = (start + i) % tiles.length;
                 await this.onPass(match, player, position);
@@ -110,26 +126,27 @@ export class MatchService {
                 }
             }
         }
-        if (player.playAgain && !player.lost) player.playAgain = false;
+        if (playerState.playAgain) playerState.playAgain = false;
         else {
             while(true) {
                 match.turn++;
-                const index = match.turn % match.players.length;
-                const id = match.players[index];
+                const index = match.turn % match.playerOrder.length;
+                const id = match.playerOrder[index];
                 const nextPlayer = this.playerService.getPlayer(id);
-                if (!nextPlayer.lost) break;
+                const nextPlayerState = this.getPlayerState(match, nextPlayer);
+                if (nextPlayerState.victory !== VictoryState.LOST) break;
             }
         }
         match.locked = false;
-        this.playerService.savePlayer(player);
         this.saveAndBroadcastMatch(match);
     }
 
     private async onStart(match: Match, player: Player) {
-        const tile = match.board.tiles[player.position];
+        const playerState = this.getPlayerState(match, player);
+        const tile = match.board.tiles[playerState.position];
         switch (tile.type) {
             case 'worldtour':
-                if (player.money < tile.cost) return;
+                if (playerState.money < tile.cost) return;
                 const options = [ 'No', ...match.board.tiles.filter(t => {
                     if (t.type !== 'deed') return false;
                     if (t.owner && t.owner !== player.id) return false;
@@ -143,23 +160,24 @@ export class MatchService {
                 if (answer !== options[0]) {
                     this.givePlayer(match, player, -tile.cost, false);
                     let goToIndex = match.board.tiles.findIndex(t => t.name === answer);
-                    if (goToIndex < player.position) goToIndex += match.board.tiles.length;
-                    return goToIndex - player.position;
+                    if (goToIndex < playerState.position) goToIndex += match.board.tiles.length;
+                    return goToIndex - playerState.position;
                 }
                 break;
         }
     }
 
     private async onPlay(match: Match, player: Player, die: number[]) {
-        const tile = match.board.tiles[player.position];
+        const playerState = this.getPlayerState(match, player);
+        const tile = match.board.tiles[playerState.position];
         switch (tile.type) {
             case 'prision':
-                if (player.prision > 0) {
+                if (playerState.prision > 0) {
                     if (die[0] === die[1]) {
-                        player.prision = 0;
-                        player.playAgain = true;
+                        playerState.prision = 0;
+                        playerState.playAgain = true;
                     } else {
-                        player.prision--;
+                        playerState.prision--;
                         console.log('not pairs, cant leave jail');
                         return false;
                     }
@@ -167,16 +185,16 @@ export class MatchService {
                 break;
             default:
                 if (die[0] === die[1]) {
-                    player.equalDie = (player.equalDie || 0) + 1;
-                    if (player.equalDie === 3) {
+                    playerState.equalDie = (playerState.equalDie || 0) + 1;
+                    if (playerState.equalDie === 3) {
                         this.sendToJail(match, player);
                         console.log('3 pairs, go to jail');
                         return false;
                     } else {
-                        player.playAgain = true;
+                        playerState.playAgain = true;
                     }
                 } else {
-                    player.equalDie = 0;
+                    playerState.equalDie = 0;
                 }
                 break;
         }
@@ -184,35 +202,37 @@ export class MatchService {
     }
 
     private async onLand(match: Match, player: Player, position: number, diceResult: number) {
+        const playerState = this.getPlayerState(match, player);
         const tile = match.board.tiles[position];
         console.log(player.id, player.name, 'landed on', tile);
         switch (tile.type) {
             case 'prision':
-                player.prision = 2;
+                playerState.prision = 2;
                 break;
             case 'worldcup':
                 const wcOptions = match.board.tiles.filter(t => {
                     if (t.type !== 'deed') return false;
                     if (!t.owner || t.owner !== player.id) return false;
                     return true;
-                }).map(t => `${t.name} (${this.getRawRent(t)})`);
+                }).map(t => `${t.name} (${this.boardService.getRawRent(t)})`);
                 if (!wcOptions.length) return;
                 const wcQuestions = this.socketService.ask(player.id,
                 `Set the location to host the next worldcup!`,
                 wcOptions);
                 const wcAnswer = await wcQuestions;
                 const wcAnswerValue = wcAnswer.match(/^([^\(]+)/)[1].trim();
-                const worldcupIndex = match.board.tiles.findIndex(t => t.name === wcAnswerValue);
-                match.worldcup = match.board[worldcupIndex].name;
+                match.board.tiles.forEach(t => {
+                    t.worldcup = t.name === wcAnswerValue;
+                });
                 break;
             case 'deed':
                 if (!tile.owner) {
-                    if (tile.price > player.money) return;
+                    if (tile.price > playerState.money) return;
                     const options = [ 'No' ];
                     for (let n = tile.level; n < tile.rent.length - 1; n++) {
                         const levelDifference = n - tile.level;
                         const cost = tile.building * levelDifference;
-                        if (tile.price + cost > player.money) break;
+                        if (tile.price + cost > playerState.money) break;
                         options.push(`${n} (${tile.price + cost})`);
                     }
                     if (options.length === 1) return;
@@ -222,7 +242,6 @@ export class MatchService {
                     const answer = await question;
                     if (answer !== options[0]) {
                         const answerValue = parseInt(answer.match(/^([^\(]+)/)[1].trim(), 10);
-                        player.properties.push(tile.name);
                         tile.owner = player.id;
                         const levelDifference = answerValue - tile.level;
                         const cost = tile.building * levelDifference;
@@ -240,7 +259,7 @@ export class MatchService {
                         for (let n = tile.level; n < tile.rent.length; n++) {
                             const levelDifference = n + 1 - tile.level;
                             const cost = tile.building * levelDifference;
-                            if (cost > player.money) break;
+                            if (cost > playerState.money) break;
                             options.push(`${n} (${cost})`);
                         }
                         if (options.length === 1) return;
@@ -257,22 +276,17 @@ export class MatchService {
                         }
                     } else {
                         const owner = this.playerService.getPlayer(tile.owner);
-                        const cost = this.getFullRent(match, tile);
+                        const cost = this.boardService.getFullRent(match.board, tile);
                         await this.transferFromTo(match, player, owner, cost);
-                        const value = 2 * this.getTileValue(tile);
-                        if (player.money >= value) {
+                        const value = 2 * this.boardService.getTileValue(tile);
+                        if (playerState.money >= value) {
                             const question = this.socketService.ask(player.id,
                             `Would you like to buy ${tile.name} from ${owner.name} for ${value}?`,
                             [ 'No', 'Yes' ] as const);
                             const answer = await question;
                             if (answer === 'Yes') {
                                 await this.transferFromTo(match, player, owner, value);
-                                const tileIndex = owner.properties.findIndex(name => name === tile.name);
-                                owner.properties.splice(tileIndex, 1);
-                                player.properties.push(tile.name);
                                 tile.owner = player.id;
-                                this.playerService.savePlayer(player);
-                                this.playerService.savePlayer(owner);
                                 this.saveAndBroadcastMatch(match);
                                 await this.onLand(match, player, position, diceResult);
                             }
@@ -282,13 +296,12 @@ export class MatchService {
                 break;
             case 'company':
                 if (!tile.owner) {
-                    if (tile.price > player.money) return;
+                    if (tile.price > playerState.money) return;
                     const question = this.socketService.ask(player.id, 
                     `Would you like to buy ${tile.name} for ${tile.price}?`,
                     [ 'No', 'Yes' ] as const);
                     const answer = await question;
                     if (answer !== 'No') {
-                        player.properties.push(tile.name);
                         tile.owner = player.id;
                         await this.givePlayer(match, player, -tile.price, false);
                     }
@@ -302,13 +315,12 @@ export class MatchService {
                 break;
             case 'railroad':
                 if (!tile.owner) {
-                    if (tile.price > player.money) return;
+                    if (tile.price > playerState.money) return;
                     const question = this.socketService.ask(player.id, 
                     `Would you like to buy ${tile.name} for ${tile.price}?`,
                     [ 'No', 'Yes' ] as const);
                     const answer = await question;
                     if (answer !== 'No') {
-                        player.properties.push(tile.name);
                         tile.owner = player.id;
                         await this.givePlayer(match, player, -tile.price, false);
                         const boardRails = match.board.tiles.filter(t => t.type === 'railroad');
@@ -318,15 +330,15 @@ export class MatchService {
                 } else {
                     if (tile.owner !== player.id) {
                         const owner = this.playerService.getPlayer(tile.owner);
-                        const cost = this.getRawRent(tile);
+                        const cost = this.boardService.getRawRent(tile);
                         await this.transferFromTo(match, player, owner, cost);
                     }
                 }
                 break;
             case 'tax':
                 const ownedProperties = match.board.tiles.filter(t => t.owner === player.id);
-                const propretyValue = ownedProperties.reduce((acc, t) => acc += this.getTileValue(t), 0);
-                const totalValue = player.money + propretyValue;
+                const propretyValue = ownedProperties.reduce((acc, t) => acc += this.boardService.getTileValue(t), 0);
+                const totalValue = playerState.money + propretyValue;
                 const tax = tile.tax;
                 const taxAmount = Math.ceil(totalValue * tax);
                 await this.givePlayer(match, player, -taxAmount, true);
@@ -372,46 +384,25 @@ export class MatchService {
         return monopolies;
     }
 
-    private getRawRent(tile: Tile) {
-        return tile.rent[tile.level - 1];
-    }
-
-    private getFullRent(match: Match, tile: Tile) {
-        let rent = this.getRawRent(tile);
-        if (match.worldcup === tile.name) rent *= 2;
-        if (tile.type === 'deed') {
-            const sameColor = match.board.tiles.filter(t => t.type === 'deed' && t.color === tile.color);
-            const sameColorOwner = sameColor.filter(t => t.owner === tile.owner);
-            if (sameColor.length === sameColorOwner.length) rent *= 2;
-            const tileIndex = match.board.tiles.findIndex(t => t.name === tile.name);
-            const lineLength = match.board.tiles.length / 4;
-            const line = Math.floor(tileIndex / lineLength);
-            const sameLine = match.board.tiles.filter((t, i) => t.type === 'deed' && Math.floor(i / lineLength) === line);
-            const sameTileOwner = sameLine.filter(t => t.owner === tile.owner);
-            if (sameLine.length === sameTileOwner.length) rent *= 2;
-        }
-        return rent;
-    }
-
     private async givePlayer(match: Match, player: Player, amount: number, origin?: string | boolean) {
-        while (player.properties.length && player.money + amount < 0) {
-            const options = player.properties.map(name => {
-                const prop = match.board.tiles.find(t => t.name === name);
-                const value = this.getTileValue(prop);
+        const playerState = this.getPlayerState(match, player);
+        while (playerState.money + amount < 0) {
+            const properties = this.getPlayerProperties(match, player);
+            if (!properties.length) break;
+            const options = properties.map(prop => {
+                const value = this.boardService.getTileValue(prop);
                 return `${name} (${value})`;
             });
             const question = this.socketService.ask(player.id,
-            `You must sell some properties.\nAmount remaining: ${Math.abs(player.money + amount)}`,
+            `You must sell some properties.\nAmount remaining: ${Math.abs(playerState.money + amount)}`,
             options);
             const answer = await question;
             const answerName = answer.match(/^([^\(]+)/)[1].trim();
             const answerTile = match.board.tiles.find(t => t.name === answerName);
-            const answerValue = this.getTileValue(answerTile);
-            const tileIndex = player.properties.findIndex(p => p === answerName);
+            const answerValue = this.boardService.getTileValue(answerTile);
             answerTile.owner = undefined;
             answerTile.level = 0;
-            player.properties.splice(tileIndex, 1);
-            player.money += answerValue;
+            playerState.money += answerValue;
             if (answerTile.type === 'railroad') {
                 const boardRails = match.board.tiles.filter(t => t.type === 'railroad');
                 const ownedRails = boardRails.filter(t => t.owner === player.id);
@@ -419,20 +410,21 @@ export class MatchService {
             }
             this.saveAndBroadcastMatch(match);
         }
-        const startAmount = player.money;
-        player.money += amount;
-        const tile = match.board.tiles[player.position];
-        if (player.money < 0) {
+        const startAmount = playerState.money;
+        playerState.money += amount;
+        const tile = match.board.tiles[playerState.position];
+        if (playerState.money < 0) {
             console.log(`${player.name} LOSES`);
-            player.money = 0;
-            player.lost = true;
+            playerState.money = 0;
+            playerState.victory = VictoryState.LOST;
             const playerIndex = tile.players.findIndex(id => id === player.id);
             tile.players.splice(playerIndex, 1);
             const lost = [ ];
-            const notLost = match.players.filter(id => {
+            const notLost = match.playerOrder.filter(id => {
                 if (id === player.id) return false;
                 const otherPlayer = this.playerService.getPlayer(id);
-                if (otherPlayer.lost) {
+                const otherPlayerState = this.getPlayerState(match, otherPlayer);
+                if (otherPlayerState.victory === VictoryState.LOST) {
                     lost.push(id);
                     return false;
                 } else return true;
@@ -453,44 +445,45 @@ export class MatchService {
                 this.socketService.notify(player.id, `${message}${oriMessage}.`);
             }
         }
-        this.playerService.savePlayer(player);
-        return player.money - startAmount;
+        this.saveAndBroadcastMatch(match);
+        return playerState.money - startAmount;
+    }
+
+    private getPlayerProperties(match: Match, player: Player) {
+        return match.board.tiles.filter(title => title.owner === player.id);
     }
 
     private win(match: Match, winner: Player) {
         console.log(`${winner.name} WINS`);
         this.socketService.notify(winner.id, 'You have won!');
-        const lost = match.players.filter(p => p !== winner.id);
+        const lost = match.playerOrder.filter(p => p !== winner.id);
         lost.forEach(id => {
             this.socketService.notify(id, `${winner.name} has won!`);
             const player = this.playerService.getPlayer(id);
-            player.lost = true;
-            this.playerService.savePlayer(player);
+            const playerState = this.getPlayerState(match, player);
+            playerState.victory = VictoryState.LOST;
         });
-        winner.won = true;
+        const winnerState = this.getPlayerState(match, winner);
+        winnerState.victory = VictoryState.WON;
         match.over = true;
+        this.saveAndBroadcastMatch(match);
     }
 
     private async transferFromTo(match: Match, from: Player, to: Player, amount: number) {
         console.log(`Transfering ${amount} from ${from.name} to ${to.name}`);
         amount = await this.givePlayer(match, from, -amount, to.name);
         console.log(`${to.name} will receive ${-amount}`);
-        await this.givePlayer(match, to, -amount, !to.won ? from.name : false);
+        const toState = this.getPlayerState(match, to);
+        const hasWon = toState.victory !== VictoryState.WON;
+        await this.givePlayer(match, to, -amount, hasWon ? false : from.name);
         this.saveAndBroadcastMatch(match);
     }
 
-    private getTileValue(tile: Tile) {
-        let value = tile.price;
-        if (tile.building) {
-            value += tile.building * (tile.level - 1);
-        }
-        return value;
-    }
-
     private sendToJail(match: Match, player: Player) {
+        const playerState = this.getPlayerState(match, player);
         this.move(match, player, 10);
-        player.prision = 2;
-        player.equalDie = 0;
+        playerState.prision = 2;
+        playerState.equalDie = 0;
         this.socketService.notify(player.id, `You have gone to jail!`);
     }
 
@@ -504,68 +497,32 @@ export class MatchService {
         }
     }
 
-    postProcessMatch(match) {
-        for (let t = 0; t < match.board.tiles.length; t++) {
-            const tile = match.board.tiles[t];
-            const markers = [ ];
-            tile.players.forEach((playerId, i) => {
-                const found = match.players.find(p => p.id === playerId);
-                markers.push({ ...found, i });
-            });
-            tile.players = markers;
-            if (tile.owner) {
-                tile.value = this.getTileValue(tile);
-                if (tile.level) {
-                    tile.currentRent = this.getFullRent(match, tile);
-                }
-            }
-            tile.worldcup = match.worldcup === tile.name;
-            const j = t % match.board.lineLength;
-            const s = Math.floor(t / match.board.lineLength);
-            const pos = [ ];
-            if (s === 0) {
-                pos[0] = j;
-                pos[1] = 0;
-            } else if (s === 1) {
-                pos[0] = match.board.lineLength;
-                pos[1] = j
-            } else if (s === 2) {
-                pos[0] = match.board.lineLength - j;
-                pos[1] = match.board.lineLength;
-            } else {
-                pos[0] = 0;
-                pos[1] = match.board.lineLength - j;
-            }
-            tile['x'] = pos[0];
-            tile['y'] = pos[1];
-        }
-        const playerTurn = match.players[match.turn % match.players.length];
-        match['playerTurn'] = playerTurn;
-    }
-
-    broadcastMatchState(_match) {
-        const match = cloneDeep(_match);
-        let namespace;
-        for (let i = 0; i < match.players.length; i++) {
-            const id = match.players[i];
+    broadcastMatchState(match: Match) {
+        let namespace: Namespace;
+        for (let i = 0; i < match.playerOrder.length; i++) {
+            const id = match.playerOrder[i];
             const socketId = this.socketService.getClient(id).id;
             namespace = (namespace || this.socketService.getServer()).to(socketId);
-            const player = this.playerService.getPlayer(id);
-            match.players[i] = player;
         }
         if (!namespace) return;
-        this.postProcessMatch(match);
+        this.boardService.postProcessBoard(match.board);
         namespace.emit('match', match);
     }
 
     private move(match: Match, player: Player, to: number) {
-        const fromTile = match.board.tiles[player.position];
+        const playerState = this.getPlayerState(match, player);
+        const fromTile = match.board.tiles[playerState.position];
         const toTile = match.board.tiles[to];
         const playerIndex = fromTile.players.findIndex(p => p === player.id);
         fromTile.players.splice(playerIndex, 1);
         toTile.players.push(player.id);
-        player.position = to;
-        this.playerService.savePlayer(player);
+        playerState.position = to;
+        this.saveAndBroadcastMatch(match);
+    }
+
+    private getPlayerState(match: Match, player: Player | number) {
+        const id = typeof player === 'number' ? player : player.id;
+        return match.playerState[id];
     }
 
     private sleep(n: number) {

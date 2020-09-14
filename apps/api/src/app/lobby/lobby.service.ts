@@ -1,17 +1,24 @@
 import { Injectable } from '@nestjs/common';
 import { LowDbService } from '../shared/lowdb/lowdb.service';
 import { UUIDService } from '../shared/uuid/uuid.service';
-import { cloneDeep } from 'lodash';
-import { PlayerService } from '../shared/db/player.service';
+import { Player, PlayerService } from '../shared/db/player.service';
 import { SocketService } from '../socket/socket.service';
-import { MatchService } from '../match/match.service';
-import { JWTService } from '../shared/jwt/jwt.service';
+import { Match, MatchService } from '../match/match.service';
+import { Namespace } from 'socket.io';
 
 export interface Lobby {
     id: string,
     board: string,
     open: boolean,
-    players: string[]
+    players: {
+        [id: string]: Player & LobbyState
+    }
+    playerOrder: string[]
+}
+
+export interface LobbyState {
+    color: string,
+    ready: boolean
 }
 
 @Injectable()
@@ -20,7 +27,6 @@ export class LobbyService {
     constructor(
         private db: LowDbService,
         private uuidService: UUIDService,
-        private jwtService: JWTService,
         private socketService: SocketService,
         private playerService: PlayerService,
         private matchService: MatchService
@@ -31,7 +37,8 @@ export class LobbyService {
             id: this.uuidService.generateUUID(),
             board,
             open: true,
-            players: [ ]
+            players: { },
+            playerOrder: [ ]
         };
         this.db.createLobby(lobby);
         return lobby;
@@ -41,7 +48,7 @@ export class LobbyService {
         return this.db.readLobby(id);
     }
 
-    saveLobby(lobby) {
+    saveLobby(lobby: Lobby) {
         return this.db.updateLobby(lobby);
     }
 
@@ -49,85 +56,85 @@ export class LobbyService {
         return this.db.deleteLobby(id);
     }
 
-    removePlayer(lobby, match, player) {
-        const index = lobby.players.findIndex(s => s === player.id);
-        lobby.players.splice(index, 1);
+    removePlayer(lobby: Lobby, match: Match, player: Player) {
+        if (!lobby.players[player.id]) return;
+        const order = lobby.playerOrder.findIndex(s => s === player.id);
+        lobby.playerOrder.splice(order, 1);
+        delete lobby.players[player.id];
         this.saveAndBroadcastLobby(lobby);
         if (match) this.matchService.removePlayer(match, player);
         this.playerService.deletePlayer(player.id);
     }
 
-    onEnterLobby(lobby, token: string) {
-        if (!lobby || !lobby.open) return false;
-        if (!token) {
-            const uuid = this.uuidService.generateUUID(2);
-            token = this.jwtService.genToken({ uuid });
-        }
-        const payload = this.jwtService.getPayload(token);
-        const player = this.playerService.generatePlayer(payload.uuid);
+    onEnterLobby(lobby: Lobby, token: string) {
+        if (!lobby.open) return false;
+        const playerData = this.playerService.getOrGenPlayerByToken(token, lobby);
+        const player = playerData.player;
+        token = playerData.token;
         if (!player) return false;
-        if (!lobby.players.includes(payload.uuid)) {
-            lobby.players.push(payload.uuid);
-            player.lobby = lobby.id;
+        if (!lobby.playerOrder.includes(player.id)) {
+            for (let i = 0; i <= lobby.playerOrder.length; i++) {
+                if (!lobby.playerOrder[i]) {
+                    lobby.playerOrder[i] = player.id;
+                    const color = this.getPlayerColor(i);
+                    lobby.players[player.id] = {
+                        ...player,
+                        ...{ ready: false, color }
+                    };
+                    break;
+                }
+            }
         }
-        this.playerService.savePlayer(player);
         this.saveAndBroadcastLobby(lobby);
-        return { token, uuid: player.id };
+        return playerData;
     }
 
-    onPlayerReady(lobby, player, ready: boolean) {
-        this.playerService.onPlayerReady(player, ready);
+    onPlayerReady(lobby: Lobby, player: Player, ready: boolean) {
+        this.getPlayer(lobby, player).ready = ready;
         const everyoneReady = this.isEveryoneReady(lobby);
         console.log(`Everyone ready? ${everyoneReady}`);
         if (everyoneReady) {
             lobby.open = false;
             this.saveAndBroadcastLobby(lobby);
-            this.notifyStartGame(lobby);
+            this.matchService.generateMatch(lobby);
         } else {
             this.notifyLobbyChanges(lobby);
         }
     }
 
-    private isEveryoneReady(lobby) {
-        for (const playerId of lobby.players) {
-            const p = this.playerService.getPlayer(playerId);
-            if (!p.ready) return false;
+    private isEveryoneReady(lobby: Lobby) {
+        for (const playerId of lobby.playerOrder) {
+            const player = this.getPlayer(lobby, playerId);
+            if (!player.ready) return false;
         }
         return true;
     }
 
-    private saveAndBroadcastLobby(lobby) {
+    private getPlayer(lobby: Lobby, player: string | Player) {
+        const playerId = typeof player === 'string' ? player : player.id;
+        return lobby.players[playerId];
+    }
+
+    private saveAndBroadcastLobby(lobby: Lobby) {
         this.saveLobby(lobby);
         this.notifyLobbyChanges(lobby);
     }
 
-    private notifyLobbyChanges(_lobby) {
-        const lobby = cloneDeep(_lobby);
-        let namespace;
-        for (let i = 0; i < lobby.players.length; i++) {
-            const id = lobby.players[i];
+    private notifyLobbyChanges(lobby: Lobby) {
+        let namespace: Namespace;
+        for (const id of lobby.playerOrder) {
             const socketId = this.socketService.getClient(id).id;
             namespace = (namespace || this.socketService.getServer()).to(socketId);
-            const player = this.playerService.getPlayer(id);
-            player.color = this.getPlayerColors(i);
-            this.playerService.savePlayer(player);
-            lobby.players[i] = player;
         }
         if (!namespace) return;
         namespace.emit('update lobby', lobby);
     }
 
-    private getPlayerColors(i: number) {
+    private getPlayerColor(i: number) {
         const colors = [
             'red', 'blue', 'darkorange', 'green', 'blueviolet', 'deepskyblue'
         ];
         return colors[i];
-    }
-
-    private notifyStartGame(_lobby) {
-        const lobby = cloneDeep(_lobby);
-        const players = lobby.players.map(id => this.playerService.getPlayer(id));
-        this.matchService.generateMatch(_lobby.board, ...players);
     }
 
 }

@@ -19,6 +19,7 @@ export class MatchGateway {
     @SubscribeMessage('enter lobby')
     onEnterLobby(@MessageBody() body: EnterLobyBody) {
         const { token, lobby } = body;
+        if (!lobby) return;
         return this.lobbyService.onEnterLobby(lobby, token);
     }
 

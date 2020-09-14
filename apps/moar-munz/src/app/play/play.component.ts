@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { FormControl } from '@angular/forms';
 import { sample } from 'lodash';
-import { debounceTime } from 'rxjs/operators';
+import { debounceTime, map } from 'rxjs/operators';
 import { Subject, Subscription } from 'rxjs';
 
 @Component({
@@ -20,7 +20,10 @@ export class PlayComponent implements OnInit, OnDestroy {
   lobby;
 
   match;
+  playerTurn: string;
   isMyTurn: boolean;
+
+  players;
 
   notificationData: {
     message: string;
@@ -56,11 +59,14 @@ export class PlayComponent implements OnInit, OnDestroy {
       this.socket.on('update lobby', lobby => {
         console.log('lobby updated', lobby);
         this.lobby = lobby;
+        this.players = this.getPlayers();
       });
       this.socket.on('match', match => {
         console.log('match', match);
         this.match = match;
-        this.isMyTurn = match.playerTurn.id === this.uuid;
+        this.playerTurn = match.playerOrder[match.turn % match.playerOrder.length];
+        this.isMyTurn = this.playerTurn === this.uuid;
+        this.players = this.getPlayers();
         if (this.debug) {
           setTimeout(() => {
             if (this.isMyTurn) this.throwDice();
@@ -124,19 +130,13 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   onPlayerMouseEnter(player) {
-    player.properties.map(p => {
-      return this.match.board.tiles.find(tile => tile.name === p);
-    }).forEach(t => {
-      this.highlightTile(t, true)
-    });
+    this.getPlayerProperties(player)
+    .forEach(tile => this.highlightTile(tile, true));
   }
 
   onPlayerMouseLeave(player) {
-    player.properties.map(p => {
-      return this.match.board.tiles.find(tile => tile.name === p);
-    }).forEach(t => {
-      this.highlightTile(t, false)
-    });
+    this.getPlayerProperties(player)
+    .forEach(tile => this.highlightTile(tile, false));
   }
 
   onOptionMouseEnter(option) {
@@ -153,9 +153,29 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   highlightTile(tile, state: boolean) {
     tile.highlighted = state;
-    const owner = this.match.players.find(p => p.id === tile.owner);
+    const owner = this.players.find(p => p.id === tile.owner);
     if (!owner) return;
     owner.highlighted = state;
+  }
+
+  private getPlayers() {
+    return this.lobby.playerOrder.map(playerId => {
+      const matchPlayer = this.match?.playerState[playerId];
+      const lobbyPlayer = this.lobby?.players[playerId];
+      return { ...matchPlayer, ...lobbyPlayer };
+    });
+  }
+
+  getPlayersInTile(t) {
+    return this.players
+    .filter(player => {
+      return player.position === t;
+    });
+  }
+
+  getPlayerProperties(player) {
+    return this.match.board.tiles
+    .filter(tile => tile.owner === player.id);
   }
 
 }
