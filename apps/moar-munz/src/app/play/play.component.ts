@@ -45,9 +45,9 @@ export class PlayComponent implements OnInit, OnDestroy {
     console.log('play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
     this.ready.setValue(false);
-    this.ready.valueChanges.pipe(debounceTime(300)).subscribe(value => {
-      if (value === undefined) return;
-      this.socket.emit('ready', value);
+    this.ready.valueChanges.pipe(debounceTime(300)).subscribe(ready => {
+      if (ready === undefined) return;
+      this.socket.emit('ready', { ready });
     });
     this.titleClicked$ = new Subject<any>();
     this.route.params.subscribe(params => {
@@ -88,7 +88,7 @@ export class PlayComponent implements OnInit, OnDestroy {
       this.socket.on('notification', (message: string) => {
         this.notificationData = { message };
       });
-      this.socket.emit('enter lobby', { id }, (response: { token: string, uuid: string }) => {
+      this.socket.emit('enter lobby', { lobbyId: id }, (response: { token: string, uuid: string }) => {
         if (!response) {
           alert('This lobby has closed! :(');
           this.router.navigate([ '/' ]);

@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { LowDbService } from '../lowdb/lowdb.service';
-import { UUIDService } from '../uuid/uuid.service';
+import { LowDbService } from '../shared/lowdb/lowdb.service';
+import { UUIDService } from '../shared/uuid/uuid.service';
 import { cloneDeep } from 'lodash';
-import { PlayerService } from './player.service';
-import { SocketService } from '../../socket/socket.service';
-import { MatchService } from './match.service';
-import { JWTService } from '../jwt/jwt.service';
+import { PlayerService } from '../shared/db/player.service';
+import { SocketService } from '../socket/socket.service';
+import { MatchService } from '../match/match.service';
+import { JWTService } from '../shared/jwt/jwt.service';
 
 @Injectable()
 export class LobbyService {

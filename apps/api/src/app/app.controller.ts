@@ -4,7 +4,7 @@ import { Message } from '@moar-munz/api-interfaces';
 
 import { AppService } from './app.service';
 import { UUIDService } from './shared/uuid/uuid.service';
-import { LobbyService } from './shared/db/lobby.service';
+import { LobbyService } from './lobby/lobby.service';
 import { JWTService } from './shared/jwt/jwt.service';
 import { BoardService } from './shared/db/board.service';
 

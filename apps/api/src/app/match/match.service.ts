@@ -1,9 +1,9 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { cloneDeep, sample, groupBy } from 'lodash';
-import { LowDbService } from '../lowdb/lowdb.service';
-import { PlayerService } from './player.service';
-import { BoardService } from './board.service';
-import { SocketService } from '../../socket/socket.service';
+import { LowDbService } from '../shared/lowdb/lowdb.service';
+import { PlayerService } from '../shared/db/player.service';
+import { BoardService } from '../shared/db/board.service';
+import { SocketService } from '../socket/socket.service';
 
 @Injectable()
 export class MatchService {
