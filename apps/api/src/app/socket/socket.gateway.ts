@@ -5,6 +5,7 @@ import { PlayerService } from '../shared/db/player.service';
 import { MatchService } from '../match/match.service';
 import { SocketService } from './socket.service';
 import { JWTService } from '../shared/jwt/jwt.service';
+import { BoardService } from '../shared/db/board.service';
 
 @WebSocketGateway()
 export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
@@ -13,11 +14,13 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         private lobbyService: LobbyService,
         private playerService: PlayerService,
         private matchService: MatchService,
+        private boardService: BoardService,
         private socketService: SocketService,
         private jwtService: JWTService
     ) { }
 
-    afterInit(server: Server) {
+    async afterInit(server: Server) {
+        await this.boardService.loadBoards();
         this.socketService.initServer(server);
     }
 

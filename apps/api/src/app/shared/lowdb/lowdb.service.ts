@@ -1,12 +1,10 @@
+import { Lobby, Match, Player } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 
 import * as lowdb from 'lowdb';
 import * as FileSync from 'lowdb/adapters/FileSync';
 import { join } from 'path';
-import { Lobby } from '../../lobby/lobby.service';
-import { Match } from '../../match/match.service';
 import { MatchCRUD, LobbyCRUD, PlayerCRUD } from '../db/db.interface';
-import { Player } from '../db/player.service';
 
 @Injectable()
 export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {

@@ -1,25 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { LowDbService } from '../shared/lowdb/lowdb.service';
 import { UUIDService } from '../shared/uuid/uuid.service';
-import { Player, PlayerService } from '../shared/db/player.service';
+import { PlayerService } from '../shared/db/player.service';
 import { SocketService } from '../socket/socket.service';
-import { Match, MatchService } from '../match/match.service';
+import { MatchService } from '../match/match.service';
 import { Namespace } from 'socket.io';
-
-export interface Lobby {
-    id: string,
-    board: string,
-    open: boolean,
-    players: {
-        [id: string]: Player & LobbyState
-    }
-    playerOrder: string[]
-}
-
-export interface LobbyState {
-    color: string,
-    ready: boolean
-}
+import { Lobby, Match, Player } from '@moar-munz/api-interfaces';
 
 @Injectable()
 export class LobbyService {

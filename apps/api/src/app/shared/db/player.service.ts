@@ -1,18 +1,8 @@
+import { Lobby, Player } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
-import { Lobby } from '../../lobby/lobby.service';
 import { JWTService } from '../jwt/jwt.service';
 import { LowDbService } from '../lowdb/lowdb.service';
 import { UUIDService } from '../uuid/uuid.service';
-
-export interface Player {
-    id: string,
-    name: string,
-    lobby: string
-}
-
-export enum VictoryState {
-    UNDEFINED, LOST, WON
-}
 
 @Injectable()
 export class PlayerService {

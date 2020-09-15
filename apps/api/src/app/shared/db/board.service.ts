@@ -1,48 +1,27 @@
-import { readFileSync, readdirSync } from 'fs';
+import { readdirSync } from 'fs';
 import { cloneDeep } from 'lodash';
-import * as path from 'path';
-import { jsonc } from 'jsonc';
+import { Board, RentableTile, OwnableTile, Tile } from '@moar-munz/api-interfaces';
+import { Injectable } from '@nestjs/common';
+import * as boards from '../../../assets/boards';
 
-export interface Tile {
-  name: string,
-  type: string,
-  color: string,
-  players: string[],
-  level?: number,
-  price?: number,
-  rent?: number[],
-  building?: 50,
-  owner?: string,
-  cost?: number,
-  multiplier?: number,
-  tax?: number,
-  worldcup?: boolean,
-  value: number,
-  currentRent: number,
-  x: number,
-  y: number
-}
-
-export interface Board {
-  lineLength: number,
-  tiles: Tile[]
-}
-
+@Injectable()
 export class BoardService {
 
-  baseFolder = `${__dirname}/assets/boards`;
+  baseFolder = `${__dirname}/assets/boards/lib`;
+
+  extension = '.ts';
 
   boards: { [name: string]: Board } = { };
 
-  constructor() {
+  async loadBoards() {
     const boardFiles = readdirSync(this.baseFolder);
     for (const fileName of boardFiles) {
+      if (!fileName.endsWith(this.extension)) continue;
       console.log(`Loading ${fileName}`);
-      const name = fileName.replace('.jsonc', '');
-      const pathToFile = path.join(this.baseFolder, fileName);
+      const name = fileName.replace(this.extension, '');
       try {
-        const file = readFileSync(pathToFile).toString();
-        const board = jsonc.parse(file) as Board;
+        const board = boards[name] as Board;
+        if (!board) throw new Error(`Board ${name} does not exist or does not comply`);
         this.preProcessBoard(board);
         this.boards[name] = board;
       } catch (error) {
@@ -81,8 +60,8 @@ export class BoardService {
     for (let t = 0; t < board.tiles.length; t++) {
       const tile = board.tiles[t];
       if (tile.owner) {
-        tile.value = this.getTileValue(tile);
-        if (tile.level) {
+        tile.value = this.getTileValue(tile as OwnableTile);
+        if (tile.type === 'deed' || tile.type === 'railroad') {
           tile.currentRent = this.getFullRent(board, tile);
         }
       }
@@ -97,33 +76,37 @@ export class BoardService {
     return Object.keys(this.boards);
   }
 
-  getRawRent(tile: Tile) {
+  getRawRent(tile: RentableTile) {
     return tile.rent[tile.level - 1];
   }
 
-  getTileValue(tile: Tile) {
+  isRentableTile(tile: Tile): tile is RentableTile {
+    return tile.type === 'deed' || tile.type === 'railroad';
+  }
+
+  getTileValue(tile: OwnableTile) {
     let value = tile.price;
-    if (tile.building) {
-        value += tile.building * (tile.level - 1);
+    if (tile.type === 'deed') {
+      value += tile.building * (tile.level - 1);
     }
     return value;
   }
 
-  getFullRent(board: Board, tile: Tile) {
-      let rent = this.getRawRent(tile);
-      if (tile.worldcup) rent *= 2;
-      if (tile.type === 'deed') {
-          const sameColor = board.tiles.filter(t => t.type === 'deed' && t.color === tile.color);
-          const sameColorOwner = sameColor.filter(t => t.owner === tile.owner);
-          if (sameColor.length === sameColorOwner.length) rent *= 2;
-          const tileIndex = board.tiles.findIndex(t => t.name === tile.name);
-          const lineLength = board.tiles.length / 4;
-          const line = Math.floor(tileIndex / lineLength);
-          const sameLine = board.tiles.filter((t, i) => t.type === 'deed' && Math.floor(i / lineLength) === line);
-          const sameTileOwner = sameLine.filter(t => t.owner === tile.owner);
-          if (sameLine.length === sameTileOwner.length) rent *= 2;
-      }
-      return rent;
+  getFullRent(board: Board, tile: RentableTile) {
+    let rent = this.getRawRent(tile);
+    if (tile.worldcup) rent *= 2;
+    if (tile.type === 'deed') {
+      const sameColor = board.tiles.filter(t => t.type === 'deed' && t.color === tile.color);
+      const sameColorOwner = sameColor.filter(t => t.owner === tile.owner);
+      if (sameColor.length === sameColorOwner.length) rent *= 2;
+      const tileIndex = board.tiles.findIndex(t => t.name === tile.name);
+      const lineLength = board.tiles.length / 4;
+      const line = Math.floor(tileIndex / lineLength);
+      const sameLine = board.tiles.filter((t, i) => t.type === 'deed' && Math.floor(i / lineLength) === line);
+      const sameTileOwner = sameLine.filter(t => t.owner === tile.owner);
+      if (sameLine.length === sameTileOwner.length) rent *= 2;
+    }
+    return rent;
   }
 
 }
