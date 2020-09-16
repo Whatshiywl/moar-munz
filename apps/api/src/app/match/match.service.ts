@@ -448,7 +448,7 @@ export class MatchService {
                 const winner = this.playerService.getPlayer(notLost[0]);
                 this.win(match, winner);
             } else {
-                this.socketService.notify(player.id, `You have lost. Git gud.`);
+                this.socketService.notify(player, `You have lost. Git gud.`);
             }
         } else {
             if (origin !== false) {
@@ -458,7 +458,7 @@ export class MatchService {
                 const message = `You just ${got ? 'got' : 'lost'} ${val}`;
                 const oriMessage = ori ? `\n${amount > 0 ? 'from' : 'to'} ${ori}` : '';
                 console.log(`Notifying ${player.name} that he got ${amount}`);
-                this.socketService.notify(player.id, `${message}${oriMessage}.`);
+                this.socketService.notify(player, `${message}${oriMessage}.`);
             }
         }
         this.saveAndBroadcastMatch(match);
@@ -471,11 +471,11 @@ export class MatchService {
 
     private win(match: Match, winner: Player) {
         console.log(`${winner.name} WINS`);
-        this.socketService.notify(winner.id, 'You have won!');
+        this.socketService.notify(winner, 'You have won!');
         const lost = match.playerOrder.filter(Boolean).filter(p => p !== winner.id);
         lost.forEach(id => {
-            this.socketService.notify(id, `${winner.name} has won!`);
             const player = this.playerService.getPlayer(id);
+            this.socketService.notify(player, `${winner.name} has won!`);
             const playerState = this.getPlayerState(match, player);
             playerState.victory = VictoryState.LOST;
         });
@@ -490,7 +490,7 @@ export class MatchService {
         amount = await this.givePlayer(match, from, -amount, to.name);
         console.log(`${to.name} will receive ${-amount}`);
         const toState = this.getPlayerState(match, to);
-        const hasWon = toState.victory !== VictoryState.WON;
+        const hasWon = toState.victory === VictoryState.WON;
         await this.givePlayer(match, to, -amount, hasWon ? false : from.name);
         this.saveAndBroadcastMatch(match);
     }
@@ -500,7 +500,7 @@ export class MatchService {
         this.move(match, player, 10);
         playerState.prision = 2;
         playerState.equalDie = 0;
-        this.socketService.notify(player.id, `You have gone to jail!`);
+        this.socketService.notify(player, `You have gone to jail!`);
     }
 
     private async onPass(match: Match, player: Player, position: number) {

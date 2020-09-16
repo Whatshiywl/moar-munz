@@ -78,10 +78,9 @@ export class SocketService {
         }
     }
 
-    notify(id: string, message: string) {
-        const client = this.getClient(id);
-        if (!client) return undefined;
-        client.emit('notification', message);
+    notify(player: Player, message: string) {
+        const client = this.getClient(player.id);
+        client?.emit('notification', message);
     }
 
     getNamespaceFromIdList(ids: string[]) {

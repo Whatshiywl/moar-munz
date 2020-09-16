@@ -1,11 +1,9 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
-import { FormControl } from '@angular/forms';
 import { sample } from 'lodash';
-import { debounceTime } from 'rxjs/operators';
 import { Subject, Subscription } from 'rxjs';
-import { Lobby, LobbyState, Match, Player, PlayerState, Tile } from '@moar-munz/api-interfaces';
+import { Lobby, LobbyState, Match, Player, PlayerState, Tile, VictoryState } from '@moar-munz/api-interfaces';
 
 @Component({
   selector: 'moar-munz-play',
@@ -178,7 +176,7 @@ export class PlayComponent implements OnInit, OnDestroy {
   getPlayersInTile(t: number) {
     return this.players
     .filter(player => {
-      return player.position === t;
+      return player.victory !== VictoryState.LOST && player.position === t;
     });
   }
 

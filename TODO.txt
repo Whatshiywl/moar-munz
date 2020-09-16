@@ -1,10 +1,19 @@
 Changelog
 
+1.7
+Permitir configurar valor inicial
+
 1.6
+Botão para adicionar AI
 Melhorar indicadores de casas, copas e monopolios
 Implementar janela de chat
-Make game events appear on chat
-Make player input as dialog
+Fazer eventos do jogo aparecerem no chat
+Fazer perguntas aparecerem como dialogo (Angular Material)
+Fazer "trim" no final do lobby de AI estiver desabilitada
+
+1.5.1
+[OK] [BUG] Eventos de jogo não emitindo quando AI está jogando
+[OK] [BUG] Jogadores que perdem continuam no tabuleiro
 
 1.5
 [OK] Implementar jogadores AI

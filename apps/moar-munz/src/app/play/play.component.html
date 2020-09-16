@@ -70,7 +70,7 @@
                     (mouseleave)="onPlayerMouseLeave(player)">
                         <span [style.textDecoration]="player.id == uuid ? 'underline' : 'none'"
                         [style.color]="player.color">{{player.name}}</span>
-                        <span><strong>$ {{player.money}}</strong></span>
+                        <span><strong>Ƶ {{player.money}}</strong></span>
                         <span *ngFor="let property of getPlayerProperties(player)"
                         style="font-size: smaller;">{{property.name}}</span>
                     </div>
