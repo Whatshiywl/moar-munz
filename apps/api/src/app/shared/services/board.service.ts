@@ -93,6 +93,7 @@ export class BoardService {
   }
 
   getFullRent(board: Board, tile: RentableTile) {
+    if (!tile.owner) return 0;
     let rent = this.getRawRent(tile);
     if (tile.worldcup) rent *= 2;
     if (tile.type === 'deed') {
@@ -100,7 +101,7 @@ export class BoardService {
       const sameColorOwner = sameColor.filter(t => t.owner === tile.owner);
       if (sameColor.length === sameColorOwner.length) rent *= 2;
       const tileIndex = board.tiles.findIndex(t => t.name === tile.name);
-      const lineLength = board.tiles.length / 4;
+      const lineLength = board.lineLength;
       const line = Math.floor(tileIndex / lineLength);
       const sameLine = board.tiles.filter((t, i) => t.type === 'deed' && Math.floor(i / lineLength) === line);
       const sameTileOwner = sameLine.filter(t => t.owner === tile.owner);

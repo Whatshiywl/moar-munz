@@ -19,18 +19,20 @@ export class HomeComponent implements OnInit {
     private fb: FormBuilder
   ) {
     this.matchOptions = this.fb.group({
-      board: this.fb.control('')
+      board: this.fb.control(''),
+      ai: this.fb.control(false)
     });
   }
   
   async ngOnInit() {
     const boards = await this.http.get<any[]>('/api/v1/boards').toPromise();
     this.boards = boards;
+    this.matchOptions.controls['board'].setValue(boards[0]);
   }
 
   async createNewGame() {
-    const board = this.matchOptions.controls['board'].value;
-    const lobbyResponse = await this.http.post<{ id: string }>('/api/v1/lobby', { board }).toPromise();
+    const options = this.matchOptions.value;
+    const lobbyResponse = await this.http.post<{ id: string }>('/api/v1/lobby', options).toPromise();
     this.router.navigate([ `/play/${lobbyResponse.id}` ]);
   }
 

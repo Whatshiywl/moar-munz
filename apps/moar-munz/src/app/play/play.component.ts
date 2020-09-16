@@ -15,7 +15,7 @@ import { Lobby, LobbyState, Match, Player, PlayerState, Tile } from '@moar-munz/
 export class PlayComponent implements OnInit, OnDestroy {
   debug = false;
 
-  ready = new FormControl(false);
+  player: Player & PlayerState & LobbyState;
   uuid: string;
 
   lobby: Lobby;
@@ -48,11 +48,6 @@ export class PlayComponent implements OnInit, OnDestroy {
   ngOnInit() {
     console.log('play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
-    this.ready.setValue(false);
-    this.ready.valueChanges.pipe(debounceTime(300)).subscribe(ready => {
-      if (ready === undefined) return;
-      this.socket.emit('ready', { ready });
-    });
     this.tileClicked$ = new Subject<Tile>();
     this.route.params.subscribe(params => {
       const id = params.id;
@@ -61,6 +56,7 @@ export class PlayComponent implements OnInit, OnDestroy {
         console.log('lobby updated', lobby);
         this.lobby = lobby;
         this.players = this.getPlayers();
+        this.player = this.players.find(p => p.id === this.uuid);
       });
       this.socket.on('match', (match: Match) => {
         console.log('match', match);
@@ -71,6 +67,7 @@ export class PlayComponent implements OnInit, OnDestroy {
         });
         this.isMyTurn = this.playerTurn === this.uuid;
         this.players = this.getPlayers();
+        this.player = this.players.find(p => p.id === this.uuid);
         if (this.debug) {
           setTimeout(() => {
             if (this.isMyTurn) this.throwDice();
@@ -114,6 +111,14 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   throwDice() {
     this.socket.emit('throw dice');
+  }
+
+  onReady(ready: boolean) {
+    this.socket.emit('ready', { ready });
+  }
+
+  onLobbyPlayerClick(player: Player & LobbyState & PlayerState) {
+    this.socket.emit('remove player', { id: player.id });
   }
 
   onQuestionAnswer(answer: string) {
@@ -163,7 +168,7 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   private getPlayers() {
-    return this.lobby.playerOrder.map(playerId => {
+    return this.lobby.playerOrder.filter(Boolean).map(playerId => {
       const matchPlayer = this.match?.playerState[playerId];
       const lobbyPlayer = this.lobby?.players[playerId];
       return { ...matchPlayer, ...lobbyPlayer };

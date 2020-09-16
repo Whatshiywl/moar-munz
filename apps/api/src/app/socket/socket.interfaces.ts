@@ -1,3 +1,5 @@
+import { Lobby, Match, Player } from '@moar-munz/api-interfaces';
+
 export interface SocketBody {
     token: string
 }
@@ -7,13 +9,13 @@ export interface DataBody<T> {
 }
 
 export interface LobbyBody {
-    lobby
+    lobby: Lobby
 }
 
 export interface MatchBody {
-    match
+    match: Match
 }
 
 export interface PlayerBody {
-    player
+    player: Player
 }

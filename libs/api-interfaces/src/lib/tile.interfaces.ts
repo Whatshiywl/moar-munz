@@ -51,18 +51,6 @@ export interface TaxTile extends BaseTile {
     tax: number
 }
 
-// export interface UndefinedTile extends BaseTile {
-//     name: string,
-//     level?: number,
-//     price?: number,
-//     rent?: number[],
-//     building?: number,
-//     owner?: string,
-//     cost?: number,
-//     multiplier?: number,
-//     worldcup?: boolean,
-// }
-
 export type RawTile = 
     | StartTile
     | DeedTile

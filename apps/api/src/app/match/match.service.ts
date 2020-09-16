@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { sample, groupBy } from 'lodash';
-import { LowDbService } from '../shared/lowdb/lowdb.service';
-import { PlayerService } from '../shared/db/player.service';
-import { BoardService } from '../shared/db/board.service';
+import { LowDbService } from '../shared/services/lowdb.service';
+import { PlayerService } from '../shared/services/player.service';
+import { BoardService } from '../shared/services/board.service';
 import { SocketService } from '../socket/socket.service';
-import { Namespace } from 'socket.io';
 import { Lobby, Match, OwnableTile, Player, PlayerState, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
 
 @Injectable()
@@ -20,6 +19,7 @@ export class MatchService {
     generateMatch(lobby: Lobby) {
         const id = lobby.id;
         const playerOrder = [ ...lobby.playerOrder ];
+        const options = { ...lobby.options };
         const playerState: {
             [id: string]: PlayerState;
         } = { };
@@ -35,13 +35,14 @@ export class MatchService {
                 turn: i === 0
             };
         });
-        const board = this.boardService.getBoard(lobby.board);
+        const board = this.boardService.getBoard(lobby.options.board);
         const match: Match = {
             id,
             turn: 0,
             lastDice: [ 1, 1 ],
             playerOrder,
             playerState,
+            options,
             board,
             locked: false,
             over: false
@@ -58,18 +59,28 @@ export class MatchService {
         this.db.updateMatch(match);
     }
 
-    removePlayer(match: Match, player: Player) {
+    async removePlayer(lobby: Lobby, match: Match, player: Player) {
         const index = match.playerOrder.findIndex(s => s === player.id);
         if (index < 0) return;
         const playerState = this.getPlayerState(match, player);
-        if (playerState.turn) this.setNextPlayer(match, player);
-        match.playerOrder.splice(index, 1);
-        match.board.tiles.forEach(tile => {
-            if (tile.owner === player.id) {
-                tile.owner = undefined;
-                if (this.boardService.isRentableTile(tile)) tile.level = 0;
-            }
-        });
+        if (match.options.ai) {
+            const aiId = lobby.playerOrder[index];
+            match.playerOrder[index] = aiId;
+            match.playerState[aiId] = { ...playerState };
+            match.board.tiles.forEach(tile => {
+                if (tile.owner === player.id) tile.owner = aiId;
+            });
+        } else {
+            if (playerState.turn) await this.setNextPlayer(match, player);
+            match.playerOrder[index] = undefined;
+            match.board.tiles.forEach(tile => {
+                if (tile.owner === player.id) {
+                    tile.owner = undefined;
+                    if (this.boardService.isRentableTile(tile)) tile.level = 0;
+                }
+            });
+        }
+        delete match.playerState[player.id];
         this.saveAndBroadcastMatch(match);
     }
 
@@ -84,7 +95,7 @@ export class MatchService {
         if (!playerState.turn) return;
         if (playerState.victory === VictoryState.LOST) return;
         match.locked = true;
-        console.log(`${player.name}'s turn`);
+        console.log(`${player.name}'s turn started`);
         this.saveAndBroadcastMatch(match);
         const move = await this.onStart(match, player);
         this.saveAndBroadcastMatch(match);
@@ -107,24 +118,41 @@ export class MatchService {
                 }
             }
         }
-        if (playerState.playAgain) playerState.playAgain = false;
-        else this.setNextPlayer(match, player);
         match.locked = false;
+        const hasLost = this.getPlayerState(match, player).victory === VictoryState.LOST;
+        if (playerState.playAgain && !hasLost) {
+            playerState.playAgain = false;
+            console.log(`${player.name}'s turn continues`);
+            if (player.ai) await this.play(match, player);
+        }
+        else {
+            console.log(`${player.name}'s turn ended`);
+            await this.setNextPlayer(match, player);
+        }
         this.saveAndBroadcastMatch(match);
     }
 
-    private setNextPlayer(match: Match, player: Player) {
+    private async setNextPlayer(match: Match, player: Player) {
         const playerState = this.getPlayerState(match, player);
         playerState.turn = false;
-        let index = match.playerOrder.findIndex(id => id === player.id);
+        const index = match.playerOrder.findIndex(id => id === player.id);
+        const next = this.getNextPlayer(match, index);
+        next.state.turn = true;
+        const nextPlayer = this.playerService.getPlayer(next.id);
+        console.log('next player', nextPlayer);
+        if (nextPlayer.ai) {
+            await this.play(match, nextPlayer);
+        }
+    }
+
+    private getNextPlayer(match: Match, index: number) {
         while (true) {
             index = (index + 1) % match.playerOrder.length;
             const nextPlayerId = match.playerOrder[index];
             if (!nextPlayerId) continue;
             const nextPlayerState = this.getPlayerState(match, nextPlayerId);
             if (!nextPlayerState || nextPlayerState.victory === VictoryState.LOST) continue;
-            nextPlayerState.turn = true;
-            break;
+            return { id: nextPlayerId, state: nextPlayerState };
         }
     }
 
@@ -140,7 +168,7 @@ export class MatchService {
                     return true;
                 }).map(t => t.name) ];
                 if (!options.length) return;
-                const question = this.socketService.ask(player.id,
+                const question = this.socketService.ask(player,
                 `Would you like to travel for ${tile.cost}?\nIf so, where to?`,
                 options);
                 const answer = await question;
@@ -203,7 +231,7 @@ export class MatchService {
                     return true;
                 }).map(t => `${t.name} (${this.boardService.getRawRent(t)})`);
                 if (!wcOptions.length) return;
-                const wcQuestions = this.socketService.ask(player.id,
+                const wcQuestions = this.socketService.ask(player,
                 `Set the location to host the next worldcup!`,
                 wcOptions);
                 const wcAnswer = await wcQuestions;
@@ -223,7 +251,7 @@ export class MatchService {
                         options.push(`${n} (${tile.price + cost})`);
                     }
                     if (options.length === 1) return;
-                    const question = this.socketService.ask(player.id, 
+                    const question = this.socketService.ask(player, 
                     `Would you like to buy ${tile.name} for ${tile.price}?\nIf so, how many houses do you want (${tile.building} each)?`,
                     options);
                     const answer = await question;
@@ -250,7 +278,7 @@ export class MatchService {
                             options.push(`${n} (${cost})`);
                         }
                         if (options.length === 1) return;
-                        const question = this.socketService.ask(player.id,
+                        const question = this.socketService.ask(player,
                         `Would you like to improve your property?\nIf so, to how many houses (${tile.building} each extra)?`,
                         options);
                         const answer = await question;
@@ -267,7 +295,7 @@ export class MatchService {
                         await this.transferFromTo(match, player, owner, cost);
                         const value = 2 * this.boardService.getTileValue(tile);
                         if (playerState.money >= value) {
-                            const question = this.socketService.ask(player.id,
+                            const question = this.socketService.ask(player,
                             `Would you like to buy ${tile.name} from ${owner.name} for ${value}?`,
                             [ 'No', 'Yes' ] as const);
                             const answer = await question;
@@ -284,7 +312,7 @@ export class MatchService {
             case 'company':
                 if (!tile.owner) {
                     if (tile.price > playerState.money) return;
-                    const question = this.socketService.ask(player.id, 
+                    const question = this.socketService.ask(player, 
                     `Would you like to buy ${tile.name} for ${tile.price}?`,
                     [ 'No', 'Yes' ] as const);
                     const answer = await question;
@@ -303,7 +331,7 @@ export class MatchService {
             case 'railroad':
                 if (!tile.owner) {
                     if (tile.price > playerState.money) return;
-                    const question = this.socketService.ask(player.id, 
+                    const question = this.socketService.ask(player, 
                     `Would you like to buy ${tile.name} for ${tile.price}?`,
                     [ 'No', 'Yes' ] as const);
                     const answer = await question;
@@ -378,9 +406,9 @@ export class MatchService {
             if (!properties.length) break;
             const options = properties.map(prop => {
                 const value = this.boardService.getTileValue(prop);
-                return `${name} (${value})`;
+                return `${prop.name} (${value})`;
             });
-            const question = this.socketService.ask(player.id,
+            const question = this.socketService.ask(player,
             `You must sell some properties.\nAmount remaining: ${Math.abs(playerState.money + amount)}`,
             options);
             const answer = await question;
@@ -407,7 +435,7 @@ export class MatchService {
             playerState.money = 0;
             playerState.victory = VictoryState.LOST;
             const lost = [ ];
-            const notLost = match.playerOrder.filter(id => {
+            const notLost = match.playerOrder.filter(Boolean).filter(id => {
                 if (id === player.id) return false;
                 const otherPlayer = this.playerService.getPlayer(id);
                 const otherPlayerState = this.getPlayerState(match, otherPlayer);
@@ -429,6 +457,7 @@ export class MatchService {
                 const val = Math.abs(amount);
                 const message = `You just ${got ? 'got' : 'lost'} ${val}`;
                 const oriMessage = ori ? `\n${amount > 0 ? 'from' : 'to'} ${ori}` : '';
+                console.log(`Notifying ${player.name} that he got ${amount}`);
                 this.socketService.notify(player.id, `${message}${oriMessage}.`);
             }
         }
@@ -443,7 +472,7 @@ export class MatchService {
     private win(match: Match, winner: Player) {
         console.log(`${winner.name} WINS`);
         this.socketService.notify(winner.id, 'You have won!');
-        const lost = match.playerOrder.filter(p => p !== winner.id);
+        const lost = match.playerOrder.filter(Boolean).filter(p => p !== winner.id);
         lost.forEach(id => {
             this.socketService.notify(id, `${winner.name} has won!`);
             const player = this.playerService.getPlayer(id);
@@ -485,12 +514,7 @@ export class MatchService {
     }
 
     broadcastMatchState(match: Match) {
-        let namespace: Namespace;
-        for (let i = 0; i < match.playerOrder.length; i++) {
-            const id = match.playerOrder[i];
-            const socketId = this.socketService.getClient(id).id;
-            namespace = (namespace || this.socketService.getServer()).to(socketId);
-        }
+        const namespace = this.socketService.getNamespaceFromIdList(match.playerOrder);
         if (!namespace) return;
         this.boardService.postProcessBoard(match.board);
         namespace.emit('match', match);

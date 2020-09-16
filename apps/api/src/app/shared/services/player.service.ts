@@ -1,8 +1,9 @@
 import { Lobby, Player } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
-import { JWTService } from '../jwt/jwt.service';
-import { LowDbService } from '../lowdb/lowdb.service';
-import { UUIDService } from '../uuid/uuid.service';
+import { JWTService } from './jwt.service';
+import { LowDbService } from './lowdb.service';
+import { UUIDService } from './uuid.service';
+import { sample } from 'lodash';
 
 @Injectable()
 export class PlayerService {
@@ -13,31 +14,31 @@ export class PlayerService {
         private jwtService: JWTService
     ) { }
 
-    generatePlayer(id: string, lobby: Lobby) {
+    private generatePlayer(id: string, lobby: Lobby, ai: boolean) {
         const player: Player = {
             id,
             name: this.generateRandomName(),
-            lobby: lobby.id
+            lobby: lobby.id,
+            ai
         };
         this.db.createPlayer(player);
         return player;
     }
 
-    getOrGenPlayerByToken(token: string, lobby: Lobby) {
+    getOrGenPlayerByToken(token: string, lobby: Lobby, ai: boolean) {
         if (!token) {
             const uuid = this.uuidService.generateUUID(2);
             token = this.jwtService.genToken({ uuid });
         }
         const payload = this.jwtService.getPayload(token);
-        return { token, player: this.generatePlayer(payload.uuid, lobby) };
+        return { token, player: this.generatePlayer(payload.uuid, lobby, ai) };
     }
 
     getPlayer(id: string): Player {
         return this.db.readPlayer(id);
     }
 
-    savePlayer(player) {
-        if (typeof player === 'string') throw new TypeError('Expecting player as object, got string');
+    savePlayer(player: Player) {
         return this.db.updatePlayer(player);
     }
 
@@ -58,8 +59,8 @@ export class PlayerService {
             'Organ', 'Priest', 'Quotation', 'Raspberry', 'Snapper', 'Tortoise',
             'Unicorn', 'Voice', 'Waffle', 'Xylophone', 'Yacht', 'Zebra'
         ];
-        const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
-        const secondName = secondNames[Math.floor(Math.random() * secondNames.length)];
+        const firstName = sample(firstNames);
+        const secondName = sample(secondNames);
         return `${firstName} ${secondName}`;
     }
 

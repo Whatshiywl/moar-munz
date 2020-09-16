@@ -1,7 +1,7 @@
 import { PipeTransform, Injectable } from '@nestjs/common';
 import { PlayerBody, SocketBody } from '../../socket/socket.interfaces';
-import { PlayerService } from '../db/player.service';
-import { JWTService } from '../jwt/jwt.service';
+import { PlayerService } from '../services/player.service';
+import { JWTService } from '../services/jwt.service';
 
 type InBody = SocketBody
 type OutBody = SocketBody & PlayerBody;

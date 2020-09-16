@@ -6,20 +6,21 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { join } from 'path';
 import { routes } from './routes';
-import { LowDbService } from './shared/lowdb/lowdb.service';
+import { LowDbService } from './shared/services/lowdb.service';
 import { MatchService } from './match/match.service';
 import { SocketGateway } from './socket/socket.gateway';
 import { LobbyService } from './lobby/lobby.service';
-import { UUIDService } from './shared/uuid/uuid.service';
-import { JWTService } from './shared/jwt/jwt.service';
-import { PlayerService } from './shared/db/player.service';
+import { UUIDService } from './shared/services/uuid.service';
+import { JWTService } from './shared/services/jwt.service';
+import { PlayerService } from './shared/services/player.service';
 import { SocketService } from './socket/socket.service';
-import { BoardService } from './shared/db/board.service';
+import { BoardService } from './shared/services/board.service';
 import { BodyLobbyPipe } from './shared/pipes/body-lobby.pipe';
 import { BodyMatchPipe } from './shared/pipes/body-match.pipe';
 import { BodyPlayerPipe } from './shared/pipes/body-player.pipe';
-import { LobbyGateway } from './lobby/lobby.gateway';
 import { MatchGateway } from './match/match.gateway';
+import { LobbyGateway } from './lobby/lobby.gateway';
+import { AIService } from './shared/services/ai.service';
 
 @Module({
   imports: [
@@ -32,8 +33,8 @@ import { MatchGateway } from './match/match.gateway';
   providers: [
     AppService,
     SocketGateway,
-    LobbyGateway,
     MatchGateway,
+    LobbyGateway,
     UUIDService,
     JWTService,
     LowDbService,
@@ -44,7 +45,8 @@ import { MatchGateway } from './match/match.gateway';
     BoardService,
     BodyPlayerPipe,
     BodyLobbyPipe,
-    BodyMatchPipe
+    BodyMatchPipe,
+    AIService
   ]
 })
 export class AppModule {}

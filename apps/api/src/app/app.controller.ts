@@ -1,12 +1,12 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 
-import { Message } from '@moar-munz/api-interfaces';
+import { LobbyOptions, Message } from '@moar-munz/api-interfaces';
 
 import { AppService } from './app.service';
-import { UUIDService } from './shared/uuid/uuid.service';
+import { UUIDService } from './shared/services/uuid.service';
 import { LobbyService } from './lobby/lobby.service';
-import { JWTService } from './shared/jwt/jwt.service';
-import { BoardService } from './shared/db/board.service';
+import { JWTService } from './shared/services/jwt.service';
+import { BoardService } from './shared/services/board.service';
 
 @Controller()
 export class AppController {
@@ -31,8 +31,11 @@ export class AppController {
   }
 
   @Post('lobby')
-  postLobby(@Body() body: { board: string } = { board: 'classic' }) {
-    const lobby = this.lobbyService.generateLobby(body.board || 'classic');
+  postLobby(@Body() options: LobbyOptions) {
+    const lobby = this.lobbyService.generateLobby({
+      ...{ board: 'classic', ai: false },
+      ...options
+    });
     return lobby;
   }
 

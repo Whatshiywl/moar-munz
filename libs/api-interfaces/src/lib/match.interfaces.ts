@@ -1,4 +1,5 @@
 import { Board } from './board.interfaces';
+import { LobbyOptions } from './lobby.interfaces';
 import { VictoryState } from './player.interfaces';
 
 export interface Match {
@@ -6,7 +7,8 @@ export interface Match {
     turn: 0,
     lastDice: [ number, number ],
     playerOrder: string[],
-    playerState: { [id: string]: PlayerState }
+    playerState: { [id: string]: PlayerState },
+    options: LobbyOptions,
     board: Board,
     locked: boolean,
     over: boolean

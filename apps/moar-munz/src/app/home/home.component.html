@@ -1,14 +1,16 @@
-<div style="text-align:center; margin-bottom: 10px;">
-    <h1>Welcome to Moar Munz!</h1>
-    <button mat-raised-button color="primary" (click)="createNewGame()" style="font-size: large;">Create a new game</button>
+<div style="text-align:center; margin-bottom: 20px;">
+  <h1>Welcome to Moar Munz!</h1>
+  <button mat-raised-button color="primary" (click)="createNewGame()" style="font-size: large;">Create a new game</button>
 </div>
-<div style="text-align:center" [formGroup]="matchOptions">
-    <mat-form-field appearance="fill">
-        <mat-label>Board</mat-label>
-        <mat-select formControlName="board">
-          <mat-option *ngFor="let board of boards" [value]="board">
-            {{board}}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
+<div [formGroup]="matchOptions" class="match-options">
+  <mat-form-field appearance="fill">
+    <mat-label>Board</mat-label>
+    <mat-select formControlName="board">
+      <mat-option *ngFor="let board of boards" [value]="board">
+        {{board}}
+      </mat-option>
+    </mat-select>
+  </mat-form-field>
+  <mat-label>A.I.</mat-label>
+  <mat-slide-toggle formControlName="ai" color="primary"></mat-slide-toggle>
 </div>

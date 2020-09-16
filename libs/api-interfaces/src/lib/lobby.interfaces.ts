@@ -1,8 +1,13 @@
 import { Player } from './player.interfaces';
 
+export interface LobbyOptions {
+    board: string,
+    ai: boolean
+}
+
 export interface Lobby {
     id: string,
-    board: string,
+    options: LobbyOptions,
     open: boolean,
     players: {
         [id: string]: Player & LobbyState

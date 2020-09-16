@@ -1,6 +1,8 @@
+import { Player } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
-import { Server, Socket } from 'socket.io';
-import { JWTService } from '../shared/jwt/jwt.service';
+import { Namespace, Server, Socket } from 'socket.io';
+import { AIService } from '../shared/services/ai.service';
+import { JWTService } from '../shared/services/jwt.service';
 
 @Injectable()
 export class SocketService {
@@ -17,7 +19,8 @@ export class SocketService {
     };
 
     constructor(
-        private jwtService: JWTService
+        private jwtService: JWTService,
+        private aiService: AIService
     ) { }
 
     initServer(server: Server) {
@@ -51,24 +54,43 @@ export class SocketService {
         delete this.sessions[data.uuid];
     }
 
-    ask<T extends ReadonlyArray<unknown>>(id: string, question: string, options: T) {
+    ask<T extends ReadonlyArray<unknown>>(player: Player, question: string, options: T) {
         type A = typeof options[number];
-        const client = this.getClient(id);
-        if (!client) return undefined;
-        return new Promise<A>((resolve, reject) => {
-            console.log(`Question: ${question}`);
-            client.emit('ask question', {
-                message: question, options
-            }, (answer: A) => {
+        if (player.ai) {
+            return new Promise<A>((resolve, reject) => {
+                console.log(`Question: ${question}`);
+                const answer = this.aiService.answer(question, options);
                 console.log(`Answer: ${answer}`);
                 resolve(answer);
             });
-        });
+        } else {
+            const client = this.getClient(player.id);
+            if (!client) return undefined;
+            return new Promise<A>((resolve, reject) => {
+                console.log(`Question: ${question}`);
+                client.emit('ask question', {
+                    message: question, options
+                }, (answer: A) => {
+                    console.log(`Answer: ${answer}`);
+                    resolve(answer);
+                });
+            });
+        }
     }
 
     notify(id: string, message: string) {
         const client = this.getClient(id);
         if (!client) return undefined;
         client.emit('notification', message);
+    }
+
+    getNamespaceFromIdList(ids: string[]) {
+        let namespace: Namespace;
+        for (const id of ids.filter(Boolean)) {
+            const socketId = this.getClient(id)?.id;
+            if (!socketId) continue;
+            namespace = (namespace || this.getServer()).to(socketId);
+        }
+        return namespace;
     }
 }

@@ -1,7 +1,8 @@
 export interface Player {
     id: string,
     name: string,
-    lobby: string
+    lobby: string,
+    ai: boolean
 }
 
 export enum VictoryState {

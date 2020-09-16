@@ -1,11 +1,10 @@
 import { Injectable } from '@nestjs/common';
-import { LowDbService } from '../shared/lowdb/lowdb.service';
-import { UUIDService } from '../shared/uuid/uuid.service';
-import { PlayerService } from '../shared/db/player.service';
+import { LowDbService } from '../shared/services/lowdb.service';
+import { UUIDService } from '../shared/services/uuid.service';
+import { PlayerService } from '../shared/services/player.service';
 import { SocketService } from '../socket/socket.service';
 import { MatchService } from '../match/match.service';
-import { Namespace } from 'socket.io';
-import { Lobby, Match, Player } from '@moar-munz/api-interfaces';
+import { Lobby, LobbyOptions, LobbyState, Match, Player } from '@moar-munz/api-interfaces';
 
 @Injectable()
 export class LobbyService {
@@ -18,10 +17,10 @@ export class LobbyService {
         private matchService: MatchService
     ) { }
 
-    generateLobby(board: string) {
+    generateLobby(options: LobbyOptions) {
         const lobby: Lobby = {
             id: this.uuidService.generateUUID(),
-            board,
+            options,
             open: true,
             players: { },
             playerOrder: [ ]
@@ -42,19 +41,32 @@ export class LobbyService {
         return this.db.deleteLobby(id);
     }
 
-    removePlayer(lobby: Lobby, match: Match, player: Player) {
+    async removePlayer(lobby: Lobby, player: Player, replace: boolean) {
         if (!lobby.players[player.id]) return;
         const order = lobby.playerOrder.findIndex(s => s === player.id);
-        lobby.playerOrder.splice(order, 1);
+        replace = replace && lobby.options.ai;
+        if (replace) {
+            const ai = this.playerService.getOrGenPlayerByToken(undefined, lobby, true);
+            ai.player.name = `${player.name} (AI)`;
+            this.playerService.savePlayer(ai.player);
+            lobby.playerOrder[order] = ai.player.id;
+            const lobbyState = this.getPlayer(lobby, player);
+            const aiLobbyState: LobbyState = { ready: false, color: lobbyState.color };
+            lobby.players[ai.player.id] = { ...ai.player, ...aiLobbyState };
+        } else {
+            lobby.playerOrder[order] = undefined;
+        }
         delete lobby.players[player.id];
         this.saveAndBroadcastLobby(lobby);
-        if (match) this.matchService.removePlayer(match, player);
+        const match = this.matchService.getMatch(lobby.id);
+        if (match) await this.matchService.removePlayer(lobby, match, player);
         this.playerService.deletePlayer(player.id);
+        if (replace) this.onPlayerReady(lobby, lobby.playerOrder[order], true);
     }
 
     onEnterLobby(lobby: Lobby, token: string) {
         if (!lobby.open) return false;
-        const playerData = this.playerService.getOrGenPlayerByToken(token, lobby);
+        const playerData = this.playerService.getOrGenPlayerByToken(token, lobby, false);
         const player = playerData.player;
         token = playerData.token;
         if (!player) return false;
@@ -75,7 +87,7 @@ export class LobbyService {
         return playerData;
     }
 
-    onPlayerReady(lobby: Lobby, player: Player, ready: boolean) {
+    onPlayerReady(lobby: Lobby, player: string | Player, ready: boolean) {
         this.getPlayer(lobby, player).ready = ready;
         const everyoneReady = this.isEveryoneReady(lobby);
         console.log(`Everyone ready? ${everyoneReady}`);
@@ -89,7 +101,7 @@ export class LobbyService {
     }
 
     private isEveryoneReady(lobby: Lobby) {
-        for (const playerId of lobby.playerOrder) {
+        for (const playerId of lobby.playerOrder.filter(Boolean)) {
             const player = this.getPlayer(lobby, playerId);
             if (!player.ready) return false;
         }
@@ -107,11 +119,7 @@ export class LobbyService {
     }
 
     private notifyLobbyChanges(lobby: Lobby) {
-        let namespace: Namespace;
-        for (const id of lobby.playerOrder) {
-            const socketId = this.socketService.getClient(id).id;
-            namespace = (namespace || this.socketService.getServer()).to(socketId);
-        }
+        const namespace = this.socketService.getNamespaceFromIdList(lobby.playerOrder);
         if (!namespace) return;
         namespace.emit('update lobby', lobby);
     }

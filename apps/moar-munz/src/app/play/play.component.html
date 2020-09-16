@@ -1,16 +1,29 @@
-<div *ngIf="!match">
-    <h1>Lobby</h1>
-    <div class="player-wrapper">
-        <div *ngFor="let id of lobby?.playerOrder">
-            <input *ngIf="id == uuid" type="checkbox"
-            [formControl]="ready">
-            <input *ngIf="id != uuid" type="checkbox"
-            [checked]="lobby.players[id].ready" disabled>
-    
-            <span [style.textDecoration]="id == uuid ? 'underline' : 'none'"
-            [style.color]="lobby.players[id].color">{{lobby.players[id].name}}</span>
-        </div>
-    </div>
+<div *ngIf="!match" class="lobby-wrapper">
+    <mat-card class="player-wrapper">
+        <mat-card-title>Lobby</mat-card-title>
+        <mat-divider></mat-divider>
+        <mat-list class="player-list">
+            <mat-list-item *ngFor="let id of lobby?.playerOrder; last as last"
+            class="player-list-item"
+            [style.backgroundColor]="id === uuid ? 'none' : '#eee'">
+                <div *ngIf="lobby.players[id]" class="player-item">
+                    <span [style.color]="lobby.players[id].color">{{lobby.players[id].name}}</span>
+
+                    <mat-icon *ngIf="!lobby.players[id].ready" [style.color]="lobby.players[id].color">hourglass_empty</mat-icon>
+                    <mat-icon *ngIf="lobby.players[id].ready" [style.color]="lobby.players[id].color">check_circle</mat-icon>
+
+                </div>
+                <div *ngIf="uuid === lobby?.playerOrder[0] && lobby.players[id]?.ai"
+                    class="player-remove"
+                    (click)="onLobbyPlayerClick(lobby.players[id])">
+                    <span>Remove</span>
+                </div>
+                <mat-divider *ngIf="!last"></mat-divider>
+            </mat-list-item>
+        </mat-list>
+    </mat-card>
+    <button *ngIf="player?.ready" class="ready-button" mat-flat-button color="warn" (click)="onReady(false)">Not ready!</button>
+    <button *ngIf="!player?.ready" class="ready-button" mat-flat-button color="primary" (click)="onReady(true)">I'm ready!</button>
 </div>
 <div *ngIf="match" class="game-wrapper">
     <div class="board">
@@ -27,7 +40,7 @@
         (mouseleave)="onTileMouseLeave(tile)">
             <p>{{tile.name}}{{tile.level ? ' ('+(tile.level-1)+')' : ''}}{{tile.worldcup ? ' WC' : ''}}</p>
             <p *ngIf="tile.price">{{tile.value ? 'Value: '+tile.value : 'Price: '+tile.price}}</p>
-            <p *ngIf="tile.currentRent">Rent: {{tile.currentRent}}</p>
+            <p *ngIf="tile.currentRent > 0">Rent: {{tile.currentRent}}</p>
             <p *ngIf="tile.multiplier">Multiplier: x{{tile.multiplier}}</p>
             <p *ngIf="tile.tax">Tax: {{100 * tile.tax}}%</p>
             <div class="marker-wrapper">

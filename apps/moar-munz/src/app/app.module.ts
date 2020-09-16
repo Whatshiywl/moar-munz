@@ -14,6 +14,12 @@ import { SessionGuard } from './shared/guards/session.guard';
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatCardModule } from '@angular/material/card';
+import { MatListModule } from '@angular/material/list';
+import { MatDividerModule } from '@angular/material/divider';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -32,7 +38,13 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     ReactiveFormsModule,
     BrowserAnimationsModule,
     MatButtonModule,
-    MatSelectModule
+    MatSelectModule,
+    MatCheckboxModule,
+    MatCardModule,
+    MatListModule,
+    MatDividerModule,
+    MatIconModule,
+    MatSlideToggleModule
   ],
   providers: [
     SocketService,
