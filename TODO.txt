@@ -2,14 +2,17 @@ Changelog
 
 1.7
 Permitir configurar valor inicial
+Permitir configurar se parar na cadeia é prisão ou visita
+Permitir escolher nome e cor no lobby
 
 1.6
-Botão para adicionar AI
+[OK] Botão para adicionar AI
 Melhorar indicadores de casas, copas e monopolios
 Implementar janela de chat
 Fazer eventos do jogo aparecerem no chat
 Fazer perguntas aparecerem como dialogo (Angular Material)
 Fazer "trim" no final do lobby de AI estiver desabilitada
+[BUG] Pergunta de worldtour feita após jogada de dados
 
 1.5.1
 [OK] [BUG] Eventos de jogo não emitindo quando AI está jogando

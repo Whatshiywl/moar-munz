@@ -43,25 +43,37 @@ export class LobbyService {
 
     async removePlayer(lobby: Lobby, player: Player, replace: boolean) {
         if (!lobby.players[player.id]) return;
-        const order = lobby.playerOrder.findIndex(s => s === player.id);
         replace = replace && lobby.options.ai;
         if (replace) {
-            const ai = this.playerService.getOrGenPlayerByToken(undefined, lobby, true);
-            ai.player.name = `${player.name} (AI)`;
-            this.playerService.savePlayer(ai.player);
-            lobby.playerOrder[order] = ai.player.id;
-            const lobbyState = this.getPlayer(lobby, player);
-            const aiLobbyState: LobbyState = { ready: false, color: lobbyState.color };
-            lobby.players[ai.player.id] = { ...ai.player, ...aiLobbyState };
+            this.addAI(lobby, player);
         } else {
-            lobby.playerOrder[order] = undefined;
+            this.deletePlayer(lobby, player);
         }
-        delete lobby.players[player.id];
-        this.saveAndBroadcastLobby(lobby);
         const match = this.matchService.getMatch(lobby.id);
         if (match) await this.matchService.removePlayer(lobby, match, player);
         this.playerService.deletePlayer(player.id);
-        if (replace) this.onPlayerReady(lobby, lobby.playerOrder[order], true);
+    }
+
+    private deletePlayer(lobby: Lobby, player: Player) {
+        const order = lobby.playerOrder.findIndex(s => s === player.id);
+        lobby.playerOrder[order] = undefined;
+        delete lobby.players[player.id];
+        this.saveAndBroadcastLobby(lobby);
+    }
+
+    addAI(lobby: Lobby, replace?: Player) {
+        const ai = this.playerService.getOrGenPlayerByToken(undefined, lobby, true);
+        if (replace) {
+            ai.player.name = `${replace.name} (AI)`;
+            this.playerService.savePlayer(ai.player);
+            this.replacePlayer(lobby, replace, ai.player);
+            delete lobby.players[replace.id];
+        } else {
+            this.addPlayerAtFirstFreeSpot(lobby, ai.player);
+        }
+        this.saveAndBroadcastLobby(lobby);
+        const order = lobby.playerOrder.findIndex(s => s === ai.player.id);
+        this.onPlayerReady(lobby, lobby.playerOrder[order], true);
     }
 
     onEnterLobby(lobby: Lobby, token: string) {
@@ -70,21 +82,37 @@ export class LobbyService {
         const player = playerData.player;
         token = playerData.token;
         if (!player) return false;
-        if (!lobby.playerOrder.includes(player.id)) {
-            for (let i = 0; i <= lobby.playerOrder.length; i++) {
-                if (!lobby.playerOrder[i]) {
-                    lobby.playerOrder[i] = player.id;
-                    const color = this.getPlayerColor(i);
-                    lobby.players[player.id] = {
-                        ...player,
-                        ...{ ready: false, color }
-                    };
-                    break;
-                }
-            }
-        }
+        this.addPlayerAtFirstFreeSpot(lobby, player);
         this.saveAndBroadcastLobby(lobby);
         return playerData;
+    }
+
+    private replacePlayer(lobby: Lobby, from: Player, to: Player) {
+        const order = lobby.playerOrder.findIndex(s => s === from.id);
+        lobby.playerOrder[order] = to.id;
+        const fromState = this.getPlayer(lobby, from);
+        const toState: LobbyState = { ready: false, color: fromState.color };
+        lobby.players[to.id] = { ...to, ...toState };
+    }
+
+    private addPlayerAtFirstFreeSpot(lobby: Lobby, player: Player) {
+        if (!lobby.playerOrder.includes(player.id)) {
+            const order = this.getFirstFreeSpot(lobby);
+            lobby.playerOrder[order] = player.id;
+            const color = this.getPlayerColor(order);
+            lobby.players[player.id] = {
+                ...player,
+                ...{ ready: false, color }
+            };
+        }
+    }
+
+    private getFirstFreeSpot(lobby: Lobby) {
+        for (let i = 0; i <= lobby.playerOrder.length; i++) {
+            if (!lobby.playerOrder[i]) {
+                return i;
+            }
+        }
     }
 
     onPlayerReady(lobby: Lobby, player: string | Player, ready: boolean) {

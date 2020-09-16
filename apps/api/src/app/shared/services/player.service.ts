@@ -15,9 +15,10 @@ export class PlayerService {
     ) { }
 
     private generatePlayer(id: string, lobby: Lobby, ai: boolean) {
+        const name = `${this.generateRandomName()}${ai ? ' (AI)' : ''}`;
         const player: Player = {
             id,
-            name: this.generateRandomName(),
+            name,
             lobby: lobby.id,
             ai
         };

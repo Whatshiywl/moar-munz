@@ -13,12 +13,19 @@
                     <mat-icon *ngIf="lobby.players[id].ready" [style.color]="lobby.players[id].color">check_circle</mat-icon>
 
                 </div>
-                <div *ngIf="uuid === lobby?.playerOrder[0] && lobby.players[id]?.ai"
-                    class="player-remove"
+                <div *ngIf="first && lobby.players[id]?.ai"
+                    class="player-list-button-hoverable"
                     (click)="onLobbyPlayerClick(lobby.players[id])">
-                    <span>Remove</span>
+                    <span>Remove A.I.</span>
                 </div>
-                <mat-divider *ngIf="!last"></mat-divider>
+                <mat-divider *ngIf="!last || (first && lobby?.options.ai)"></mat-divider>
+            </mat-list-item>
+            <mat-list-item *ngIf="first && lobby?.options.ai"
+            class="player-list-item">
+                <div class="player-list-button"
+                    (click)="onLobbyAddAI()">
+                    <span>Add A.I.</span>
+                </div>
             </mat-list-item>
         </mat-list>
     </mat-card>

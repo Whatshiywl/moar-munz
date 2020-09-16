@@ -47,4 +47,14 @@ export class LobbyGateway {
         await this.lobbyService.removePlayer(lobby, playerToRemove, false);
     }
 
+    @UsePipes(BodyPlayerPipe, BodyLobbyPipe)
+    @SubscribeMessage('add ai')
+    onAddAI(@MessageBody() body: RemovePlayerBody) {
+        const { player, lobby } = body;
+        if (!player || !lobby) return;
+        const admin = lobby.playerOrder.filter(Boolean)[0];
+        if (player.id !== admin) return;
+        this.lobbyService.addAI(lobby);
+    }
+
 }

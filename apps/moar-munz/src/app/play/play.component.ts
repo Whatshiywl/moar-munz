@@ -15,6 +15,7 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   player: Player & PlayerState & LobbyState;
   uuid: string;
+  first: boolean;
 
   lobby: Lobby;
   match: Match;
@@ -55,6 +56,7 @@ export class PlayComponent implements OnInit, OnDestroy {
         this.lobby = lobby;
         this.players = this.getPlayers();
         this.player = this.players.find(p => p.id === this.uuid);
+        this.first = this.uuid === lobby.playerOrder[0];
       });
       this.socket.on('match', (match: Match) => {
         console.log('match', match);
@@ -66,6 +68,7 @@ export class PlayComponent implements OnInit, OnDestroy {
         this.isMyTurn = this.playerTurn === this.uuid;
         this.players = this.getPlayers();
         this.player = this.players.find(p => p.id === this.uuid);
+        this.first = this.uuid === match.playerOrder[0];
         if (this.debug) {
           setTimeout(() => {
             if (this.isMyTurn) this.throwDice();
@@ -117,6 +120,10 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   onLobbyPlayerClick(player: Player & LobbyState & PlayerState) {
     this.socket.emit('remove player', { id: player.id });
+  }
+
+  onLobbyAddAI() {
+    this.socket.emit('add ai');
   }
 
   onQuestionAnswer(answer: string) {
