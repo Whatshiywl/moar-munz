@@ -7,6 +7,7 @@ import { UUIDService } from './shared/services/uuid.service';
 import { LobbyService } from './lobby/lobby.service';
 import { JWTService } from './shared/services/jwt.service';
 import { BoardService } from './shared/services/board.service';
+import { pick } from 'lodash';
 
 @Controller()
 export class AppController {
@@ -42,6 +43,12 @@ export class AppController {
   @Get('boards')
   getBoards() {
     return this.boardService.getBoards();
+  }
+
+  @Get('version')
+  getVersion() {
+    const pkg = require('../../../../package.json');
+    return pick(pkg, 'version');
   }
 
 }

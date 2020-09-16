@@ -2,11 +2,12 @@ Changelog
 
 1.6
 Melhorar indicadores de casas, copas e monopolios
+Implementar janela de chat
 
 1.5
-Implementar jogadores AI
-Permitir saída de jogadores no meio da partida (entra AI no lugar)
-Mostrar versão na tela
+[OK] Implementar jogadores AI
+[OK] Permitir saída de jogadores no meio da partida (entra AI no lugar)
+[OK] Mostrar versão na tela
 
 1.4
 [OK] Impedir entrada de novos jogadores no meio da partida

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Message } from '@moar-munz/api-interfaces';
+import { map } from 'rxjs/operators';
 
 @Component({
   selector: 'moar-munz-root',
@@ -8,7 +8,9 @@ import { Message } from '@moar-munz/api-interfaces';
   styleUrls: ['./app.component.scss']
 })
 export class AppComponent {
-  hello$ = this.http.get<Message>('/api/v1/hello');
+
+  version$ = this.http.get<{ version: string }>('/api/v1/version').pipe(map(r => r.version));
+
   constructor(private http: HttpClient) {}
 
 }

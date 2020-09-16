@@ -25,7 +25,7 @@ export class HomeComponent implements OnInit {
   }
   
   async ngOnInit() {
-    const boards = await this.http.get<any[]>('/api/v1/boards').toPromise();
+    const boards = await this.http.get<string[]>('/api/v1/boards').toPromise();
     this.boards = boards;
     this.matchOptions.controls['board'].setValue(boards[0]);
   }
