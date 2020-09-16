@@ -3,6 +3,8 @@ Changelog
 1.6
 Melhorar indicadores de casas, copas e monopolios
 Implementar janela de chat
+Make game events appear on chat
+Make player input as dialog
 
 1.5
 [OK] Implementar jogadores AI

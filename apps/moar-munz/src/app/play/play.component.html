@@ -76,7 +76,7 @@
                     </div>
                 </div>
             </div>
-            <div *ngIf="notificationData" class="board-input">
+            <mat-card *ngIf="notificationData" class="board-input">
                 <pre>{{notificationData.message}}</pre>
                 <button mat-stroked-button color="primary" *ngFor="let option of notificationData?.options"
                 (click)="onQuestionAnswer(option)"
@@ -84,7 +84,7 @@
                 (mouseleave)="onOptionMouseLeave(option)">{{option}}</button>
                 <button mat-stroked-button color="primary" *ngIf="!notificationData.options"
                 (click)="notificationData = undefined">OK</button>
-            </div>
+            </mat-card>
             <div class="board-info"></div>
         </div>
     </div>
