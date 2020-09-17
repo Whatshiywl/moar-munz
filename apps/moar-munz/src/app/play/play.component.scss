@@ -84,15 +84,16 @@
 }
 
 .game-wrapper {
-    display: flex;
+    height: 100%;
 
     .board {
-        position: relative;
-        width: 100vw;
-        height: 100vh;
+        height: 100%;
+        display: grid;
+        grid-template-columns: repeat(11, minmax(0, 1fr));
+        grid-template-rows: repeat(11, minmax(0, 1fr));
 
         >.tile {
-            position: absolute;
+            position: relative;
             display: flex;
             flex-direction: column;
             box-sizing: border-box;
@@ -100,11 +101,12 @@
         }
 
         >.board-center {
-            position: absolute;
             display: flex;
             align-items: center;
             justify-content: space-between;
             box-sizing: border-box;
+            grid-column: 2 / span 9;
+            grid-row: 2 / span 9;
 
             .info-column {
                 display: flex;

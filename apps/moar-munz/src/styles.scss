@@ -2,3 +2,14 @@
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
+
+moar-munz-root {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+mat-sidenav-container.mat-drawer-container {
+  overflow: auto;
+  flex-grow: 1;
+}

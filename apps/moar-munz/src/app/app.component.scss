@@ -6,3 +6,7 @@ a {
 .toolbar-spacer {
   flex: 1 1 auto;
 }
+
+router-outlet {
+  height: 100%;
+}

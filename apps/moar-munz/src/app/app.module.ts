@@ -22,6 +22,8 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatSlideToggleModule } from '@angular/material/slide-toggle';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { TileComponent } from './tile/tile.component';
+import { MatGridListModule } from '@angular/material/grid-list';
+import { MatSidenavModule } from '@angular/material/sidenav';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -48,7 +50,9 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     MatDividerModule,
     MatIconModule,
     MatSlideToggleModule,
-    MatToolbarModule
+    MatToolbarModule,
+    MatGridListModule,
+    MatSidenavModule
   ],
   providers: [
     SocketService,

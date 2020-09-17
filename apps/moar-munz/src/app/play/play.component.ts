@@ -3,7 +3,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { sample } from 'lodash';
 import { Subject, Subscription } from 'rxjs';
-import { Lobby, LobbyState, Match, Player, PlayerState, Tile, VictoryState } from '@moar-munz/api-interfaces';
+import { Board, Lobby, LobbyState, Match, Player, PlayerState, Tile, VictoryState } from '@moar-munz/api-interfaces';
 
 @Component({
   selector: 'moar-munz-play',
@@ -19,6 +19,7 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   lobby: Lobby;
   match: Match;
+  tileDisplayOrder: { tile: Tile, i: number }[];
 
   playerTurn: string;
   isMyTurn: boolean;
@@ -61,6 +62,7 @@ export class PlayComponent implements OnInit, OnDestroy {
       this.socket.on('match', (match: Match) => {
         console.log('match', match);
         this.match = match;
+        this.tileDisplayOrder = this.getTileDisplayOrder(match.board);
         this.playerTurn = Object.keys(match.playerState).find(playerId => {
           const playerState = match.playerState[playerId];
           return playerState.turn;
@@ -108,6 +110,25 @@ export class PlayComponent implements OnInit, OnDestroy {
   ngOnDestroy() {
     console.log('destroy play component');
     this.socket.disconnect(true);
+  }
+
+  private getTileDisplayOrder(board: Board) {
+    const tiles = board.tiles;
+    const order = [ ];
+    // FIRST LINE
+    for (let i = 0; i < board.lineLength; i++) {
+      order.push(i);
+    }
+    // SECOND LINE AND FOURTH
+    for (let i = 0; i < board.lineLength; i++) {
+      order.push(10 + i);
+      order.push(tiles.length - 1 - i);
+    }
+    // THIRD LINE
+    for (let i = 0; i < board.lineLength; i++) {
+      order.push(3 * board.lineLength - 1 - i);
+    }
+    return order.map(i => ({ tile: tiles[i], i }));
   }
 
   throwDice() {
