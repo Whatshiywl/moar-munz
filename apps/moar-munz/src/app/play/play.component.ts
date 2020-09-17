@@ -180,13 +180,6 @@ export class PlayComponent implements OnInit, OnDestroy {
     });
   }
 
-  getPlayersInTile(t: number) {
-    return this.players
-    .filter(player => {
-      return player.victory !== VictoryState.LOST && player.position === t;
-    });
-  }
-
   getPlayerProperties(player: Player) {
     return this.match.board.tiles
     .filter(tile => tile.owner === player.id);

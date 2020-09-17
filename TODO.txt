@@ -7,12 +7,14 @@ Permitir escolher nome e cor no lobby
 
 1.6
 [OK] Botão para adicionar AI
-Melhorar indicadores de casas, copas e monopolios
+[OK] Melhorar indicadores de casas, copas e monopolios
 Implementar janela de chat
 Fazer eventos do jogo aparecerem no chat
 Fazer perguntas aparecerem como dialogo (Angular Material)
 Fazer "trim" no final do lobby de AI estiver desabilitada
 [BUG] Pergunta de worldtour feita após jogada de dados
+[BUG] Opções do worldcup não apresentam aluguel corretamente
+[BUG] Chance para o início não ganha o valor da casa
 
 1.5.1
 [OK] [BUG] Eventos de jogo não emitindo quando AI está jogando
@@ -27,7 +29,7 @@ Fazer "trim" no final do lobby de AI estiver desabilitada
 [OK] Impedir entrada de novos jogadores no meio da partida
 [OK] Remover jogadores que sairem no meio da partida
 [OK] Angular Materials
-[OK] Rebalancear aluguel das rodovias
+[OK] Rebalancear aluguel das ferrovias
 [OK] Permitir escolher mapas
 [OK] Adicionar mapa westeros
 

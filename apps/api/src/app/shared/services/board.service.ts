@@ -1,6 +1,6 @@
 import { readdirSync } from 'fs';
 import { cloneDeep } from 'lodash';
-import { Board, RentableTile, OwnableTile, Tile } from '@moar-munz/api-interfaces';
+import { Board, RentableTile, OwnableTile, Tile, DeedTile, DynamicTile } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 import * as boards from '../../../assets/boards';
 
@@ -63,6 +63,9 @@ export class BoardService {
         tile.value = this.getTileValue(tile as OwnableTile);
         if (tile.type === 'deed' || tile.type === 'railroad') {
           tile.currentRent = this.getFullRent(board, tile);
+          if (tile.type === 'deed') {
+            tile.power = this.getPower(board, tile);
+          }
         }
       }
     }
@@ -97,17 +100,24 @@ export class BoardService {
     let rent = this.getRawRent(tile);
     if (tile.worldcup) rent *= 2;
     if (tile.type === 'deed') {
-      const sameColor = board.tiles.filter(t => t.type === 'deed' && t.color === tile.color);
-      const sameColorOwner = sameColor.filter(t => t.owner === tile.owner);
-      if (sameColor.length === sameColorOwner.length) rent *= 2;
-      const tileIndex = board.tiles.findIndex(t => t.name === tile.name);
-      const lineLength = board.lineLength;
-      const line = Math.floor(tileIndex / lineLength);
-      const sameLine = board.tiles.filter((t, i) => t.type === 'deed' && Math.floor(i / lineLength) === line);
-      const sameTileOwner = sameLine.filter(t => t.owner === tile.owner);
-      if (sameLine.length === sameTileOwner.length) rent *= 2;
+      const power = this.getPower(board, tile);
+      rent *= Math.pow(2, power);
     }
     return rent;
+  }
+
+  private getPower(board: Board, tile: DeedTile & DynamicTile) {
+    let multiplier = 0;
+    const sameColor = board.tiles.filter(t => t.type === 'deed' && t.color === tile.color);
+    const sameColorOwner = sameColor.filter(t => t.owner === tile.owner);
+    if (sameColor.length === sameColorOwner.length) multiplier++;
+    const tileIndex = board.tiles.findIndex(t => t.name === tile.name);
+    const lineLength = board.lineLength;
+    const line = Math.floor(tileIndex / lineLength);
+    const sameLine = board.tiles.filter((t, i) => t.type === 'deed' && Math.floor(i / lineLength) === line);
+    const sameTileOwner = sameLine.filter(t => t.owner === tile.owner);
+    if (sameLine.length === sameTileOwner.length) multiplier++;
+    return multiplier;
   }
 
 }

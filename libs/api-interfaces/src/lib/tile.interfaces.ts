@@ -67,6 +67,7 @@ export interface DynamicTile {
     worldcup?: boolean,
     value: number,
     currentRent: number,
+    power: number,
     x: number,
     y: number,
     highlighted: boolean
