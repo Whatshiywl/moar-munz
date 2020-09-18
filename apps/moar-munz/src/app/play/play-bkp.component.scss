@@ -101,21 +101,21 @@
         }
 
         >.board-center {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            grid-template-rows: repeat(2, minmax(0, 1fr));
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-sizing: border-box;
             grid-column: 2 / span 9;
             grid-row: 2 / span 9;
-            column-gap: 10px;
-            row-gap: 10px;
-            margin: 10px;
 
             .info-column {
                 display: flex;
                 flex-direction: column;
+                padding: 0 10px;
+                margin: 10px;
+                width: 20%;
+                height: 100%;
                 overflow-y: auto;
-                grid-column: 1;
-                grid-row: 1 / span 2;
 
                 >p {
                     margin-bottom: 0;
@@ -159,63 +159,36 @@
                 }
             }
 
-            >.trade-info {
-                overflow-y: auto;
-                grid-column: 2;
-                grid-row: 1;
-            }
-
-            >.board-input-wrapper {
-                grid-column: 2;
-                grid-row: 2;
+            >.board-input {
+                text-align: center;
+                padding: 10px;
+                margin: 10px;
                 display: flex;
                 flex-direction: column;
+                flex-shrink: 10000;
+                overflow-y: auto;
+                max-height: 90%;
+                background-color: #673ab7;
+                color: white;
+                font-weight: 500;
 
-                >.board-input {
-                    display: flex;
-                    flex-direction: column;
-                    max-height: 100%;
-                    padding: 0;
+                >pre {
+                    font: inherit;
+                }
 
-                    mat-card-title {
-                        max-height: 100%;
-                        width: 100%;
-                        margin: 15px 0 5px 0;
-
-                        pre {
-                            width: 100%;
-                            text-align: center;
-                            font-family: inherit;
-                            font-size: 16px;
-                            margin: 0;
-                        }
-                    }
-
-                    mat-action-list {
-                        overflow: auto;
-                        height: 100%;
-                        flex: 1 1 auto;
-                        padding: 0;
-
-                        button {
-                            // margin: 2px 0;
-                            // border-radius: 3px;
-                            // outline: none;
-                            // background-color: white;
-                            height: 36px;
-        
-                            span {
-                                width: 100%;
-                                text-align: center;
-                            }
-                        }
-                    }
+                >button {
+                    margin: 2px 0;
+                    border-radius: 3px;
+                    outline: none;
+                    background-color: white;
                 }
             }
 
             >.board-info {
-                grid-column: 3;
-                grid-row: 1 / span 2;
+                width: 20%;
+                height: 100%;
+                padding: 0 10px;
+                margin: 10px;
                 overflow-y: auto;
             }
         }

@@ -35,7 +35,7 @@
 <div *ngIf="match" class="game-wrapper">
     <div class="board">
         <div class="board-center">
-            <div class="info-column">
+            <mat-card class="info-column">
                 <p>Last roll:</p>
                 <div class="dice">
                     <div>{{match?.lastDice[0]}}</div>
@@ -57,17 +57,30 @@
                         style="font-size: smaller;">{{property.name}}</span>
                     </div>
                 </div>
-            </div>
-            <mat-card *ngIf="notificationData" class="board-input">
-                <pre>{{notificationData.message}}</pre>
-                <button mat-stroked-button color="primary" *ngFor="let option of notificationData?.options"
-                (click)="onQuestionAnswer(option)"
-                (mouseenter)="onOptionMouseEnter(option)"
-                (mouseleave)="onOptionMouseLeave(option)">{{option}}</button>
-                <button mat-stroked-button color="primary" *ngIf="!notificationData.options"
-                (click)="notificationData = undefined">OK</button>
             </mat-card>
-            <div class="board-info"></div>
+            <mat-card *ngIf="activeTrade" class="trade-info"></mat-card>
+            <div class="board-input-wrapper">
+                <mat-card *ngIf="notificationData" class="board-input">
+                    <mat-card-title>
+                        <pre>{{notificationData.message}}</pre>
+                    </mat-card-title>
+                    <mat-action-list>
+                        <mat-divider></mat-divider>
+                        <button mat-list-item *ngFor="let option of notificationData?.options; last as last"
+                        (click)="onQuestionAnswer(option)"
+                        (mouseenter)="onOptionMouseEnter(option)"
+                        (mouseleave)="onOptionMouseLeave(option)">
+                            <span>{{option}}</span>
+                            <mat-divider *ngIf="!last"></mat-divider>
+                        </button>
+                        <button mat-list-item *ngIf="!notificationData.options"
+                        (click)="notificationData = undefined">
+                            <span>OK</span>
+                        </button>
+                    </mat-action-list>
+                </mat-card>
+            </div>
+            <mat-card class="board-info"></mat-card>
         </div>
         <moar-munz-tile *ngFor="let tileData of tileDisplayOrder"
         [match]="match" [lobby]="lobby" [tile]="tileData.tile"

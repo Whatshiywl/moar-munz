@@ -26,6 +26,8 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   players: (Player & PlayerState & LobbyState)[];
 
+  activeTrade;
+
   notificationData: {
     message: string;
     options?: string[];

@@ -99,7 +99,7 @@ export class MatchService {
         this.saveAndBroadcastMatch(match);
         const move = await this.onStart(match, player);
         this.saveAndBroadcastMatch(match);
-        const dice: [ number, number ] = [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
+        const dice: [ number, number ] = [15,15];//[ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
         match.lastDice = dice;
         const diceResult = typeof move === 'number' ? move : dice.reduce((acc, n) => acc + n, 0);
         if (await this.onPlay(match, player, dice)) {
@@ -110,7 +110,7 @@ export class MatchService {
                 const position = (start + i) % tiles.length;
                 await this.onPass(match, player, position);
                 this.saveAndBroadcastMatch(match);
-                await this.sleep(250);
+                await this.sleep(10);
                 if (i === diceResult) {
                     this.saveAndBroadcastMatch(match);
                     await this.onLand(match, player, position, diceResult);
