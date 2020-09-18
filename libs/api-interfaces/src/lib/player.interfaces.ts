@@ -1,3 +1,6 @@
+import { LobbyState } from './lobby.interfaces';
+import { PlayerState } from './match.interfaces';
+
 export interface Player {
     id: string,
     name: string,
@@ -8,3 +11,5 @@ export interface Player {
 export enum VictoryState {
     UNDEFINED, LOST, WON
 }
+
+export type PlayerComplete = Player & PlayerState & LobbyState;

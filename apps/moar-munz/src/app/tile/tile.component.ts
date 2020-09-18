@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { CompanyTile, DeedTile, Lobby, LobbyState, Match, Player, PlayerState, RailroadTile, RentableTile, Tile, VictoryState } from '@moar-munz/api-interfaces';
+import { CompanyTile, DeedTile, Lobby, LobbyState, Match, Player, PlayerComplete, PlayerState, RailroadTile, RentableTile, Tile, VictoryState } from '@moar-munz/api-interfaces';
 
 @Component({
   selector: 'moar-munz-tile',
@@ -14,10 +14,10 @@ export class TileComponent implements OnChanges {
   @Input() index: number;
 
   @Input() 
-  players: (Player & PlayerState & LobbyState)[];
+  players: (PlayerComplete)[];
 
   tileData: {
-    players: (Player & PlayerState & LobbyState)[],
+    players: (PlayerComplete)[],
     owner?: Player & LobbyState,
     level?: number,
     levelString?: string,

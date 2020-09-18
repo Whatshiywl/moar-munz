@@ -198,10 +198,6 @@
                         padding: 0;
 
                         button {
-                            // margin: 2px 0;
-                            // border-radius: 3px;
-                            // outline: none;
-                            // background-color: white;
                             height: 36px;
         
                             span {
@@ -213,10 +209,11 @@
                 }
             }
 
-            >.board-info {
+            >.board-chat {
                 grid-column: 3;
                 grid-row: 1 / span 2;
                 overflow-y: auto;
+                padding-bottom: 0;
             }
         }
     }

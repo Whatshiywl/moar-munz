@@ -1,9 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { sample } from 'lodash';
 import { Subject, Subscription } from 'rxjs';
-import { Board, Lobby, LobbyState, Match, Player, PlayerState, Tile, VictoryState } from '@moar-munz/api-interfaces';
+import { Board, Lobby, LobbyState, Match, Player, PlayerComplete, PlayerState, Tile, VictoryState } from '@moar-munz/api-interfaces';
+import { ChatComponent } from '../chat/chat.component';
 
 @Component({
   selector: 'moar-munz-play',
@@ -12,8 +13,9 @@ import { Board, Lobby, LobbyState, Match, Player, PlayerState, Tile, VictoryStat
 })
 export class PlayComponent implements OnInit, OnDestroy {
   debug = false;
+  @ViewChild(ChatComponent) chatComponent: ChatComponent;
 
-  player: Player & PlayerState & LobbyState;
+  player: PlayerComplete;
   uuid: string;
   first: boolean;
 
@@ -24,7 +26,7 @@ export class PlayComponent implements OnInit, OnDestroy {
   playerTurn: string;
   isMyTurn: boolean;
 
-  players: (Player & PlayerState & LobbyState)[];
+  players: (PlayerComplete)[];
 
   activeTrade;
 
@@ -57,8 +59,7 @@ export class PlayComponent implements OnInit, OnDestroy {
       this.socket.on('update lobby', (lobby: Lobby) => {
         console.log('lobby updated', lobby);
         this.lobby = lobby;
-        this.players = this.getPlayers();
-        this.player = this.players.find(p => p.id === this.uuid);
+        this.updatePlayers();
         this.first = this.uuid === lobby.playerOrder[0];
       });
       this.socket.on('match', (match: Match) => {
@@ -70,8 +71,7 @@ export class PlayComponent implements OnInit, OnDestroy {
           return playerState.turn;
         });
         this.isMyTurn = this.playerTurn === this.uuid;
-        this.players = this.getPlayers();
-        this.player = this.players.find(p => p.id === this.uuid);
+        this.updatePlayers();
         this.first = this.uuid === match.playerOrder[0];
         if (this.debug) {
           setTimeout(() => {
@@ -109,9 +109,20 @@ export class PlayComponent implements OnInit, OnDestroy {
     });
   }
 
+  private updatePlayers() {
+    this.players = this.getPlayers();
+    this.player = this.players.find(p => p.id === this.uuid);
+    localStorage.setItem('player', JSON.stringify(this.player));
+  }
+
   ngOnDestroy() {
     console.log('destroy play component');
     this.socket.disconnect(true);
+  }
+
+  openPlayerChat(player: PlayerComplete) {
+    if (player.id === this.player.id) return;
+    this.chatComponent.addTab(player, true);
   }
 
   private getTileDisplayOrder(board: Board) {
@@ -141,7 +152,7 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.socket.emit('ready', { ready });
   }
 
-  onLobbyPlayerClick(player: Player & LobbyState & PlayerState) {
+  onLobbyPlayerClick(player: PlayerComplete) {
     this.socket.emit('remove player', { id: player.id });
   }
 

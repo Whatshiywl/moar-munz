@@ -24,6 +24,10 @@ import { MatToolbarModule } from '@angular/material/toolbar';
 import { TileComponent } from './tile/tile.component';
 import { MatGridListModule } from '@angular/material/grid-list';
 import { MatSidenavModule } from '@angular/material/sidenav';
+import { ChatComponent } from './chat/chat.component';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatInputModule } from '@angular/material/input';
+import { MatFormFieldModule } from '@angular/material/form-field';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -33,6 +37,7 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     HomeComponent,
     PlayComponent,
     TileComponent,
+    ChatComponent,
     LightenPipe
   ],
   imports: [
@@ -52,7 +57,10 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     MatSlideToggleModule,
     MatToolbarModule,
     MatGridListModule,
-    MatSidenavModule
+    MatSidenavModule,
+    MatTabsModule,
+    MatInputModule,
+    MatFormFieldModule
   ],
   providers: [
     SocketService,
