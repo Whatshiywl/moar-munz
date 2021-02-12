@@ -1,4 +1,4 @@
-import { Lobby, Match, Player } from '@moar-munz/api-interfaces';
+import { Lobby, Match, Player, Message } from '@moar-munz/api-interfaces';
 
 export interface SocketBody {
     token: string
@@ -18,4 +18,8 @@ export interface MatchBody {
 
 export interface PlayerBody {
     player: Player
+}
+
+export interface SocketMessageBody {
+    message: Message
 }

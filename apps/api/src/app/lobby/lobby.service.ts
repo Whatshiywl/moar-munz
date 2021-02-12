@@ -147,9 +147,8 @@ export class LobbyService {
     }
 
     private notifyLobbyChanges(lobby: Lobby) {
-        const namespace = this.socketService.getNamespaceFromIdList(lobby.playerOrder);
-        if (!namespace) return;
-        namespace.emit('update lobby', lobby);
+        const players = lobby.playerOrder;
+        this.socketService.emit('update lobby', lobby, players);
     }
 
     private getPlayerColor(i: number) {

@@ -1,6 +1,6 @@
 import { Component, OnChanges, SimpleChanges } from '@angular/core';
 import { FormControl } from '@angular/forms';
-import { PlayerComplete } from '@moar-munz/api-interfaces';
+import { Trade, Message, PlayerComplete } from '@moar-munz/api-interfaces';
 
 interface Tab {
   type: 'global' | 'private',
@@ -9,15 +9,6 @@ interface Tab {
   input: FormControl,
   player?: PlayerComplete
   trade?: Trade,
-}
-
-interface Trade {
-  id: string
-}
-
-interface Message {
-  from: PlayerComplete,
-  data: string
 }
 
 @Component({

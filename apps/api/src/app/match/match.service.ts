@@ -514,10 +514,9 @@ export class MatchService {
     }
 
     broadcastMatchState(match: Match) {
-        const namespace = this.socketService.getNamespaceFromIdList(match.playerOrder);
-        if (!namespace) return;
         this.boardService.postProcessBoard(match.board);
-        namespace.emit('match', match);
+        const players = match.playerOrder;
+        this.socketService.emit('match', match, players);
     }
 
     private move(match: Match, player: Player, to: number) {

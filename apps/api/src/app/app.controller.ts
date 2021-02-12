@@ -20,7 +20,7 @@ export class AppController {
     ) {}
 
   @Get('hello')
-  getData(): Message {
+  getData() {
     return this.appService.getData();
   }
 

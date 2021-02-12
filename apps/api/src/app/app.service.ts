@@ -3,7 +3,7 @@ import { Message } from '@moar-munz/api-interfaces';
 
 @Injectable()
 export class AppService {
-  getData(): Message {
+  getData() {
     return { message: 'Welcome to api!' };
   }
 }

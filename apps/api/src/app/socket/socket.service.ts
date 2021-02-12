@@ -92,4 +92,10 @@ export class SocketService {
         }
         return namespace;
     }
+
+    emit(event: string, body: any, players: string[]) {
+        const namespace = this.getNamespaceFromIdList(players);
+        if (!namespace) return;
+        namespace.emit(event, body);
+    }
 }

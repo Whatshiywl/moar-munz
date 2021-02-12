@@ -21,6 +21,8 @@ import { BodyPlayerPipe } from './shared/pipes/body-player.pipe';
 import { MatchGateway } from './match/match.gateway';
 import { LobbyGateway } from './lobby/lobby.gateway';
 import { AIService } from './shared/services/ai.service';
+import { ChatGateway } from './chat/chat.gateway';
+import { ChatService } from './chat/chat.service';
 
 @Module({
   imports: [
@@ -35,6 +37,7 @@ import { AIService } from './shared/services/ai.service';
     SocketGateway,
     MatchGateway,
     LobbyGateway,
+    ChatGateway,
     UUIDService,
     JWTService,
     LowDbService,
@@ -46,6 +49,7 @@ import { AIService } from './shared/services/ai.service';
     BodyPlayerPipe,
     BodyLobbyPipe,
     BodyMatchPipe,
+    ChatService,
     AIService
   ]
 })
