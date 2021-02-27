@@ -46,7 +46,7 @@
     "@nestjs/platform-socket.io": "^7.0.8",
     "@nestjs/serve-static": "^2.1.0",
     "@nestjs/websockets": "^7.0.8",
-    "@ngrx/effects": "^10.1.2",
+    "@ngrx/effects": "^11.0.1",
     "@ngrx/store": "^11.0.1",
     "@nrwl/angular": "9.2.3",
     "color": "^3.1.2",
