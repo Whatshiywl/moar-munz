@@ -88,7 +88,7 @@
         <moar-munz-tile *ngFor="let tileData of tileDisplayOrder"
         [match]="match" [lobby]="lobby" [tile]="tileData.tile"
         [index]="tileData.i" [players]="players"
-        class="tile" 
+        class="tile"
         [style.border]="'1px solid black'"
         (click)="onTileClicked(tileData.tile)"
         (mouseenter)="onTileMouseEnter(tileData.tile)"

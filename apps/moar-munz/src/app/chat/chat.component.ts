@@ -36,12 +36,12 @@ export class ChatComponent implements OnChanges {
     const control = new FormControl('');
     const me = JSON.parse(localStorage.getItem('player')) as PlayerComplete;
     this.tabs.push({ type: 'private', title: player.name, player, chat: [
-      {from: me, data: "Hello"},
-      {from: player, data: "Hi"},
-      {from: me, data: "How are you?"},
-      {from: player, data: "Fine, how about you?"},
-      {from: me, data: "Kill me"},
-      {from: me, data: "Please"}
+      {from: me.id, data: "Hello", type: 'private', to: player.id},
+      {from: player.id, data: "Hi", type: 'private', to: me.id},
+      {from: me.id, data: "How are you?", type: 'private', to: player.id},
+      {from: player.id, data: "Fine, how about you?", type: 'private', to: me.id},
+      {from: me.id, data: "Kill me", type: 'private', to: player.id},
+      {from: me.id, data: "Please", type: 'private', to: player.id}
     ], input: new FormControl('') });
 
     if (selectAfterAdding) {

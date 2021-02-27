@@ -4,6 +4,11 @@ import { HttpClientModule } from '@angular/common/http';
 import { ReactiveFormsModule } from '@angular/forms';
 import { SocketIoModule, SocketIoConfig } from 'ngx-socket-io';
 
+import { StoreModule } from '@ngrx/store';
+import { lobbyReducer } from './shared/reducers/lobby.reducer';
+
+import { EffectsModule } from '@ngrx/effects';
+
 import { AppComponent } from './app.component';
 import { RoutingModule } from './routing.module';
 import { PlayComponent } from './play/play.component';
@@ -28,6 +33,9 @@ import { ChatComponent } from './chat/chat.component';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { LobbyEffects } from './shared/effects/lobby.effects';
+import { matchReducer } from './shared/reducers/match.reducer';
+import { MatchEffects } from './shared/effects/match.effects';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -47,6 +55,14 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     SocketIoModule,
     ReactiveFormsModule,
     BrowserAnimationsModule,
+    StoreModule.forRoot({
+      lobby: lobbyReducer,
+      match: matchReducer
+    }),
+    EffectsModule.forRoot([
+      LobbyEffects,
+      MatchEffects
+    ]),
     MatButtonModule,
     MatSelectModule,
     MatCheckboxModule,

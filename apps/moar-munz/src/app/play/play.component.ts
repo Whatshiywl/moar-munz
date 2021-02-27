@@ -2,9 +2,11 @@ import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { sample } from 'lodash';
-import { Subject, Subscription } from 'rxjs';
+import { Observable, Subject, Subscription } from 'rxjs';
 import { Board, Lobby, LobbyState, Match, Player, PlayerComplete, PlayerState, Tile, VictoryState } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
+import { Store } from '@ngrx/store';
+import { create } from '../shared/actions/lobby.actions';
 
 @Component({
   selector: 'moar-munz-play',
@@ -20,7 +22,11 @@ export class PlayComponent implements OnInit, OnDestroy {
   first: boolean;
 
   lobby: Lobby;
+  lobby$: Observable<Lobby>;
+
   match: Match;
+  match$: Observable<Match>;
+
   tileDisplayOrder: { tile: Tile, i: number }[];
 
   playerTurn: string;
@@ -42,70 +48,83 @@ export class PlayComponent implements OnInit, OnDestroy {
   };
 
   tileClicked$: Subject<Tile>;
-  
+
   constructor(
     private socket: SocketService,
     private route: ActivatedRoute,
-    private router: Router
-  ) { }
+    private router: Router,
+    private store: Store<{
+      lobby: Lobby,
+      match: Match
+    }>
+  ) {
+    this.lobby$ = this.store.select('lobby');
+    this.match$ = this.store.select('match');
+  }
 
-  ngOnInit() {
+  async ngOnInit() {
     console.log('play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
     this.tileClicked$ = new Subject<Tile>();
-    this.route.params.subscribe(params => {
-      const id = params.id;
-      this.socket.connect();
-      this.socket.on('update lobby', (lobby: Lobby) => {
-        console.log('lobby updated', lobby);
-        this.lobby = lobby;
-        this.updatePlayers();
-        this.first = this.uuid === lobby.playerOrder[0];
+    const params = await this.route.params.toPromise();
+    const id = params.id;
+    this.socket.connect();
+    this.lobby$.subscribe(lobby => {
+      this.lobby = lobby;
+      this.updatePlayers();
+      this.first = this.uuid === lobby.playerOrder[0];
+    });
+    this.match$.subscribe(match => {
+      console.log('match', match);
+      // DEBUG
+      if (!this.match) {
+        setTimeout(() => {
+          const player = this.players.find(p => p.id !== this.player.id);
+          this.openPlayerChat(player);
+        }, 1000);
+      }
+      // DEBUG
+      this.match = match;
+      this.tileDisplayOrder = this.getTileDisplayOrder(match.board);
+      this.playerTurn = Object.keys(match.playerState).find(playerId => {
+        const playerState = match.playerState[playerId];
+        return playerState.turn;
       });
-      this.socket.on('match', (match: Match) => {
-        console.log('match', match);
-        this.match = match;
-        this.tileDisplayOrder = this.getTileDisplayOrder(match.board);
-        this.playerTurn = Object.keys(match.playerState).find(playerId => {
-          const playerState = match.playerState[playerId];
-          return playerState.turn;
-        });
-        this.isMyTurn = this.playerTurn === this.uuid;
-        this.updatePlayers();
-        this.first = this.uuid === match.playerOrder[0];
-        if (this.debug) {
-          setTimeout(() => {
-            if (this.isMyTurn) this.throwDice();
-          }, 100);
-        }
-      })
-      this.socket.on('ask question', (question, callback) => {
-        console.log('question asked')
-        this.notificationData = { ...question, callback };
-        if (this.debug) {
-          setTimeout(() => {
-            this.onQuestionAnswer(sample(question.options));
-          }, 100);
-        }
-        if (this.answerSubscription) this.answerSubscription.unsubscribe();
-        this.answerSubscription = this.tileClicked$
-        .subscribe(tile => {
-          const clickAnswer = question.options.find(o => o.includes(tile.name));
-          if (clickAnswer) {
-            this.onQuestionAnswer(clickAnswer);
-            this.answerSubscription.unsubscribe();
-          }
-        });
-      });
-      this.socket.on('notification', (message: string) => {
-        this.notificationData = { message };
-      });
-      this.socket.emit('enter lobby', { lobbyId: id }, (response: { token: string, uuid: string }) => {
-        if (!response) {
-          alert('This lobby has closed! :(');
-          this.router.navigate([ '/' ]);
+      this.isMyTurn = this.playerTurn === this.uuid;
+      this.updatePlayers();
+      this.first = this.uuid === match.playerOrder[0];
+      if (this.debug) {
+        setTimeout(() => {
+          if (this.isMyTurn) this.throwDice();
+        }, 100);
+      }
+    })
+    this.socket.on('ask question', (question, callback) => {
+      console.log('question asked')
+      this.notificationData = { ...question, callback };
+      if (this.debug) {
+        setTimeout(() => {
+          this.onQuestionAnswer(sample(question.options));
+        }, 100);
+      }
+      if (this.answerSubscription) this.answerSubscription.unsubscribe();
+      this.answerSubscription = this.tileClicked$
+      .subscribe(tile => {
+        const clickAnswer = question.options.find(o => o.includes(tile.name));
+        if (clickAnswer) {
+          this.onQuestionAnswer(clickAnswer);
+          this.answerSubscription.unsubscribe();
         }
       });
+    });
+    this.socket.on('notification', (message: string) => {
+      this.notificationData = { message };
+    });
+    this.socket.emit('enter lobby', { lobbyId: id }, (response: { token: string, uuid: string }) => {
+      if (!response) {
+        alert('This lobby has closed! :(');
+        this.router.navigate([ '/' ]);
+      }
     });
   }
 
@@ -178,8 +197,10 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   onPlayerMouseEnter(player: Player) {
-    this.getPlayerProperties(player)
-    .forEach(tile => this.highlightTile(tile, true));
+    console.log('get player props', player.id);
+    const props = this.getPlayerProperties(player);
+    console.log(props);
+    props.forEach(tile => this.highlightTile(tile, true));
   }
 
   onPlayerMouseLeave(player: Player) {
@@ -207,9 +228,11 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   private getPlayers() {
-    return this.lobby.playerOrder.filter(Boolean).map(playerId => {
-      const matchPlayer = this.match?.playerState[playerId];
-      const lobbyPlayer = this.lobby?.players[playerId];
+    const lobby = this.lobby;
+    const match = this.match;
+    return lobby.playerOrder.filter(Boolean).map(playerId => {
+      const matchPlayer = match?.playerState[playerId];
+      const lobbyPlayer = lobby?.players[playerId];
       return { ...matchPlayer, ...lobbyPlayer };
     });
   }
