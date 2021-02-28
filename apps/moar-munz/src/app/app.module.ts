@@ -36,6 +36,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { LobbyEffects } from './shared/effects/lobby.effects';
 import { matchReducer } from './shared/reducers/match.reducer';
 import { MatchEffects } from './shared/effects/match.effects';
+import { SocketEffects } from './shared/effects/socket.effects';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 

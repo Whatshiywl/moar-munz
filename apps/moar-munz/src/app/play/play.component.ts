@@ -6,7 +6,7 @@ import { Observable, Subject, Subscription } from 'rxjs';
 import { Board, Lobby, LobbyState, Match, Player, PlayerComplete, PlayerState, Tile, VictoryState } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
 import { Store } from '@ngrx/store';
-import { create } from '../shared/actions/lobby.actions';
+import { filter, tap } from 'rxjs/operators';
 
 @Component({
   selector: 'moar-munz-play',
@@ -58,18 +58,23 @@ export class PlayComponent implements OnInit, OnDestroy {
       match: Match
     }>
   ) {
-    this.lobby$ = this.store.select('lobby');
-    this.match$ = this.store.select('match');
+    this.store.select(state => {
+      console.log('state change', state);
+    })
+    this.lobby$ = this.store.select('lobby').pipe(filter(el => Boolean(el)));
+    this.match$ = this.store.select('match').pipe(filter(el => Boolean(el)));
   }
 
   async ngOnInit() {
-    console.log('play component on init', this.debug);
+    console.log('debug play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
     this.tileClicked$ = new Subject<Tile>();
-    const params = await this.route.params.toPromise();
+    const params = this.route.snapshot.params;
+    console.log('play component params', params);
     const id = params.id;
     this.socket.connect();
     this.lobby$.subscribe(lobby => {
+      console.log('lobby', lobby);
       this.lobby = lobby;
       this.updatePlayers();
       this.first = this.uuid === lobby.playerOrder[0];
@@ -228,11 +233,9 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   private getPlayers() {
-    const lobby = this.lobby;
-    const match = this.match;
-    return lobby.playerOrder.filter(Boolean).map(playerId => {
-      const matchPlayer = match?.playerState[playerId];
-      const lobbyPlayer = lobby?.players[playerId];
+    return this.lobby.playerOrder.filter(Boolean).map(playerId => {
+      const matchPlayer = this.match?.playerState[playerId];
+      const lobbyPlayer = this.lobby?.players[playerId];
       return { ...matchPlayer, ...lobbyPlayer };
     });
   }

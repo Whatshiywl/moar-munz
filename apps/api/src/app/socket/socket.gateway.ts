@@ -23,7 +23,11 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
 
     handleConnection(@ConnectedSocket() client: Socket) {
-        this.socketService.connect(client);
+        try {
+            this.socketService.connect(client);
+        } catch (error) {
+            console.error(error);
+        }
     }
 
     async handleDisconnect(@ConnectedSocket() client: Socket) {

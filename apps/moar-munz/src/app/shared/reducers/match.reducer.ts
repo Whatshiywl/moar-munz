@@ -1,14 +1,14 @@
 import { Match } from '@moar-munz/api-interfaces';
-import { createReducer, on } from '@ngrx/store';
-import { create } from '../actions/lobby.actions';
+import { Action, createReducer, on } from '@ngrx/store';
+import { create } from '../actions/match.actions';
 
 export const initialState: Match = undefined;
 
 const _matchReducer = createReducer(
   initialState,
-  on(create, state => state)
+  on(create, (state, action) => action['payload'])
 );
 
-export function matchReducer(state: Match, action) {
+export function matchReducer(state: Match, action: Action) {
   return _matchReducer(state, action);
 }

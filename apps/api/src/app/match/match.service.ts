@@ -251,7 +251,7 @@ export class MatchService {
                         options.push(`${n} (${tile.price + cost})`);
                     }
                     if (options.length === 1) return;
-                    const question = this.socketService.ask(player, 
+                    const question = this.socketService.ask(player,
                     `Would you like to buy ${tile.name} for ${tile.price}?\nIf so, how many houses do you want (${tile.building} each)?`,
                     options);
                     const answer = await question;
@@ -312,7 +312,7 @@ export class MatchService {
             case 'company':
                 if (!tile.owner) {
                     if (tile.price > playerState.money) return;
-                    const question = this.socketService.ask(player, 
+                    const question = this.socketService.ask(player,
                     `Would you like to buy ${tile.name} for ${tile.price}?`,
                     [ 'No', 'Yes' ] as const);
                     const answer = await question;
@@ -331,7 +331,7 @@ export class MatchService {
             case 'railroad':
                 if (!tile.owner) {
                     if (tile.price > playerState.money) return;
-                    const question = this.socketService.ask(player, 
+                    const question = this.socketService.ask(player,
                     `Would you like to buy ${tile.name} for ${tile.price}?`,
                     [ 'No', 'Yes' ] as const);
                     const answer = await question;
@@ -531,7 +531,7 @@ export class MatchService {
     }
 
     private sleep(n: number) {
-        return new Promise(r => {
+        return new Promise<void>(r => {
             setTimeout(() => {
                 r();
             }, n);
