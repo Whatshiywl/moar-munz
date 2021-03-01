@@ -24,7 +24,7 @@ export class SocketEffects<T> {
       }))
     ));
     this.socket.on(this.eventName, (payload: T) => {
-      console.log(`Socket event ${this.eventName} caught on effect`);
+      console.log(`Socket event '${this.eventName}' caught on effect`);
       this.updateSubject$.next(payload);
     });
   }
