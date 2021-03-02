@@ -1,12 +1,15 @@
-<mat-tab-group headerPosition="below" [selectedIndex]="selected.value"
-(selectedIndexChange)="selected.setValue($event)">
-  <mat-tab *ngFor="let tab of tabs; let index = index">
-    <ng-template mat-tab-label>
-      <mat-icon class="close-tab" (click)="removeTab(index)">close</mat-icon>
-      {{tab.title}}
-    </ng-template>
-    <p *ngFor="let message of tab.chat">
-      <span [style.color]="message.from.color">{{message.from.name}}</span>: <span>{{message.data}}</span>
-    </p>
-  </mat-tab>
-</mat-tab-group>
+<form [formGroup]="formGroup" (ngSubmit)="onSubmit(formGroup)">
+  <mat-tab-group headerPosition="below" [selectedIndex]="selected.value"
+  (selectedIndexChange)="selected.setValue($event)">
+    <mat-tab *ngFor="let tab of tabs; let index = index">
+      <ng-template mat-tab-label>
+        <mat-icon class="close-tab" (click)="removeTab(index)">close</mat-icon>
+        {{tab.title}}
+      </ng-template>
+      <p *ngFor="let message of tab.chat">
+        <span [style.color]="message.nameColor">{{message.name}}</span>: <span>{{message.data}}</span>
+      </p>
+      <input type="text" [formControl]="tab.input">
+    </mat-tab>
+  </mat-tab-group>
+</form>

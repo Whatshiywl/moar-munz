@@ -1,11 +1,17 @@
-import { Component, OnChanges, SimpleChanges } from '@angular/core';
-import { FormControl } from '@angular/forms';
-import { Trade, Message, PlayerComplete } from '@moar-munz/api-interfaces';
+import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { FormControl, FormGroup } from '@angular/forms';
+import { Trade, Message, PlayerComplete, Lobby, Match, Player } from '@moar-munz/api-interfaces';
+import { SocketService } from '../shared/socket/socket.service';
+
+interface ClientMessage extends Message {
+  name: string,
+  nameColor: string
+}
 
 interface Tab {
   type: 'global' | 'private',
   title: string,
-  chat: Message[],
+  chat: ClientMessage[],
   input: FormControl,
   player?: PlayerComplete
   trade?: Trade,
@@ -16,45 +22,90 @@ interface Tab {
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
-export class ChatComponent implements OnChanges {
+export class ChatComponent implements OnInit, OnChanges {
 
-  tabs: Tab[] = [ {
-    type: 'global',
-    title: "Global",
-    chat: [ ],
-    input: new FormControl('')
-  } ];
+  @Input() lobby: Lobby;
+  @Input() match: Match;
+
+  globalInput = new FormControl('');
   selected = new FormControl(0);
+  formGroup = new FormGroup({
+    selected: this.selected,
+    global: this.globalInput
+  });
+
+  globalTab: Tab = {
+    type: 'global',
+    title: 'Global',
+    chat: [ ],
+    input: this.globalInput
+  };
+
+  tabs: Tab[] = [ this.globalTab ];
+
+  constructor(
+    private socket: SocketService
+  ) { }
+
+  ngOnInit() {
+    this.socket.on('message', (message: Message) => {
+      console.log(`Got message`, message);
+      const me = JSON.parse(sessionStorage.getItem('player')) as PlayerComplete;
+      const myId = me.id;
+      const idNotMine = message.from !== myId ? message.from : message.to;
+      let tab = message.type === 'global' ? this.globalTab : this.tabs.find(tab => tab.player?.id === idNotMine);
+      if (!tab) {
+        const player = this.lobby.players[idNotMine];
+        tab = this.addTab(player, false);
+      }
+      this.pushMessageToTab(tab, message);
+    });
+  }
 
   ngOnChanges(changes: SimpleChanges) {
 
   }
 
-  addTab(player: PlayerComplete, selectAfterAdding: boolean) {
+  addTab(player: Player, selectAfterAdding: boolean) {
     const exists = this.tabs.find(tab => tab.player?.id === player.id);
     if (exists) return;
-    const control = new FormControl('');
-    const me = JSON.parse(localStorage.getItem('player')) as PlayerComplete;
-    this.tabs.push({ type: 'private', title: player.name, player, chat: [
-      {from: me.id, data: "Hello", type: 'private', to: player.id},
-      {from: player.id, data: "Hi", type: 'private', to: me.id},
-      {from: me.id, data: "How are you?", type: 'private', to: player.id},
-      {from: player.id, data: "Fine, how about you?", type: 'private', to: me.id},
-      {from: me.id, data: "Kill me", type: 'private', to: player.id},
-      {from: me.id, data: "Please", type: 'private', to: player.id}
-    ], input: new FormControl('') });
+    const input = new FormControl('');
+    this.formGroup.addControl(player.name, input);
+    const tab = { type: 'private', title: player.name, player, input, chat: [ ] } as Tab;
+    this.tabs.push(tab);
 
     if (selectAfterAdding) {
       this.selected.setValue(this.tabs.length - 1);
     }
+    return tab;
   }
 
   removeTab(index: number) {
     this.tabs.splice(index, 1);
   }
 
-  onSubmit(event) {
-    console.log(event);
+  pushMessageToTab(tab: Tab, ...messages: Message[]) {
+    tab.chat.push(...messages.map(({from, data, to}) => {
+      const fromPlayer = this.lobby.players[from];
+      return {
+        from: fromPlayer.id,
+        data, type: tab.type, to,
+        name: fromPlayer.name,
+        nameColor: fromPlayer.color
+      } as ClientMessage;
+    }));
+  }
+
+  onSubmit(formGroup: FormGroup) {
+    const { selected } = formGroup.value;
+    const tab = this.tabs[selected];
+    const control = tab.input;
+    const data = control.value;
+    control.reset();
+    const me = JSON.parse(sessionStorage.getItem('player')) as PlayerComplete;
+    console.log('me', me);
+    const message: Message = { from: me.id, data, type: tab.type, to: tab.player?.id };
+    this.socket.emit('send message', { match: this.match.id, message });
   }
 
 }

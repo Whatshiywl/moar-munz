@@ -11,7 +11,11 @@ export class ChatService {
 
     broadcastMessage(message: Message, match: Match) {
         const players = match.playerOrder;
-        this.socketService.emit('message', message, players);
+        this.socketService.emit('message',
+            message, message.type === 'global' ?
+            players :
+            players.filter(id => [ message.to, message.from ].includes(id))
+        );
     }
 
 }

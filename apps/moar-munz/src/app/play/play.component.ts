@@ -27,7 +27,6 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   match$: Observable<Match>;
   match: Match;
-  board: Board;
 
   tileDisplayOrder: { tile: Tile, i: number }[];
 
@@ -114,12 +113,12 @@ export class PlayComponent implements OnInit, OnDestroy {
   onMatchUpdate(match: Match) {
     console.log('match', match);
     // DEBUG
-    if (!this.match) {
-      setTimeout(() => {
-        const player = this.players.find(p => p.id !== this.player.id);
-        this.openPlayerChat(player);
-      }, 1000);
-    }
+    // if (!this.match) {
+    //   setTimeout(() => {
+    //     const player = this.players.find(p => p.id !== this.player.id);
+    //     this.openPlayerChat(player);
+    //   }, 1000);
+    // }
     // DEBUG
     this.match = match;
     this.tileDisplayOrder = this.getTileDisplayOrder(match.board);
@@ -140,7 +139,7 @@ export class PlayComponent implements OnInit, OnDestroy {
   private updatePlayers() {
     this.players = this.getPlayers();
     this.player = this.players.find(p => p.id === this.uuid);
-    localStorage.setItem('player', JSON.stringify(this.player));
+    sessionStorage.setItem('player', JSON.stringify(this.player));
   }
 
   ngOnDestroy() {
@@ -207,7 +206,6 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   onPlayerMouseEnter(player: Player) {
     const props = this.getPlayerProperties(player);
-    console.log(props);
     props.forEach(tile => this.highlightTile(tile, true));
   }
 

@@ -1,11 +1,11 @@
 import { WebSocketGateway, SubscribeMessage, MessageBody } from '@nestjs/websockets';
 import { UsePipes } from '@nestjs/common';
-import { BodyPlayerPipe } from '../shared/pipes/body-player.pipe';
 import { ChatService } from './chat.service';
-import { MatchBody, PlayerBody, SocketMessageBody } from '../socket/socket.interfaces';
+import { MatchBody, SocketMessageBody } from '../socket/socket.interfaces';
 import { BodyMatchPipe } from '../shared/pipes/body-match.pipe';
+import { BodyMessagePipe } from '../shared/pipes/body-message.pipe';
 
-type ChatBody = SocketMessageBody & MatchBody & PlayerBody;
+type ChatBody = SocketMessageBody & MatchBody;
 
 @WebSocketGateway()
 export class ChatGateway {
@@ -14,11 +14,11 @@ export class ChatGateway {
         private chatService: ChatService
     ) { }
 
-    @UsePipes(BodyPlayerPipe, BodyMatchPipe)
+    @UsePipes(BodyMatchPipe, BodyMessagePipe)
     @SubscribeMessage('send message')
     onMessage(@MessageBody() body: ChatBody) {
-        const { player, match, message } = body;
-        if (!player || !message) return;
+        const { match, message } = body;
+        if (!match || !message) return;
         this.chatService.broadcastMessage(message, match);
     }
 

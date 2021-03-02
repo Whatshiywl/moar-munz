@@ -82,7 +82,10 @@
                 </mat-card>
             </div>
             <mat-card class="board-chat">
-                <moar-munz-chat></moar-munz-chat>
+                <moar-munz-chat
+                [lobby]="lobby"
+                [match]="match">
+                </moar-munz-chat>
             </mat-card>
         </div>
         <moar-munz-tile *ngFor="let tileData of tileDisplayOrder"
