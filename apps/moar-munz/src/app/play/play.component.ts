@@ -179,7 +179,7 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.socket.emit('ready', { ready });
   }
 
-  onLobbyPlayerClick(player: PlayerComplete) {
+  onLobbyPlayerClick(player: Player) {
     this.socket.emit('remove player', { id: player.id });
   }
 

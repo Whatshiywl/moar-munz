@@ -1,9 +1,9 @@
 <form [formGroup]="formGroup" (ngSubmit)="onSubmit(formGroup)">
   <mat-tab-group headerPosition="below" [selectedIndex]="selected.value"
   (selectedIndexChange)="selected.setValue($event)">
-    <mat-tab *ngFor="let tab of tabs; let index = index">
+    <mat-tab *ngFor="let tab of visibleTabs; let index = index">
       <ng-template mat-tab-label>
-        <mat-icon class="close-tab" (click)="removeTab(index)">close</mat-icon>
+        <mat-icon *ngIf="index" class="close-tab" (click)="removeTab(index)">close</mat-icon>
         {{tab.title}}
       </ng-template>
       <p *ngFor="let message of tab.chat">

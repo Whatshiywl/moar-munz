@@ -13,6 +13,7 @@ interface Tab {
   title: string,
   chat: ClientMessage[],
   input: FormControl,
+  visible: boolean,
   player?: PlayerComplete
   trade?: Trade,
 }
@@ -38,7 +39,8 @@ export class ChatComponent implements OnInit, OnChanges {
     type: 'global',
     title: 'Global',
     chat: [ ],
-    input: this.globalInput
+    input: this.globalInput,
+    visible: true
   };
 
   tabs: Tab[] = [ this.globalTab ];
@@ -66,9 +68,16 @@ export class ChatComponent implements OnInit, OnChanges {
 
   }
 
+  get visibleTabs() {
+    return this.tabs.filter(tab => tab.visible);
+  }
+
   addTab(player: Player, selectAfterAdding: boolean) {
     const exists = this.tabs.find(tab => tab.player?.id === player.id);
-    if (exists) return;
+    if (exists) {
+      exists.visible = true;
+      return exists;
+    }
     const input = new FormControl('');
     this.formGroup.addControl(player.name, input);
     const tab = { type: 'private', title: player.name, player, input, chat: [ ] } as Tab;
@@ -81,10 +90,13 @@ export class ChatComponent implements OnInit, OnChanges {
   }
 
   removeTab(index: number) {
-    this.tabs.splice(index, 1);
+    // this.tabs.splice(index, 1);
+    if (index === 0) return;
+    this.tabs[index].visible = false;
   }
 
   pushMessageToTab(tab: Tab, ...messages: Message[]) {
+    tab.visible = true;
     tab.chat.push(...messages.map(({from, data, to}) => {
       const fromPlayer = this.lobby.players[from];
       return {

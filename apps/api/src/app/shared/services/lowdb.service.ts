@@ -20,6 +20,8 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
             players: { }
         }).write();
         this.db.set('matches', { }).write();
+        this.db.set('lobbys', { }).write();
+        this.db.set('players', { }).write();
 
         setInterval(() => {
             const now = Date.now();
@@ -56,7 +58,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
     }
 
     // LOBBY
-    
+
     createLobby(lobby: Lobby) {
         const id = lobby.id;
         this.db.set(`lobbys.${id}`, { ...lobby, mtime: Date.now()}).write();
@@ -76,7 +78,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
     }
 
     // Player
-    
+
     createPlayer(player: Player) {
         const id = player.id;
         this.db.set(`players.${id}`, { ...player, mtime: Date.now()}).write();
