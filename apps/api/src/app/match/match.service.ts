@@ -502,13 +502,11 @@ export class MatchService {
 
     private async transferFromTo(match: Match, from: Player, to: Player, amount: number) {
         console.log(`Transfering ${amount} from ${from.name} to ${to.name}`);
-        const actualAmount = await this.givePlayer(match, from, -amount, to.name);
+        const toOrigin = amount > 0 ? false : to.name;
+        const actualAmount = await this.givePlayer(match, from, -amount, toOrigin);
         console.log(`${to.name} will receive ${-actualAmount}`);
-        const toState = this.getPlayerState(match, to);
-        const hasWon = toState.victory === VictoryState.WON;
-        const sameAmount = actualAmount === -amount;
-        const origin = (sameAmount && hasWon) ? false : from.name;
-        await this.givePlayer(match, to, -actualAmount, origin);
+        const fromOrigin = toOrigin ? false : from.name;
+        await this.givePlayer(match, to, -actualAmount, fromOrigin);
         this.saveAndBroadcastMatch(match);
     }
 

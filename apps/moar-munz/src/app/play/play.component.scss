@@ -1,3 +1,11 @@
+::ng-deep .right-aligned-header > .mat-content {
+    justify-content: space-between;
+}
+
+::ng-deep .mat-content > mat-panel-description {
+    justify-content: flex-end;
+}
+
 .lobby-wrapper {
     display: flex;
     flex-direction: column;
@@ -145,16 +153,13 @@
                 }
 
                 .player-list {
-                    display: flex;
-                    flex-direction: column;
 
                     .player-card {
-                        display: flex;
-                        flex-direction: column;
-                        padding: 2px 2px;
-                        margin-bottom: 2px;
-                        width: 100%;
-                        box-sizing: border-box;
+
+                        .player-properties {
+                            display: flex;
+                            flex-direction: column;
+                        }
                     }
                 }
             }

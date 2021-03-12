@@ -1,4 +1,4 @@
-import { NgModule } from "@angular/core";
+import { ModuleWithProviders, NgModule, Type } from "@angular/core";
 
 import { MatButtonModule } from '@angular/material/button';
 import { MatSelectModule } from '@angular/material/select';
@@ -14,39 +14,28 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatTabsModule } from '@angular/material/tabs';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatExpansionModule } from '@angular/material/expansion';
+
+const moduleList: (any[] | Type<any>)[] = [
+    MatButtonModule,
+    MatSelectModule,
+    MatCheckboxModule,
+    MatCardModule,
+    MatListModule,
+    MatDividerModule,
+    MatIconModule,
+    MatSlideToggleModule,
+    MatToolbarModule,
+    MatGridListModule,
+    MatSidenavModule,
+    MatTabsModule,
+    MatInputModule,
+    MatFormFieldModule,
+    MatExpansionModule
+];
 
 @NgModule({
-    imports: [
-        MatButtonModule,
-        MatSelectModule,
-        MatCheckboxModule,
-        MatCardModule,
-        MatListModule,
-        MatDividerModule,
-        MatIconModule,
-        MatSlideToggleModule,
-        MatToolbarModule,
-        MatGridListModule,
-        MatSidenavModule,
-        MatTabsModule,
-        MatInputModule,
-        MatFormFieldModule
-    ],
-    exports: [
-        MatButtonModule,
-        MatSelectModule,
-        MatCheckboxModule,
-        MatCardModule,
-        MatListModule,
-        MatDividerModule,
-        MatIconModule,
-        MatSlideToggleModule,
-        MatToolbarModule,
-        MatGridListModule,
-        MatSidenavModule,
-        MatTabsModule,
-        MatInputModule,
-        MatFormFieldModule
-    ]
+    imports: moduleList,
+    exports: moduleList
 })
 export class MaterialModule {}

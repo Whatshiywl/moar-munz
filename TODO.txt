@@ -5,16 +5,18 @@ Permitir configurar valor inicial
 Permitir configurar se parar na cadeia é prisão ou visita
 Permitir escolher nome e cor no lobby
 Nomes coloridos em eventos do chat
+[BUG] Jogo continua com apenas AI
 
 1.6
 [OK] Implementar janela de chat
 [OK] Fazer eventos do jogo aparecerem no chat
-Melhorar lista de jogadores (angular material)
+[OK] Melhorar lista de jogadores (angular material)
 Implementar componente de negociação
 Implementar botões para iniciar conversa e negociação
 [BUG] Pergunta de worldtour feita após jogada de dados
 [BUG] Opções do worldcup não apresentam aluguel corretamente
 [BUG] Chance para o início não ganha o valor da casa
+[BUG] Marcador de cartão desaparece a cada update
 
 1.5.2
 [OK] Botão para adicionar AI

@@ -42,22 +42,55 @@
                     <div>{{match?.lastDice[1]}}</div>
                     <button mat-flat-button color="primary" [style.visibility]="isMyTurn ? 'visible' : 'hidden'" (click)="throwDice()">Play!</button>
                 </div>
-                <div class="player-list">
-                    <div *ngFor="let player of players; let i = index"
+
+<!-- <mat-accordion>
+    <mat-expansion-panel hideToggle>
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          This is the expansion title
+        </mat-panel-title>
+        <mat-panel-description>
+          This is a summary of the content
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <p>This is the primary content of the panel.</p>
+    </mat-expansion-panel>
+    <mat-expansion-panel (opened)="panelOpenState = true"
+                         (closed)="panelOpenState = false">
+      <mat-expansion-panel-header>
+        <mat-panel-title>
+          Self aware panel
+        </mat-panel-title>
+        <mat-panel-description>
+          Currently I am {{panelOpenState ? 'open' : 'closed'}}
+        </mat-panel-description>
+      </mat-expansion-panel-header>
+      <p>I'm visible because I am open</p>
+    </mat-expansion-panel>
+  </mat-accordion> -->
+                <mat-accordion class="player-list" multi>
+                    <mat-expansion-panel *ngFor="let card of playerCards; let i = index"
                     class="player-card"
-                    [style.border]="playerTurn === player.id ? '1px solid '+player.color : '1px solid black'"
-                    [style.border-left-width.px]="playerTurn === player.id ? 5 : 1"
-                    [style.box-shadow]="player.highlighted ? '0 0 10px 0 ' + player.color : ''"
-                    (mouseenter)="onPlayerMouseEnter(player)"
-                    (mouseleave)="onPlayerMouseLeave(player)"
-                    (click)="openPlayerChat(player)">
-                        <span [style.textDecoration]="player.id == uuid ? 'underline' : 'none'"
-                        [style.color]="player.color">{{player.name}}</span>
-                        <span><strong>Ƶ {{player.money}}</strong></span>
-                        <span *ngFor="let property of getPlayerProperties(player)"
-                        style="font-size: smaller;">{{property.name}}</span>
-                    </div>
-                </div>
+                    [style.border-left]="playerTurn === card.player.id ? '5px solid '+card.player.color : 'none'"
+                    [style.box-shadow]="card.player.highlighted ? '0 0 10px 0 ' + card.player.color : ''"
+                    (mouseenter)="onPlayerMouseEnter(card.player)"
+                    (mouseleave)="onPlayerMouseLeave(card.player)"
+                    (click)="openPlayerChat(card.player)">
+                        <mat-expansion-panel-header>
+                        <mat-panel-title>
+                            <span [style.fontWeight]="card.player.id == uuid ? 'bold' : 'normal'"
+                            [style.color]="card.player.color">{{card.player.name.padEnd(30, ' ')}}</span>
+                        </mat-panel-title>
+                        <mat-panel-description>
+                            <span><strong>Ƶ {{card.player.money}}</strong></span>
+                        </mat-panel-description>
+                        </mat-expansion-panel-header>
+                        <div class="player-properties">
+                            <span *ngFor="let property of getPlayerProperties(card.player)"
+                            style="font-size: smaller;">{{property.name}}</span>
+                        </div>
+                    </mat-expansion-panel>
+                </mat-accordion>
             </mat-card>
             <mat-card *ngIf="activeTrade" class="trade-info"></mat-card>
             <div class="board-input-wrapper">

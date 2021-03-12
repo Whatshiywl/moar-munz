@@ -74,9 +74,11 @@ export class LobbyService {
             this.addPlayerAtFirstFreeSpot(lobby, ai.player);
         }
         this.saveAndBroadcastLobby(lobby);
+        if (!replace) {
+            const order = lobby.playerOrder.findIndex(s => s === ai.player.id);
+            this.onPlayerReady(lobby, lobby.playerOrder[order], true);
+        }
         return ai.player;
-        // const order = lobby.playerOrder.findIndex(s => s === ai.player.id);
-        // this.onPlayerReady(lobby, lobby.playerOrder[order], true);
     }
 
     onEnterLobby(lobby: Lobby, token: string) {

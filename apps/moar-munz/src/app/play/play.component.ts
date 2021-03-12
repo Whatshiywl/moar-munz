@@ -33,7 +33,8 @@ export class PlayComponent implements OnInit, OnDestroy {
   playerTurn: string;
   isMyTurn: boolean;
 
-  players: (PlayerComplete)[];
+  players: PlayerComplete[];
+  playerCards: { player: PlayerComplete }[] = [];
 
   activeTrade;
 
@@ -112,14 +113,6 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   onMatchUpdate(match: Match) {
     console.log('match', match);
-    // DEBUG
-    // if (!this.match) {
-    //   setTimeout(() => {
-    //     const player = this.players.find(p => p.id !== this.player.id);
-    //     this.openPlayerChat(player);
-    //   }, 1000);
-    // }
-    // DEBUG
     this.match = match;
     this.tileDisplayOrder = this.getTileDisplayOrder(match.board);
     this.playerTurn = Object.keys(match.playerState).find(playerId => {
@@ -138,6 +131,11 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   private updatePlayers() {
     this.players = this.getPlayers();
+    this.players.forEach(player => {
+      const cardIndex = this.playerCards.findIndex(c => c.player.id === player.id);
+      if (cardIndex < 0) this.playerCards.push({ player });
+      else this.playerCards[cardIndex].player = player;
+    });
     this.player = this.players.find(p => p.id === this.uuid);
     sessionStorage.setItem('player', JSON.stringify(this.player));
   }
