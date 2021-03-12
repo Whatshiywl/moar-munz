@@ -4,10 +4,11 @@ Changelog
 Permitir configurar valor inicial
 Permitir configurar se parar na cadeia é prisão ou visita
 Permitir escolher nome e cor no lobby
+Nomes coloridos em eventos do chat
 
 1.6
-Implementar janela de chat
-Fazer eventos do jogo aparecerem no chat
+[OK] Implementar janela de chat
+[OK] Fazer eventos do jogo aparecerem no chat
 Fazer perguntas aparecerem como dialogo (Angular Material)
 Fazer "trim" no final do lobby de AI estiver desabilitada
 [BUG] Pergunta de worldtour feita após jogada de dados

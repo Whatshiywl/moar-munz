@@ -4,7 +4,7 @@ export interface Trade {
 
 export interface Message {
     type: 'global' | 'private',
+    recipients: string[],
     from: string,
-    to: string,
     data: string
 }

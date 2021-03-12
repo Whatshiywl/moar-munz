@@ -1,4 +1,4 @@
-import { Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import { Component, Input, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Trade, Message, PlayerComplete, Lobby, Match, Player } from '@moar-munz/api-interfaces';
 import { SocketService } from '../shared/socket/socket.service';
@@ -23,7 +23,7 @@ interface Tab {
   templateUrl: './chat.component.html',
   styleUrls: ['./chat.component.scss']
 })
-export class ChatComponent implements OnInit, OnChanges {
+export class ChatComponent implements OnInit {
 
   @Input() lobby: Lobby;
   @Input() match: Match;
@@ -45,6 +45,8 @@ export class ChatComponent implements OnInit, OnChanges {
 
   tabs: Tab[] = [ this.globalTab ];
 
+  autoScroll = true;
+
   constructor(
     private socket: SocketService
   ) { }
@@ -54,18 +56,17 @@ export class ChatComponent implements OnInit, OnChanges {
       console.log(`Got message`, message);
       const me = JSON.parse(sessionStorage.getItem('player')) as PlayerComplete;
       const myId = me.id;
-      const idNotMine = message.from !== myId ? message.from : message.to;
+      const idNotMine = message.recipients.find(id => id !== myId);
       let tab = message.type === 'global' ? this.globalTab : this.tabs.find(tab => tab.player?.id === idNotMine);
       if (!tab) {
         const player = this.lobby.players[idNotMine];
         tab = this.addTab(player, false);
       }
       this.pushMessageToTab(tab, message);
+      setTimeout(() => {
+        this.scrollTabToBottom();
+      }, 0);
     });
-  }
-
-  ngOnChanges(changes: SimpleChanges) {
-
   }
 
   get visibleTabs() {
@@ -90,20 +91,19 @@ export class ChatComponent implements OnInit, OnChanges {
   }
 
   removeTab(index: number) {
-    // this.tabs.splice(index, 1);
     if (index === 0) return;
     this.tabs[index].visible = false;
   }
 
   pushMessageToTab(tab: Tab, ...messages: Message[]) {
     tab.visible = true;
-    tab.chat.push(...messages.map(({from, data, to}) => {
+    tab.chat.push(...messages.map(({from, data}) => {
       const fromPlayer = this.lobby.players[from];
       return {
-        from: fromPlayer.id,
-        data, type: tab.type, to,
-        name: fromPlayer.name,
-        nameColor: fromPlayer.color
+        from: fromPlayer?.id,
+        data, type: tab.type,
+        name: fromPlayer?.name,
+        nameColor: fromPlayer?.color
       } as ClientMessage;
     }));
   }
@@ -115,9 +115,26 @@ export class ChatComponent implements OnInit, OnChanges {
     const data = control.value;
     control.reset();
     const me = JSON.parse(sessionStorage.getItem('player')) as PlayerComplete;
-    console.log('me', me);
-    const message: Message = { from: me.id, data, type: tab.type, to: tab.player?.id };
-    this.socket.emit('send message', { match: this.match.id, message });
+    const recipients = tab.type === 'global' ? this.match.playerOrder : [ me.id, tab.player?.id ];
+    const message: Message = { from: me.id, recipients, data, type: tab.type };
+    this.socket.emit('send message', { message });
+  }
+
+  onScroll(evt: Event) {
+    const el = evt.target as HTMLElement;
+    const scrollDistance = el.scrollHeight - el.scrollTop - el.clientHeight;
+    this.autoScroll = !scrollDistance;
+  }
+
+  scrollTabToBottom() {
+    const index = this.selected.value;
+    const el = document.getElementById(`message-wrapper-${index}`);
+    if (!this.autoScroll) return;
+    el.scroll({
+      top: el.scrollHeight,
+      left: 0,
+      behavior: 'auto'
+    });
   }
 
 }

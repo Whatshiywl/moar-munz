@@ -6,10 +6,18 @@
         <mat-icon *ngIf="index" class="close-tab" (click)="removeTab(index)">close</mat-icon>
         {{tab.title}}
       </ng-template>
-      <p *ngFor="let message of tab.chat">
-        <span [style.color]="message.nameColor">{{message.name}}</span>: <span>{{message.data}}</span>
-      </p>
-      <input type="text" [formControl]="tab.input">
+      <div class="tab-content-wrapper">
+        <div class="message-wrapper"  [id]="'message-wrapper-'+index" (scroll)="onScroll($event)">
+          <p *ngFor="let message of tab.chat" class="paragraph-message">
+            <span *ngIf="message.from" class="message message-player"><span [style.color]="message.nameColor">{{message.name}}</span>: <span>{{message.data}}</span></span>
+            <span *ngIf="!message.from" class="message message-global"><span>{{message.data}}</span></span>
+          </p>
+        </div>
+        <mat-form-field class="message-input">
+          <mat-label>Message</mat-label>
+          <input matInput placeholder="Say something..." [formControl]="tab.input" autocomplete="off">
+        </mat-form-field>
+      </div>
     </mat-tab>
   </mat-tab-group>
 </form>

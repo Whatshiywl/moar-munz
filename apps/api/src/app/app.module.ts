@@ -22,7 +22,6 @@ import { MatchGateway } from './match/match.gateway';
 import { LobbyGateway } from './lobby/lobby.gateway';
 import { AIService } from './shared/services/ai.service';
 import { ChatGateway } from './chat/chat.gateway';
-import { ChatService } from './chat/chat.service';
 import { BodyMessagePipe } from './shared/pipes/body-message.pipe';
 
 @Module({
@@ -51,7 +50,6 @@ import { BodyMessagePipe } from './shared/pipes/body-message.pipe';
     BodyLobbyPipe,
     BodyMatchPipe,
     BodyMessagePipe,
-    ChatService,
     AIService
   ]
 })

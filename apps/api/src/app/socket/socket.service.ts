@@ -1,4 +1,4 @@
-import { Player } from '@moar-munz/api-interfaces';
+import { Match, Message, Player } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 import { Namespace, Server, Socket } from 'socket.io';
 import { AIService } from '../shared/services/ai.service';
@@ -83,6 +83,10 @@ export class SocketService {
         client?.emit('notification', message);
     }
 
+    notifyAll(message: string, players: string[]) {
+        this.emit('notification', message, players);
+    }
+
     getNamespaceFromIdList(ids: string[]) {
         let namespace: Namespace;
         for (const id of ids.filter(Boolean)) {
@@ -97,5 +101,38 @@ export class SocketService {
         const namespace = this.getNamespaceFromIdList(players);
         if (!namespace) return;
         namespace.emit(event, body);
+    }
+
+    broadcastMessage(message: Message) {
+        this.emit('message', message, message.recipients);
+    }
+
+    broadcastMessageWithAlternativeMessage(message: Message, selector: (id: string) => string) {
+        message.recipients.forEach(id => {
+            const data = selector(id);
+            const recipients = [ id ];
+            const tmpMessage = { ...message, recipients, data } as Message;
+            this.broadcastMessage(tmpMessage);
+        });
+    }
+
+    broadcastGlobalMessage(recipients: string[], payload: string);
+    broadcastGlobalMessage(recipients: string[], payload: (id: string) => string);
+    broadcastGlobalMessage(recipients: string[], payload: string | ((id: string) => string)) {
+        const baseMessage = { type: 'global', from: 'global' };
+        if (typeof payload === 'string') {
+            this.broadcastMessage({ ...baseMessage, recipients, data: payload } as Message);
+        } else {
+            recipients.forEach(id => {
+                const data = payload(id);
+                const message = {
+                    type: 'global',
+                    from: 'global',
+                    recipients: [ id ],
+                    data
+                } as Message;
+                this.broadcastMessage(message);
+            });
+        }
     }
 }

@@ -4,11 +4,15 @@ form {
     mat-tab-group {
         height: 100%;
 
-        ::ng-deep.mat-tab-label, ::ng-deep.mat-tab-label-active{
+        ::ng-deep.mat-tab-label, ::ng-deep.mat-tab-label-active {
             width: fit-content;
             min-width: fit-content!important;
             padding: 5px!important;
             margin: 0!important;
+        }
+
+        ::ng-deep .mat-tab-body-content {
+            overflow-y: hidden;
         }
 
         .close-tab {
@@ -17,6 +21,34 @@ form {
             width: $size;
             height: $size;
             margin-right: 5px;
+        }
+
+        .tab-content-wrapper {
+            height: 100%;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+
+            .message-wrapper {
+                flex-grow: 1;
+                overflow-y: auto;
+
+                .paragraph-message {
+                    margin: 0;
+
+                    .message {
+
+                        &.message-global {
+                            color: gray;
+                            font-size: smaller;
+                        }
+                    }
+                }
+            }
+
+            ::ng-deep .mat-form-field-wrapper {
+                margin-bottom: -1.25em;
+            }
         }
     }
 }

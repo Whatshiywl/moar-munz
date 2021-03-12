@@ -4,7 +4,7 @@
     align-items: center;
     justify-content: space-between;
     margin-top: 20px;
-    
+
     .player-wrapper {
         width: 30%;
         margin: 10px 0;
@@ -28,10 +28,10 @@
                     align-items: center;
                     justify-content: space-between;
                     width: 100%;
-    
+
                     mat-icon {
                         margin-right: 10px;
-                    }   
+                    }
                 }
 
                 .player-list-button {
@@ -51,7 +51,7 @@
                         text-align: center;
                     }
                 }
-    
+
                 .player-list-button-hoverable {
                     display: none;
                 }
@@ -120,11 +120,11 @@
                 >p {
                     margin-bottom: 0;
                 }
-        
+
                 .dice {
                     display: flex;
                     margin-bottom: 10px;
-        
+
                     >div {
                         display: flex;
                         border: 1px solid black;
@@ -136,18 +136,18 @@
                         justify-content: center;
                         margin-right: 5px;
                     }
-                    
+
                     button {
                         flex-grow: 1;
                         border-radius: 3px;
                         outline: none;
                     }
                 }
-        
+
                 .player-list {
                     display: flex;
                     flex-direction: column;
-        
+
                     .player-card {
                         display: flex;
                         flex-direction: column;
@@ -185,6 +185,7 @@
                         pre {
                             width: 100%;
                             text-align: center;
+                            white-space: pre-wrap;
                             font-family: inherit;
                             font-size: 16px;
                             margin: 0;
@@ -199,7 +200,7 @@
 
                         button {
                             height: 36px;
-        
+
                             span {
                                 width: 100%;
                                 text-align: center;

@@ -4,7 +4,7 @@ import { LowDbService } from '../shared/services/lowdb.service';
 import { PlayerService } from '../shared/services/player.service';
 import { BoardService } from '../shared/services/board.service';
 import { SocketService } from '../socket/socket.service';
-import { Lobby, Match, OwnableTile, Player, PlayerState, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
+import { Lobby, Match, Message, OwnableTile, Player, PlayerState, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
 
 @Injectable()
 export class MatchService {
@@ -99,7 +99,7 @@ export class MatchService {
         this.saveAndBroadcastMatch(match);
         const move = await this.onStart(match, player);
         this.saveAndBroadcastMatch(match);
-        const dice: [ number, number ] = [15,15];//[ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
+        const dice: [ number, number ] = [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
         match.lastDice = dice;
         const diceResult = typeof move === 'number' ? move : dice.reduce((acc, n) => acc + n, 0);
         if (await this.onPlay(match, player, dice)) {
@@ -110,7 +110,7 @@ export class MatchService {
                 const position = (start + i) % tiles.length;
                 await this.onPass(match, player, position);
                 this.saveAndBroadcastMatch(match);
-                await this.sleep(10);
+                await this.sleep(250);
                 if (i === diceResult) {
                     this.saveAndBroadcastMatch(match);
                     await this.onLand(match, player, position, diceResult);
@@ -448,17 +448,28 @@ export class MatchService {
                 const winner = this.playerService.getPlayer(notLost[0]);
                 this.win(match, winner);
             } else {
-                this.socketService.notify(player, `You have lost. Git gud.`);
+                this.socketService.broadcastGlobalMessage(
+                    match.playerOrder,
+                    id => id === player.id ?
+                    `You have lost. Git gud!` :
+                    `${player.name} has lost`
+                );
             }
         } else {
             if (origin !== false) {
                 const ori = origin === true ? tile.name : origin;
                 const got = amount > 0;
                 const val = Math.abs(amount);
-                const message = `You just ${got ? 'got' : 'lost'} ${val}`;
-                const oriMessage = ori ? `\n${amount > 0 ? 'from' : 'to'} ${ori}` : '';
-                console.log(`Notifying ${player.name} that he got ${amount}`);
-                this.socketService.notify(player, `${message}${oriMessage}.`);
+                const startMessage = `just ${got ? 'got' : 'lost'} ${val}`;
+                const oriMessage = ori ? ` ${amount > 0 ? 'from' : 'to'} ${ori}` : '';
+                const data = `${startMessage}${oriMessage}`;
+                console.log(`Notifying that ${player.name} ${data}`);
+                this.socketService.broadcastGlobalMessage(
+                    match.playerOrder,
+                    id => id === player.id ?
+                    `You ${data}` :
+                    `${player.name} ${data}`
+                );
             }
         }
         this.saveAndBroadcastMatch(match);
@@ -471,11 +482,15 @@ export class MatchService {
 
     private win(match: Match, winner: Player) {
         console.log(`${winner.name} WINS`);
-        this.socketService.notify(winner, 'You have won!');
+        this.socketService.broadcastGlobalMessage(
+            match.playerOrder,
+            id => id === winner.id ?
+            `You have won!` :
+            `${winner.name} has won`
+        );
         const lost = match.playerOrder.filter(Boolean).filter(p => p !== winner.id);
         lost.forEach(id => {
             const player = this.playerService.getPlayer(id);
-            this.socketService.notify(player, `${winner.name} has won!`);
             const playerState = this.getPlayerState(match, player);
             playerState.victory = VictoryState.LOST;
         });
@@ -487,11 +502,13 @@ export class MatchService {
 
     private async transferFromTo(match: Match, from: Player, to: Player, amount: number) {
         console.log(`Transfering ${amount} from ${from.name} to ${to.name}`);
-        amount = await this.givePlayer(match, from, -amount, to.name);
-        console.log(`${to.name} will receive ${-amount}`);
+        const actualAmount = await this.givePlayer(match, from, -amount, to.name);
+        console.log(`${to.name} will receive ${-actualAmount}`);
         const toState = this.getPlayerState(match, to);
         const hasWon = toState.victory === VictoryState.WON;
-        await this.givePlayer(match, to, -amount, hasWon ? false : from.name);
+        const sameAmount = actualAmount === -amount;
+        const origin = (sameAmount && hasWon) ? false : from.name;
+        await this.givePlayer(match, to, -actualAmount, origin);
         this.saveAndBroadcastMatch(match);
     }
 
@@ -500,7 +517,12 @@ export class MatchService {
         this.move(match, player, 10);
         playerState.prision = 2;
         playerState.equalDie = 0;
-        this.socketService.notify(player, `You have gone to jail!`);
+        this.socketService.broadcastGlobalMessage(
+            match.playerOrder,
+            id => id === player.id ?
+            `You have gone to jail!` :
+            `${player.name} has gone to jail.`
+        );
     }
 
     private async onPass(match: Match, player: Player, position: number) {
