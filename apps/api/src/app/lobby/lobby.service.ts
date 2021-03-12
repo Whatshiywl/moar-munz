@@ -44,14 +44,16 @@ export class LobbyService {
     async removePlayer(lobby: Lobby, player: Player, replace: boolean) {
         if (!lobby.players[player.id]) return;
         replace = replace && lobby.options.ai;
+        let aiPlayer: Player;
         if (replace) {
-            this.addAI(lobby, player);
+            aiPlayer = this.addAI(lobby, player);
         } else {
             this.deletePlayer(lobby, player);
         }
         const match = this.matchService.getMatch(lobby.id);
         if (match) await this.matchService.removePlayer(lobby, match, player);
         this.playerService.deletePlayer(player.id);
+        if (aiPlayer) await this.matchService.play(match, aiPlayer);
     }
 
     private deletePlayer(lobby: Lobby, player: Player) {
@@ -72,8 +74,9 @@ export class LobbyService {
             this.addPlayerAtFirstFreeSpot(lobby, ai.player);
         }
         this.saveAndBroadcastLobby(lobby);
-        const order = lobby.playerOrder.findIndex(s => s === ai.player.id);
-        this.onPlayerReady(lobby, lobby.playerOrder[order], true);
+        return ai.player;
+        // const order = lobby.playerOrder.findIndex(s => s === ai.player.id);
+        // this.onPlayerReady(lobby, lobby.playerOrder[order], true);
     }
 
     onEnterLobby(lobby: Lobby, token: string) {
