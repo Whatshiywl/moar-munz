@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { sample } from 'lodash';
@@ -8,6 +8,8 @@ import { ChatComponent } from '../chat/chat.component';
 import { Store } from '@ngrx/store';
 import { filter, map } from 'rxjs/operators';
 import copy from 'fast-copy';
+
+type PlayerCard = { player: PlayerComplete, properties: Tile[] }
 
 @Component({
   selector: 'moar-munz-play',
@@ -28,13 +30,15 @@ export class PlayComponent implements OnInit, OnDestroy {
   match$: Observable<Match>;
   match: Match;
 
+  tileOrder: number[];
   tileDisplayOrder: { tile: Tile, i: number }[];
+  tiles: Tile[];
 
   playerTurn: string;
   isMyTurn: boolean;
 
   players: PlayerComplete[];
-  playerCards: { player: PlayerComplete }[] = [];
+  playerCards: PlayerCard[] = [];
 
   activeTrade;
 
@@ -58,7 +62,8 @@ export class PlayComponent implements OnInit, OnDestroy {
     private store: Store<{
       lobby: Lobby,
       match: Match
-    }>
+    }>,
+    private cd: ChangeDetectorRef
   ) {
     const filterCopy = <T>() => pipe<Observable<T>, Observable<T>, Observable<T>>(filter(el => Boolean(el)), map(el => copy(el)));
     this.lobby$ = this.store.select('lobby').pipe(filterCopy());
@@ -112,16 +117,20 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   onMatchUpdate(match: Match) {
-    console.log('match', match);
-    this.match = match;
-    this.tileDisplayOrder = this.getTileDisplayOrder(match.board);
-    this.playerTurn = Object.keys(match.playerState).find(playerId => {
-      const playerState = match.playerState[playerId];
+    this.updateMatch(match);
+    this.tileOrder = this.tileOrder || this.getTileOrder(this.match.board);
+    const displayOrder = this.getTileDisplayOrder(this.match.board);
+    this.tileDisplayOrder = this.tileDisplayOrder || displayOrder;
+    const tiles = [];
+    displayOrder.forEach(data => tiles[data.i] = data.tile);
+    this.tiles = tiles;
+    this.playerTurn = Object.keys(this.match.playerState).find(playerId => {
+      const playerState = this.match.playerState[playerId];
       return playerState.turn;
     });
     this.isMyTurn = this.playerTurn === this.uuid;
     this.updatePlayers();
-    this.first = this.uuid === match.playerOrder[0];
+    this.first = this.uuid === this.match.playerOrder[0];
     if (this.debug) {
       setTimeout(() => {
         if (this.isMyTurn) this.throwDice();
@@ -132,9 +141,13 @@ export class PlayComponent implements OnInit, OnDestroy {
   private updatePlayers() {
     this.players = this.getPlayers();
     this.players.forEach(player => {
+      const properties = this.getPlayerProperties(player);
       const cardIndex = this.playerCards.findIndex(c => c.player.id === player.id);
-      if (cardIndex < 0) this.playerCards.push({ player });
-      else this.playerCards[cardIndex].player = player;
+      if (cardIndex < 0) this.playerCards.push({ player, properties });
+      else {
+        this.playerCards[cardIndex].player = player;
+        this.playerCards[cardIndex].properties = properties;
+      }
     });
     this.player = this.players.find(p => p.id === this.uuid);
     sessionStorage.setItem('player', JSON.stringify(this.player));
@@ -150,7 +163,7 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.chatComponent.addTab(player, true);
   }
 
-  private getTileDisplayOrder(board: Board) {
+  private getTileOrder(board: Board) {
     const tiles = board.tiles;
     const order = [ ];
     // FIRST LINE
@@ -166,7 +179,12 @@ export class PlayComponent implements OnInit, OnDestroy {
     for (let i = 0; i < board.lineLength; i++) {
       order.push(3 * board.lineLength - 1 - i);
     }
-    return order.map(i => ({ tile: tiles[i], i }));
+    return order;
+  }
+
+  private getTileDisplayOrder(board: Board) {
+    const { tiles } = board;
+    return this.tileOrder.map(i => ({ tile: tiles[i], i }));
   }
 
   throwDice() {
@@ -202,14 +220,14 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.highlightTile(tile, false);
   }
 
-  onPlayerMouseEnter(player: Player) {
-    const props = this.getPlayerProperties(player);
+  onCardMouseEnter(card: PlayerCard) {
+    const props = card.properties;
     props.forEach(tile => this.highlightTile(tile, true));
   }
 
-  onPlayerMouseLeave(player: Player) {
-    this.getPlayerProperties(player)
-    .forEach(tile => this.highlightTile(tile, false));
+  onCardMouseLeave(card: PlayerCard) {
+    const props = card.properties;
+    props.forEach(tile => this.highlightTile(tile, false));
   }
 
   onOptionMouseEnter(option: string) {
@@ -235,13 +253,33 @@ export class PlayComponent implements OnInit, OnDestroy {
     return this.lobby.playerOrder.filter(Boolean).map(playerId => {
       const matchPlayer = this.match?.playerState[playerId];
       const lobbyPlayer = this.lobby?.players[playerId];
-      return { ...matchPlayer, ...lobbyPlayer };
+      const playerCard = this.playerCards.find(c => c.player.id === playerId);
+      const highlighted = playerCard?.player.highlighted || false;
+      return { ...matchPlayer, ...lobbyPlayer, highlighted };
     });
   }
 
   getPlayerProperties(player: Player) {
-    return this.match.board.tiles
+    return this.match?.board.tiles
     .filter(tile => tile.owner === player.id);
+  }
+
+  private updateMatch(match: Match) {
+    if (!this.match) return this.match = match;
+    const keys: (keyof Match)[] = [
+      'turn', 'lastDice', 'playerState', 'locked', 'over'
+    ];
+    keys.forEach(key => (this.match[key] as any) = match[key]);
+    this.updateBoard(match.board);
+  }
+
+  private updateBoard(board: Board) {
+    board.tiles.forEach((tile, i) => {
+      for (const key in tile) {
+        const value = tile[key];
+        this.match.board.tiles[i][key] = value;
+      }
+    });
   }
 
 }

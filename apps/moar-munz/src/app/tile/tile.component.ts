@@ -1,5 +1,5 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { CompanyTile, DeedTile, Lobby, LobbyState, Match, Player, PlayerComplete, PlayerState, RailroadTile, RentableTile, Tile, VictoryState } from '@moar-munz/api-interfaces';
+import { CompanyTile, DeedTile, Lobby, LobbyState, Match, Player, PlayerComplete, RailroadTile, Tile, VictoryState } from '@moar-munz/api-interfaces';
 
 @Component({
   selector: 'moar-munz-tile',
@@ -10,11 +10,13 @@ export class TileComponent implements OnChanges {
 
   @Input() match: Match;
   @Input() lobby: Lobby;
-  @Input() tile: Tile;
+  @Input() tiles: Tile[];
   @Input() index: number;
 
-  @Input() 
+  @Input()
   players: (PlayerComplete)[];
+
+  tile: Tile;
 
   tileData: {
     players: (PlayerComplete)[],
@@ -28,19 +30,18 @@ export class TileComponent implements OnChanges {
   } = { players: [ ] };
 
   ngOnChanges(changes: SimpleChanges) {
-    if (changes.lobby) {
-      this.tileData.owner = changes.lobby.currentValue.players[this.tile.owner];
-    }
-    if (changes.players) {
-      this.tileData.players = this.getPlayersInTile(this.index);
-    }
-    if (changes.tile) {
-      const tile = changes.tile.currentValue as Tile;
+    if (changes.tiles) {
+      const tile = changes.tiles.currentValue[this.index] as Tile;
+      this.tile = tile;
       this.tileData.level = this.getTileLevel(tile);
       this.tileData.levelString = this.getTileLevelString();
       this.tileData.value = this.getTilePrice(tile);
       this.tileData.info = this.getTileInfo(tile);
       this.tileData.indicators = this.getTileIndicators(tile);
+      this.tileData.owner = this.lobby.players[this.tile.owner];
+    }
+    if (changes.players) {
+      this.tileData.players = this.getPlayersInTile(this.index);
     }
   }
 
