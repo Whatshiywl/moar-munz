@@ -99,7 +99,7 @@ export class MatchService {
         this.saveAndBroadcastMatch(match);
         const move = await this.onStart(match, player);
         this.saveAndBroadcastMatch(match);
-        const dice: [ number, number ] = [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
+        const dice: [ number, number ] = [0,2];// [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
         match.lastDice = dice;
         const diceResult = typeof move === 'number' ? move : dice.reduce((acc, n) => acc + n, 0);
         if (await this.onPlay(match, player, dice)) {
@@ -141,7 +141,8 @@ export class MatchService {
         const nextPlayer = this.playerService.getPlayer(next.id);
         console.log('next player', nextPlayer);
         if (nextPlayer.ai) {
-            const humanPlayers = match.playerOrder.map(p => this.playerService.getPlayer(p)).filter(p => !p.id);
+            const players = match.playerOrder.map(p => this.playerService.getPlayer(p));
+            const humanPlayers = players.filter(p => !p.ai);
             if (humanPlayers.length === 0) return console.log('Abord infinite AI match!');
             await this.play(match, nextPlayer);
         }
@@ -363,7 +364,7 @@ export class MatchService {
             case 'chance':
                 const cards = [
                     async () => this.sendToJail(match, player),
-                    async () => this.move(match, player, 0),
+                    async () => this.onPass(match, player, 0),
                     async () => this.givePlayer(match, player, 50, true),
                     async () => this.givePlayer(match, player, 75, true),
                     async () => this.givePlayer(match, player, 100, true),
@@ -380,7 +381,13 @@ export class MatchService {
                     async () => this.givePlayer(match, player, -150, true),
                     async () => this.givePlayer(match, player, -200, true),
                     async () => this.givePlayer(match, player, -300, true),
-                    async () => this.givePlayer(match, player, -500, true)
+                    async () => this.givePlayer(match, player, -500, true),
+                    async () => {
+                        this.socketService.broadcastGlobalMessage(
+                            [ player.id ], `You lucky you shall play again!`
+                        );
+                        match.playerState[player.id].playAgain = true;
+                    }
                 ];
                 const card = sample(cards);
                 await card();
