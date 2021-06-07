@@ -3,7 +3,7 @@
   (selectedIndexChange)="selected.setValue($event)">
     <mat-tab *ngFor="let tab of visibleTabs; let index = index">
       <ng-template mat-tab-label>
-        <mat-icon *ngIf="index" class="close-tab" (click)="removeTab(index)">close</mat-icon>
+        <mat-icon *ngIf="index" class="close-tab" (click)="removeTab(tab)">close</mat-icon>
         {{tab.title}}
       </ng-template>
       <div class="tab-content-wrapper">

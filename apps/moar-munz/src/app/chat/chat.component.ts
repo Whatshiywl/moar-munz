@@ -90,9 +90,11 @@ export class ChatComponent implements OnInit {
     return tab;
   }
 
-  removeTab(index: number) {
-    if (index === 0) return;
-    this.tabs[index].visible = false;
+  removeTab(tab: Tab) {
+    if (tab.type === 'global') return;
+    const tabToHide = this.tabs.find(t => t === tab);
+    if (!tabToHide) return;
+    tabToHide.visible = false;
   }
 
   pushMessageToTab(tab: Tab, ...messages: Message[]) {
