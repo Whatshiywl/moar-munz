@@ -13,7 +13,7 @@ Nomes coloridos em eventos do chat
 Implementar componente de negociação
 Implementar botões para iniciar conversa e negociação
 [OK] [IMPEDITIVO] [BUG] Jogo continua com apenas AI
-[BUG] Pergunta de worldtour feita após jogada de dados
+[OK] [BUG] Pergunta de worldtour feita após jogada de dados
 [BUG] Opções do worldcup não apresentam aluguel corretamente
 [OK] [BUG] Chance para o início não ganha o valor da casa
 [OK] [BUG] Marcador de cartão desaparece a cada update

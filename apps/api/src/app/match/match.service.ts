@@ -89,6 +89,10 @@ export class MatchService {
         this.broadcastMatchState(match);
     }
 
+    private rollDice(): [ number, number ] {
+        return [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
+    }
+
     async play(match: Match, player: Player) {
         if (match.locked || match.over) return;
         const playerState = this.getPlayerState(match, player);
@@ -99,8 +103,9 @@ export class MatchService {
         this.saveAndBroadcastMatch(match);
         const move = await this.onStart(match, player);
         this.saveAndBroadcastMatch(match);
-        const dice: [ number, number ] = [0,2];// [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
-        match.lastDice = dice;
+        const dice = match.lastDice = typeof move === 'number' ?
+            [ undefined, undefined ] :
+            this.rollDice()
         const diceResult = typeof move === 'number' ? move : dice.reduce((acc, n) => acc + n, 0);
         if (await this.onPlay(match, player, dice)) {
             this.saveAndBroadcastMatch(match);
@@ -191,7 +196,7 @@ export class MatchService {
         switch (tile.type) {
             case 'prison':
                 if (playerState.prison > 0) {
-                    if (die[0] === die[1]) {
+                    if (die[0] !== undefined && die[0] === die[1]) {
                         playerState.prison = 0;
                         playerState.playAgain = true;
                     } else {
@@ -202,7 +207,7 @@ export class MatchService {
                 }
                 break;
             default:
-                if (die[0] === die[1]) {
+                if (die[0] !== undefined && die[0] === die[1]) {
                     playerState.equalDie = (playerState.equalDie || 0) + 1;
                     if (playerState.equalDie === 3) {
                         this.sendToJail(match, player);
