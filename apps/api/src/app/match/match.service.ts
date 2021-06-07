@@ -29,7 +29,7 @@ export class MatchService {
                 money: 2000,
                 victory: VictoryState.UNDEFINED,
                 playAgain: false,
-                prision: 0,
+                prison: 0,
                 equalDie: 0,
                 highlighted: false,
                 turn: i === 0
@@ -186,13 +186,13 @@ export class MatchService {
         const playerState = this.getPlayerState(match, player);
         const tile = match.board.tiles[playerState.position];
         switch (tile.type) {
-            case 'prision':
-                if (playerState.prision > 0) {
+            case 'prison':
+                if (playerState.prison > 0) {
                     if (die[0] === die[1]) {
-                        playerState.prision = 0;
+                        playerState.prison = 0;
                         playerState.playAgain = true;
                     } else {
-                        playerState.prision--;
+                        playerState.prison--;
                         console.log('not pairs, cant leave jail');
                         return false;
                     }
@@ -221,8 +221,8 @@ export class MatchService {
         const tile = match.board.tiles[position];
         console.log(player.id, player.name, 'landed on', tile);
         switch (tile.type) {
-            case 'prision':
-                playerState.prision = 2;
+            case 'prison':
+                playerState.prison = 2;
                 break;
             case 'worldcup':
                 const deeds = match.board.tiles.filter(t => t.type === 'deed') as RentableTile[];
@@ -513,7 +513,7 @@ export class MatchService {
     private sendToJail(match: Match, player: Player) {
         const playerState = this.getPlayerState(match, player);
         this.move(match, player, 10);
-        playerState.prision = 2;
+        playerState.prison = 2;
         playerState.equalDie = 0;
         this.socketService.broadcastGlobalMessage(
             match.playerOrder,

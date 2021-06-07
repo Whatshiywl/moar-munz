@@ -17,6 +17,8 @@ export class SessionGuard implements CanActivate {
             sessionStorage.setItem('token', tokenResponse.token);
             sessionStorage.setItem('uuid', tokenResponse.uuid);
             console.log('got', tokenResponse);
+            window.location.reload();
+            return false;
         }
         console.log(`Guard: uuid=${sessionStorage.getItem('uuid')} token=${sessionStorage.getItem('token')}`);
         return true;

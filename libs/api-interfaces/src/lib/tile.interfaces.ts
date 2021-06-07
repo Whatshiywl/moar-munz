@@ -1,6 +1,6 @@
 export interface BaseTile {
     name: string,
-    type: 'start' | 'deed' | 'chance' | 'company' | 'railroad' | 'prision' | 'worldcup' | 'worldtour' | 'tax',
+    type: 'start' | 'deed' | 'chance' | 'company' | 'railroad' | 'prison' | 'worldcup' | 'worldtour' | 'tax',
     color: string
 }
 
@@ -33,8 +33,8 @@ export interface RailroadTile extends BaseTile {
     rent: number[]
 }
 
-export interface PrisionTile extends BaseTile {
-    type: 'prision'
+export interface PrisonTile extends BaseTile {
+    type: 'prison'
 }
 
 export interface WorldcupTile extends BaseTile {
@@ -51,13 +51,13 @@ export interface TaxTile extends BaseTile {
     tax: number
 }
 
-export type RawTile = 
+export type RawTile =
     | StartTile
     | DeedTile
     | ChanceTile
     | CompanyTile
     | RailroadTile
-    | PrisionTile
+    | PrisonTile
     | WorldcupTile
     | WorldtourTile
     | TaxTile
@@ -73,7 +73,7 @@ export interface DynamicTile {
     highlighted: boolean
 }
 
-export type Tile = 
+export type Tile =
     & RawTile
     & DynamicTile
 

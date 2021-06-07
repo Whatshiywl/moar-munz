@@ -38,12 +38,16 @@ export class SocketService {
 
     connect(client: Socket) {
         const token = client.handshake.query.token;
-        const data = this.jwtService.getPayload(token);
-        console.log(`mapped ${data.uuid} ${client.id}`);
-        this.sessions[data.uuid] = {
-            token,
-            data,
-            client
+        try {
+            const data = this.jwtService.getPayload(token);
+            console.log(`mapped ${data.uuid} ${client.id}`);
+            this.sessions[data.uuid] = {
+                token,
+                data,
+                client
+            };
+        } catch (error) {
+            console.error('Invalid token on connect:', token);
         }
     }
 

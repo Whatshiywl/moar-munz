@@ -19,7 +19,7 @@ export interface PlayerState {
     position: number,
     playAgain: boolean,
     money: number,
-    prision: number,
+    prison: number,
     equalDie: number,
     highlighted: boolean,
     turn: boolean

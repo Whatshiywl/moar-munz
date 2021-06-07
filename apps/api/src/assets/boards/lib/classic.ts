@@ -81,8 +81,8 @@ export const classic: RawBoard = {
 
     // SECOND LINE
     {
-      name: "Prision",
-      type: "prision",
+      name: "Prison",
+      type: "prison",
       color: "grey"
     },
     {

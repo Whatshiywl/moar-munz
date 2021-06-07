@@ -1,8 +1,22 @@
 <div class="new-game-wrapper">
-  <div style="text-align:center; margin: 20px 0">
-    <button mat-raised-button color="primary" (click)="createNewGame()" style="font-size: large;">Create a new game</button>
-  </div>
   <div [formGroup]="matchOptions" class="match-options">
+    <div class="join-option">
+      <mat-form-field class="join-input">
+        <mat-label>Game ID</mat-label>
+        <input matInput placeholder="Game ID" #gameid autocomplete="off">
+      </mat-form-field>
+      <button mat-raised-button color="primary"
+      class="join-btn" style="font-size: large;"
+      (click)="join(gameid)">
+        Join
+      </button>
+    </div>
+    Or
+    <button mat-raised-button color="primary"
+      class="new-game-btn" style="font-size: large;"
+      (click)="createNewGame()">
+      Create a new game
+    </button>
     <mat-form-field appearance="fill">
       <mat-label>Board</mat-label>
       <mat-select formControlName="board">

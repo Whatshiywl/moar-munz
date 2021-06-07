@@ -23,17 +23,27 @@ export class HomeComponent implements OnInit {
       ai: this.fb.control(false)
     });
   }
-  
+
   async ngOnInit() {
     const boards = await this.http.get<string[]>('/api/v1/boards').toPromise();
     this.boards = boards;
     this.matchOptions.controls['board'].setValue(boards[0]);
   }
 
+  async join(input: HTMLInputElement) {
+    const { value } = input;
+    input.value = '';
+    this.navigateToLobby(value);
+  }
+
   async createNewGame() {
     const options = this.matchOptions.value;
     const lobbyResponse = await this.http.post<{ id: string }>('/api/v1/lobby', options).toPromise();
-    this.router.navigate([ `/play/${lobbyResponse.id}` ]);
+    this.navigateToLobby(lobbyResponse.id);
+  }
+
+  private navigateToLobby(id: string) {
+    this.router.navigate([ `/play/${id}` ]);
   }
 
 }

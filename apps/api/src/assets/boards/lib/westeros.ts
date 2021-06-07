@@ -81,8 +81,8 @@ export const westeros: RawBoard = {
 
     // SECOND LINE
     {
-      name: "Prision",
-      type: "prision",
+      name: "Prison",
+      type: "prison",
       color: "grey"
     },
     {
@@ -162,7 +162,7 @@ export const westeros: RawBoard = {
 
     // THIRD LINE
     {
-      name: "Tournment",
+      name: "Tournament",
       type: "worldcup",
       color: "grey"
     },

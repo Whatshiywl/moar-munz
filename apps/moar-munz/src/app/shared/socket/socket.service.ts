@@ -12,6 +12,7 @@ export class SocketService extends Socket {
                 query: `token=${sessionStorage.getItem('token')}`
             }
         });
+        console.log('Construct SocketService with token', sessionStorage.getItem('token'));
     }
 
     emit(event: string, data?: object, cb: Function = null) {

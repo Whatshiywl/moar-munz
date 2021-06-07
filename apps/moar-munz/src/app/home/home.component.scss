@@ -4,5 +4,23 @@
         display: flex;
         flex-direction: column;
         align-items: center;
+
+        .join-option {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-evenly;
+
+            .join-input {
+                margin-right: 10px;
+            }
+
+            .join-btn {
+                margin: 20px 0;
+            }
+        }
+
+        .new-game-btn {
+            margin: 20px 0;
+        }
     }
 }
