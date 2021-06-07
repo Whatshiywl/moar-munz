@@ -12,7 +12,7 @@ Nomes coloridos em eventos do chat
 [OK] Melhorar lista de jogadores (angular material)
 Implementar componente de negociação
 Implementar botões para iniciar conversa e negociação
-[IMPEDITIVO] [BUG] Jogo continua com apenas AI
+[OK] [IMPEDITIVO] [BUG] Jogo continua com apenas AI
 [BUG] Pergunta de worldtour feita após jogada de dados
 [BUG] Opções do worldcup não apresentam aluguel corretamente
 [BUG] Chance para o início não ganha o valor da casa

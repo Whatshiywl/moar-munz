@@ -141,6 +141,8 @@ export class MatchService {
         const nextPlayer = this.playerService.getPlayer(next.id);
         console.log('next player', nextPlayer);
         if (nextPlayer.ai) {
+            const humanPlayers = match.playerOrder.map(p => this.playerService.getPlayer(p)).filter(p => !p.id);
+            if (humanPlayers.length === 0) return console.log('Abord infinite AI match!');
             await this.play(match, nextPlayer);
         }
     }
