@@ -428,9 +428,10 @@ export class MatchService {
             const answerName = answer.match(/^([^\(]+)/)[1].trim();
             const answerTile = properties.find(t => t.name === answerName);
             const answerValue = this.boardService.getTileValue(answerTile);
-            answerTile.owner = undefined;
+            delete answerTile.owner;
             if (this.boardService.isRentableTile(answerTile)) {
                 answerTile.level = 0;
+                delete answerTile.currentRent;
             }
             playerState.money += answerValue;
             if (answerTile.type === 'railroad') {

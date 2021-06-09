@@ -6,7 +6,7 @@ import { Observable, pipe, Subject, Subscription } from 'rxjs';
 import { Board, Lobby, Match, Player, PlayerComplete, Tile } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
 import { Store } from '@ngrx/store';
-import { filter, map } from 'rxjs/operators';
+import { filter, first, map } from 'rxjs/operators';
 import copy from 'fast-copy';
 import { PlayerService } from '../shared/services/player.service';
 
@@ -93,12 +93,10 @@ export class PlayComponent implements OnInit, OnDestroy {
         }, 100);
       }
       if (this.answerSubscription) this.answerSubscription.unsubscribe();
-      this.answerSubscription = this.tileClicked$
-      .subscribe(tile => {
+      this.tileClicked$.pipe(first()).subscribe(tile => {
         const clickAnswer = question.options.find(o => o.includes(tile.name));
         if (clickAnswer) {
           this.onQuestionAnswer(clickAnswer);
-          this.answerSubscription.unsubscribe();
         }
       });
     });
@@ -119,6 +117,7 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   onMatchUpdate(match: Match) {
+    console.log('match', match);
     this.updateMatch(match);
     this.tileOrder = this.tileOrder || this.getTileOrder(this.match.board);
     const displayOrder = this.getTileDisplayOrder(this.match.board);
@@ -210,14 +209,6 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.tileClicked$.next(tile);
   }
 
-  onTileMouseEnter(tile: Tile) {
-    this.highlightTile(tile, true);
-  }
-
-  onTileMouseLeave(tile: Tile) {
-    this.highlightTile(tile, false);
-  }
-
   onCardMouseEnter(card: PlayerCard) {
     const props = card.properties;
     props.forEach(tile => this.highlightTile(tile, true));
@@ -280,9 +271,13 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   private updateBoard(board: Board) {
     board.tiles.forEach((tile, i) => {
+      const oldTile = this.match.board.tiles[i];
+      for (const key in oldTile) {
+        delete oldTile[key];
+      }
       for (const key in tile) {
         const value = tile[key];
-        this.match.board.tiles[i][key] = value;
+        oldTile[key] = value;
       }
     });
   }

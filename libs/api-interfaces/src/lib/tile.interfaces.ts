@@ -66,7 +66,7 @@ export interface DynamicTile {
     owner?: string,
     worldcup?: boolean,
     value: number,
-    currentRent: number,
+    currentRent?: number,
     power: number,
     x: number,
     y: number,
