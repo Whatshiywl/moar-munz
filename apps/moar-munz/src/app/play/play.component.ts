@@ -117,7 +117,6 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   onMatchUpdate(match: Match) {
-    console.log('match', match);
     this.updateMatch(match);
     this.tileOrder = this.tileOrder || this.getTileOrder(this.match.board);
     const displayOrder = this.getTileDisplayOrder(this.match.board);

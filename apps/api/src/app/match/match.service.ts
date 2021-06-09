@@ -89,6 +89,7 @@ export class MatchService {
     }
 
     private rollDice(): [ number, number ] {
+        // return [ 0, 1 ];
         return [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
     }
 
@@ -236,7 +237,10 @@ export class MatchService {
                 const wcOptions = deeds.filter(t => {
                     if (!t.owner || t.owner !== player.id) return false;
                     return true;
-                }).map(t => `${t.name} (${this.boardService.getRawRent(t)})`);
+                }).map(t => {
+                    const rent = this.boardService.getFullRent(match.board, t) / (t.worldcup ? 2 : 1);
+                    return `${t.name} (${rent}})`;
+                });
                 if (!wcOptions.length) return;
                 const wcQuestions = this.socketService.ask(player,
                 `Set the location to host the next worldcup!`,
