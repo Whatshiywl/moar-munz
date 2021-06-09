@@ -1,6 +1,6 @@
-<form [formGroup]="formGroup" (ngSubmit)="onSubmit(formGroup)">
+<form [formGroup]="formGroup" (ngSubmit)="onSubmit()">
   <mat-tab-group headerPosition="below" [selectedIndex]="selected.value"
-  (selectedIndexChange)="selected.setValue($event)">
+  (selectedIndexChange)="checkSelected(true, $event)">
     <mat-tab *ngFor="let tab of visibleTabs; let index = index">
       <ng-template mat-tab-label>
         <mat-icon *ngIf="index" class="close-tab" (click)="removeTab(tab)">close</mat-icon>

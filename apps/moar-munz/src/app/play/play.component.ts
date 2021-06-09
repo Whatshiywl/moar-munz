@@ -132,9 +132,10 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.socket.disconnect(true);
   }
 
-  openPlayerChat(player: PlayerComplete) {
+  openPlayerChat(player: PlayerComplete, event: MouseEvent) {
+    event.stopPropagation();
     if (player.id === this.playerService.player.id) return;
-    this.chatComponent.addTab(player, true);
+    this.chatComponent.addTab(player, true, true);
   }
 
   private getTileOrder(board: Board) {

@@ -15,8 +15,7 @@
                     [style.border-left]="playerService.playerTurn === card.player.id ? '5px solid '+card.player.color : 'none'"
                     [style.background-color]="isPlayerHighlighted(card.player.id) ? (card.player.color | lighten: 0.8) : ''"
                     (mouseenter)="onCardMouseEnter(card)"
-                    (mouseleave)="onCardMouseLeave(card)"
-                    (click)="openPlayerChat(card.player)">
+                    (mouseleave)="onCardMouseLeave(card)">
                         <mat-expansion-panel-header>
                         <mat-panel-title>
                             <span [style.fontWeight]="card.player.id == uuid ? 'bold' : 'normal'"
@@ -24,6 +23,10 @@
                         </mat-panel-title>
                         <mat-panel-description>
                             <span><strong>Ƶ {{card.player.money}}</strong></span>
+                            <mat-icon [style.visibility]="card.player.id === uuid ? 'hidden' : 'visible'"
+                            (click)="openPlayerChat(card.player, $event)"
+                            [matBadge]="chatComponent.getUnreadMessages(card.player.id) || undefined"
+                            matBadgeColor="warn" matBadgeSize="small">message</mat-icon>
                         </mat-panel-description>
                         </mat-expansion-panel-header>
                         <div class="player-properties">

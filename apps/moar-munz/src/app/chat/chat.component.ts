@@ -7,7 +7,8 @@ import { SocketService } from '../shared/socket/socket.service';
 
 interface ClientMessage extends Message {
   name: string,
-  nameColor: string
+  nameColor: string,
+  read: boolean
 }
 
 interface Tab {
@@ -63,7 +64,7 @@ export class ChatComponent implements OnInit {
       let tab = message.type === 'global' ? this.globalTab : this.tabs.find(tab => tab.player?.id === idNotMine);
       if (!tab) {
         const player = this.lobbyService.lobby.players[idNotMine];
-        tab = this.addTab(player, false);
+        tab = this.addTab(player, false, false);
       }
       this.pushMessageToTab(tab, message);
       setTimeout(() => {
@@ -76,26 +77,46 @@ export class ChatComponent implements OnInit {
     return this.tabs.filter(tab => tab.visible);
   }
 
-  addTab(player: Player, selectAfterAdding: boolean) {
+  get selectedTabIndex() {
+    if (this.selected.value === 0) return 0;
+    else return this.tabs.findIndex((t, i) => i > 0 && t.visible);
+  }
+
+  get selectedTab() {
+    return this.tabs[this.selectedTabIndex];
+  }
+
+  getUnreadMessages(id: string) {
+    const tab = this.tabs.find(t => t.player?.id === id);
+    return tab?.chat.filter(m => !m.read).length;
+  }
+
+  addTab(player: Player, visible: boolean, selectAfterAdding: boolean) {
+    if (visible) {
+      this.tabs.forEach(tab => {
+        if (tab.visible && tab.type === 'private') tab.visible = false;
+      });
+    }
     const existsIndex = this.tabs.findIndex(tab => tab.player?.id === player.id);
     const exists = this.tabs[existsIndex];
     if (exists) {
-      exists.visible = true;
-      this.checkSelected(selectAfterAdding, existsIndex);
+      exists.visible = visible;
+      this.checkSelected(selectAfterAdding, 1);
       return exists;
     }
     const input = new FormControl('');
     this.formGroup.addControl(player.name, input);
-    const tab = { type: 'private', title: player.name, player, input, chat: [ ], visible: true } as Tab;
+    const tab = { type: 'private', title: player.name, player, input, chat: [ ], visible } as Tab;
     this.tabs.push(tab);
-    this.checkSelected(selectAfterAdding, this.tabs.length - 1);
+    this.checkSelected(selectAfterAdding, 1);
     return tab;
   }
 
-  private checkSelected(select: boolean, index: number) {
+  checkSelected(select: boolean, index: number) {
     if (!select) return;
     setTimeout(() => {
       this.selected.setValue(index);
+      this.selectedTab.chat.forEach(m => m.read = true);
     }, 0);
   }
 
@@ -107,21 +128,21 @@ export class ChatComponent implements OnInit {
   }
 
   pushMessageToTab(tab: Tab, ...messages: Message[]) {
-    tab.visible = true;
+    const read = this.selectedTab === tab;
     tab.chat.push(...messages.map(({from, data}) => {
       const fromPlayer = this.lobbyService.lobby.players[from];
       return {
         from: fromPlayer?.id,
         data, type: tab.type,
         name: fromPlayer?.name,
-        nameColor: fromPlayer?.color
+        nameColor: fromPlayer?.color,
+        read
       } as ClientMessage;
     }));
   }
 
-  onSubmit(formGroup: FormGroup) {
-    const { selected } = formGroup.value;
-    const tab = this.tabs[selected];
+  onSubmit() {
+    const tab = this.selectedTab;
     const control = tab.input;
     const data = control.value;
     control.reset();
@@ -138,7 +159,7 @@ export class ChatComponent implements OnInit {
   }
 
   scrollTabToBottom() {
-    const index = this.selected.value;
+    const index = this.selectedTabIndex;
     const el = document.getElementById(`message-wrapper-${index}`);
     if (!this.autoScroll) return;
     el?.scroll({

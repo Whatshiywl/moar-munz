@@ -15,6 +15,7 @@ import { MatTabsModule } from '@angular/material/tabs';
 import { MatInputModule } from '@angular/material/input';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatExpansionModule } from '@angular/material/expansion';
+import { MatBadgeModule } from '@angular/material/badge';
 
 const moduleList: (any[] | Type<any>)[] = [
     MatButtonModule,
@@ -31,7 +32,8 @@ const moduleList: (any[] | Type<any>)[] = [
     MatTabsModule,
     MatInputModule,
     MatFormFieldModule,
-    MatExpansionModule
+    MatExpansionModule,
+    MatBadgeModule
 ];
 
 @NgModule({

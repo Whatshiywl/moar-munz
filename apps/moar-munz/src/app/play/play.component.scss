@@ -6,90 +6,9 @@
     justify-content: flex-end;
 }
 
-// .lobby-wrapper {
-//     display: flex;
-//     flex-direction: column;
-//     align-items: center;
-//     justify-content: space-between;
-//     margin-top: 20px;
-
-//     .player-wrapper {
-//         width: 30%;
-//         margin: 10px 0;
-//         padding: 0;
-
-//         mat-card-title {
-//             text-align: center;
-//             margin-top: 10px;
-//         }
-
-//         .player-list {
-//             display: flex;
-//             flex-direction: column;
-//             font-size: large;
-//             padding: 0;
-
-//             .player-list-item {
-
-//                 .player-item {
-//                     display: flex;
-//                     align-items: center;
-//                     justify-content: space-between;
-//                     width: 100%;
-
-//                     mat-icon {
-//                         margin-right: 10px;
-//                     }
-//                 }
-
-//                 .player-list-button {
-//                     display: flex;
-//                     align-items: center;
-//                     width: 100%;
-//                     height: 100%;
-//                     position: absolute;
-//                     top: 0;
-//                     left: 0;
-//                     background-color: #ffd740;
-//                     font-weight: 500;
-//                     cursor: pointer;
-
-//                     span {
-//                         width: 100%;
-//                         text-align: center;
-//                     }
-//                 }
-
-//                 .player-list-button-hoverable {
-//                     display: none;
-//                 }
-
-//                 &:hover .player-list-button-hoverable {
-//                     display: flex;
-//                     align-items: center;
-//                     width: 100%;
-//                     height: 100%;
-//                     position: absolute;
-//                     top: 0;
-//                     left: 0;
-//                     background-color: #f44336;
-//                     font-weight: 500;
-//                     cursor: pointer;
-
-//                     span {
-//                         width: 100%;
-//                         text-align: center;
-//                         color: white;
-//                     }
-//                 }
-//             }
-//         }
-//     }
-
-//     .ready-button {
-//         width: 30%;
-//     }
-// }
+::ng-deep .mat-expansion-panel-header > .mat-content {
+    overflow: visible;
+}
 
 .game-wrapper {
     height: 100%;
@@ -155,6 +74,10 @@
                 .player-list {
 
                     .player-card {
+
+                        mat-icon {
+                            margin-left: 5px;
+                        }
 
                         .player-properties {
                             display: flex;
