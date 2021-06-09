@@ -17,6 +17,7 @@ import { TileComponent } from '../tile/tile.component';
 import { SocketService } from '../shared/socket/socket.service';
 import { LightenPipe } from '../shared/pipes/lighten.pipe';
 import { MaterialModule } from '../material.module';
+import { PlayerService } from '../shared/services/player.service';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -42,7 +43,7 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     ]),
     MaterialModule
   ],
-  providers: [ SocketService ],
+  providers: [ SocketService, PlayerService ],
   exports: [ PlayComponent ]
 })
 export class PlayModule {}

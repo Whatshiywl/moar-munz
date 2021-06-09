@@ -17,6 +17,7 @@ Implementar botões para iniciar conversa e negociação
 [BUG] Opções do worldcup não apresentam aluguel corretamente
 [OK] [BUG] Chance para o início não ganha o valor da casa
 [OK] [BUG] Marcador de cartão desaparece a cada update
+[BUG] Propriedades não resetam quando é vendida
 
 1.5.2
 [OK] Botão para adicionar AI

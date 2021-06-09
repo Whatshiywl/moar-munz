@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Trade, Message, PlayerComplete, Lobby, Match, Player } from '@moar-munz/api-interfaces';
+import { PlayerService } from '../shared/services/player.service';
 import { SocketService } from '../shared/socket/socket.service';
 
 interface ClientMessage extends Message {
@@ -48,13 +49,14 @@ export class ChatComponent implements OnInit {
   autoScroll = true;
 
   constructor(
-    private socket: SocketService
+    private socket: SocketService,
+    private playerService: PlayerService
   ) { }
 
   ngOnInit() {
     this.socket.on('message', (message: Message) => {
       console.log(`Got message`, message);
-      const me = JSON.parse(sessionStorage.getItem('player')) as PlayerComplete;
+      const me = this.playerService.player;
       const myId = me.id;
       const idNotMine = message.recipients.find(id => id !== myId);
       let tab = message.type === 'global' ? this.globalTab : this.tabs.find(tab => tab.player?.id === idNotMine);
@@ -74,20 +76,26 @@ export class ChatComponent implements OnInit {
   }
 
   addTab(player: Player, selectAfterAdding: boolean) {
-    const exists = this.tabs.find(tab => tab.player?.id === player.id);
+    const existsIndex = this.tabs.findIndex(tab => tab.player?.id === player.id);
+    const exists = this.tabs[existsIndex];
     if (exists) {
       exists.visible = true;
+      this.checkSelected(selectAfterAdding, existsIndex);
       return exists;
     }
     const input = new FormControl('');
     this.formGroup.addControl(player.name, input);
-    const tab = { type: 'private', title: player.name, player, input, chat: [ ] } as Tab;
+    const tab = { type: 'private', title: player.name, player, input, chat: [ ], visible: true } as Tab;
     this.tabs.push(tab);
-
-    if (selectAfterAdding) {
-      this.selected.setValue(this.tabs.length - 1);
-    }
+    this.checkSelected(selectAfterAdding, this.tabs.length - 1);
     return tab;
+  }
+
+  private checkSelected(select: boolean, index: number) {
+    if (!select) return;
+    setTimeout(() => {
+      this.selected.setValue(index);
+    }, 0);
   }
 
   removeTab(tab: Tab) {
@@ -116,7 +124,7 @@ export class ChatComponent implements OnInit {
     const control = tab.input;
     const data = control.value;
     control.reset();
-    const me = JSON.parse(sessionStorage.getItem('player')) as PlayerComplete;
+    const me = this.playerService.player;
     const recipients = tab.type === 'global' ? this.match.playerOrder : [ me.id, tab.player?.id ];
     const message: Message = { from: me.id, recipients, data, type: tab.type };
     this.socket.emit('send message', { message });
@@ -132,7 +140,7 @@ export class ChatComponent implements OnInit {
     const index = this.selected.value;
     const el = document.getElementById(`message-wrapper-${index}`);
     if (!this.autoScroll) return;
-    el.scroll({
+    el?.scroll({
       top: el.scrollHeight,
       left: 0,
       behavior: 'auto'

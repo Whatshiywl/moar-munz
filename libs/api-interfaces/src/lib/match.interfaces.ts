@@ -21,6 +21,5 @@ export interface PlayerState {
     money: number,
     prison: number,
     equalDie: number,
-    highlighted: boolean,
     turn: boolean
 }

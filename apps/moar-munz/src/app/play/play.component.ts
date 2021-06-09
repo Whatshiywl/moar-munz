@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { sample } from 'lodash';
@@ -8,6 +8,7 @@ import { ChatComponent } from '../chat/chat.component';
 import { Store } from '@ngrx/store';
 import { filter, map } from 'rxjs/operators';
 import copy from 'fast-copy';
+import { PlayerService } from '../shared/services/player.service';
 
 type PlayerCard = { player: PlayerComplete, properties: Tile[] }
 
@@ -20,9 +21,7 @@ export class PlayComponent implements OnInit, OnDestroy {
   debug = false;
   @ViewChild(ChatComponent) chatComponent: ChatComponent;
 
-  player: PlayerComplete;
   uuid: string;
-  first: boolean;
 
   lobby$: Observable<Lobby>;
   lobby: Lobby;
@@ -34,11 +33,15 @@ export class PlayComponent implements OnInit, OnDestroy {
   tileDisplayOrder: { tile: Tile, i: number }[];
   tiles: Tile[];
 
-  playerTurn: string;
-  isMyTurn: boolean;
-
-  players: PlayerComplete[];
   playerCards: PlayerCard[] = [];
+
+  highlighted: {
+    players: { [id: string]: boolean },
+    tiles: boolean[]
+  } = {
+    players: { },
+    tiles: [ ]
+  }
 
   activeTrade;
 
@@ -57,13 +60,13 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   constructor(
     private socket: SocketService,
+    public playerService: PlayerService,
     private route: ActivatedRoute,
     private router: Router,
     private store: Store<{
       lobby: Lobby,
       match: Match
-    }>,
-    private cd: ChangeDetectorRef
+    }>
   ) {
     const filterCopy = <T>() => pipe<Observable<T>, Observable<T>, Observable<T>>(filter(el => Boolean(el)), map(el => copy(el)));
     this.lobby$ = this.store.select('lobby').pipe(filterCopy());
@@ -80,6 +83,7 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.socket.connect();
     this.lobby$.subscribe(this.onLobbyUpdate.bind(this));
     this.match$.subscribe(this.onMatchUpdate.bind(this));
+    this.playerService.playerChange$.subscribe(this.updatePlayerCards.bind(this));
     this.socket.on('ask question', (question, callback) => {
       console.log('question asked')
       this.notificationData = { ...question, callback };
@@ -112,8 +116,6 @@ export class PlayComponent implements OnInit, OnDestroy {
   onLobbyUpdate(lobby: Lobby) {
     console.log('lobby', lobby);
     this.lobby = lobby;
-    this.updatePlayers();
-    this.first = this.uuid === lobby.playerOrder[0];
   }
 
   onMatchUpdate(match: Match) {
@@ -124,23 +126,21 @@ export class PlayComponent implements OnInit, OnDestroy {
     const tiles = [];
     displayOrder.forEach(data => tiles[data.i] = data.tile);
     this.tiles = tiles;
-    this.playerTurn = Object.keys(this.match.playerState).find(playerId => {
-      const playerState = this.match.playerState[playerId];
-      return playerState.turn;
-    });
-    this.isMyTurn = this.playerTurn === this.uuid;
-    this.updatePlayers();
-    this.first = this.uuid === this.match.playerOrder[0];
+    if (!this.highlighted.tiles.length) {
+      tiles.forEach(_ => this.highlighted.tiles.push(false));
+    }
     if (this.debug) {
       setTimeout(() => {
-        if (this.isMyTurn) this.throwDice();
+        if (this.playerService.isMyTurn) this.throwDice();
       }, 100);
     }
   }
 
-  private updatePlayers() {
-    this.players = this.getPlayers();
-    this.players.forEach(player => {
+  private updatePlayerCards(players: PlayerComplete[]) {
+    if (!Object.keys(this.highlighted.players).length) {
+      players.forEach(p => this.highlighted.players[p.id] = false);
+    }
+    players?.forEach(player => {
       const properties = this.getPlayerProperties(player);
       const cardIndex = this.playerCards.findIndex(c => c.player.id === player.id);
       if (cardIndex < 0) this.playerCards.push({ player, properties });
@@ -149,8 +149,6 @@ export class PlayComponent implements OnInit, OnDestroy {
         this.playerCards[cardIndex].properties = properties;
       }
     });
-    this.player = this.players.find(p => p.id === this.uuid);
-    sessionStorage.setItem('player', JSON.stringify(this.player));
   }
 
   ngOnDestroy() {
@@ -159,7 +157,7 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   openPlayerChat(player: PlayerComplete) {
-    if (player.id === this.player.id) return;
+    if (player.id === this.playerService.player.id) return;
     this.chatComponent.addTab(player, true);
   }
 
@@ -243,20 +241,27 @@ export class PlayComponent implements OnInit, OnDestroy {
   }
 
   highlightTile(tile: Tile, state: boolean) {
-    tile.highlighted = state;
-    const owner = this.players.find(p => p.id === tile.owner);
+    const index = this.getTileIndex(tile);
+    this.highlighted.tiles[index] = state;
+    const owner = this.players?.find(p => p.id === tile.owner);
     if (!owner) return;
-    owner.highlighted = state;
+    this.highlighted.players[owner.id] = state;
   }
 
-  private getPlayers() {
-    return this.lobby.playerOrder.filter(Boolean).map(playerId => {
-      const matchPlayer = this.match?.playerState[playerId];
-      const lobbyPlayer = this.lobby?.players[playerId];
-      const playerCard = this.playerCards.find(c => c.player.id === playerId);
-      const highlighted = playerCard?.player.highlighted || false;
-      return { ...matchPlayer, ...lobbyPlayer, highlighted };
-    });
+  isPlayerHighlighted(id: string) {
+    return this.highlighted.players[id];
+  }
+
+  isTileHighlighted(index: number) {
+    return this.highlighted.tiles[index];
+  }
+
+  get players() {
+    return this.playerService.players;
+  }
+
+  getTileIndex(tile: Tile) {
+    return this.tileDisplayOrder.find(data => data.tile.name === tile.name)?.i;
   }
 
   getPlayerProperties(player: Player) {

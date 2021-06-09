@@ -31,7 +31,6 @@ export class MatchService {
                 playAgain: false,
                 prison: 0,
                 equalDie: 0,
-                highlighted: false,
                 turn: i === 0
             };
         });
