@@ -23,9 +23,6 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   uuid: string;
 
-  lobby$: Observable<Lobby>;
-  lobby: Lobby;
-
   match$: Observable<Match>;
   match: Match;
 
@@ -61,15 +58,11 @@ export class PlayComponent implements OnInit, OnDestroy {
   constructor(
     private socket: SocketService,
     public playerService: PlayerService,
-    private route: ActivatedRoute,
-    private router: Router,
     private store: Store<{
-      lobby: Lobby,
       match: Match
     }>
   ) {
     const filterCopy = <T>() => pipe<Observable<T>, Observable<T>, Observable<T>>(filter(el => Boolean(el)), map(el => copy(el)));
-    this.lobby$ = this.store.select('lobby').pipe(filterCopy());
     this.match$ = this.store.select('match').pipe(filterCopy());
   }
 
@@ -77,11 +70,7 @@ export class PlayComponent implements OnInit, OnDestroy {
     console.log('debug play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
     this.tileClicked$ = new Subject<Tile>();
-    const params = this.route.snapshot.params;
-    console.log('play component params', params);
-    const id = params.id;
     this.socket.connect();
-    this.lobby$.subscribe(this.onLobbyUpdate.bind(this));
     this.match$.subscribe(this.onMatchUpdate.bind(this));
     this.playerService.playerChange$.subscribe(this.updatePlayerCards.bind(this));
     this.socket.on('ask question', (question, callback) => {
@@ -103,17 +92,6 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.socket.on('notification', (message: string) => {
       this.notificationData = { message };
     });
-    this.socket.emit('enter lobby', { lobbyId: id }, (response: { token: string, uuid: string }) => {
-      if (!response) {
-        alert('This lobby has closed! :(');
-        this.router.navigate([ '/' ]);
-      }
-    });
-  }
-
-  onLobbyUpdate(lobby: Lobby) {
-    console.log('lobby', lobby);
-    this.lobby = lobby;
   }
 
   onMatchUpdate(match: Match) {
@@ -185,18 +163,6 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   throwDice() {
     this.socket.emit('throw dice');
-  }
-
-  onReady(ready: boolean) {
-    this.socket.emit('ready', { ready });
-  }
-
-  onLobbyPlayerClick(player: Player) {
-    this.socket.emit('remove player', { id: player.id });
-  }
-
-  onLobbyAddAI() {
-    this.socket.emit('add ai');
   }
 
   onQuestionAnswer(answer: string) {

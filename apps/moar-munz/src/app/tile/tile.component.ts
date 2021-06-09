@@ -1,5 +1,6 @@
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import { CompanyTile, DeedTile, Lobby, LobbyState, Match, Player, PlayerComplete, RailroadTile, Tile, VictoryState } from '@moar-munz/api-interfaces';
+import { CompanyTile, DeedTile, LobbyState, Match, Player, PlayerComplete, RailroadTile, Tile, VictoryState } from '@moar-munz/api-interfaces';
+import { LobbyService } from '../shared/services/lobby.service';
 import { PlayerService } from '../shared/services/player.service';
 
 @Component({
@@ -10,7 +11,6 @@ import { PlayerService } from '../shared/services/player.service';
 export class TileComponent implements OnChanges {
 
   @Input() match: Match;
-  @Input() lobby: Lobby;
   @Input() tiles: Tile[];
   @Input() index: number;
   @Input() highlighted: boolean;
@@ -31,6 +31,7 @@ export class TileComponent implements OnChanges {
   } = { players: [ ] };
 
   constructor(
+    private lobbyService: LobbyService,
     private playerService: PlayerService
   ) {
     this.playerService.playerChange$.subscribe(players => {
@@ -48,12 +49,12 @@ export class TileComponent implements OnChanges {
       this.tileData.value = this.getTilePrice(tile);
       this.tileData.info = this.getTileInfo(tile);
       this.tileData.indicators = this.getTileIndicators(tile);
-      this.tileData.owner = this.lobby.players[this.tile.owner];
+      this.tileData.owner = this.lobbyService.lobby.players[this.tile.owner];
     }
   }
 
   getTileOwner(tile: Tile) {
-    return this.lobby?.players[tile.owner];
+    return this.lobbyService.lobby?.players[tile.owner];
   }
 
   getPlayersInTile(t: number) {

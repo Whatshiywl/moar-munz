@@ -18,6 +18,8 @@ import { SocketService } from '../shared/socket/socket.service';
 import { LightenPipe } from '../shared/pipes/lighten.pipe';
 import { MaterialModule } from '../material.module';
 import { PlayerService } from '../shared/services/player.service';
+import { LobbyComponent } from '../lobby/lobby.component';
+import { LobbyService } from '../shared/services/lobby.service';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -26,7 +28,8 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     PlayComponent,
     TileComponent,
     ChatComponent,
-    LightenPipe
+    LobbyComponent,
+    LightenPipe,
   ],
   imports: [
     CommonModule,
@@ -43,7 +46,11 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     ]),
     MaterialModule
   ],
-  providers: [ SocketService, PlayerService ],
+  providers: [
+    SocketService,
+    PlayerService,
+    LobbyService
+  ],
   exports: [ PlayComponent ]
 })
 export class PlayModule {}

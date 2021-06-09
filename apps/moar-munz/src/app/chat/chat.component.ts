@@ -1,6 +1,7 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
 import { Trade, Message, PlayerComplete, Lobby, Match, Player } from '@moar-munz/api-interfaces';
+import { LobbyService } from '../shared/services/lobby.service';
 import { PlayerService } from '../shared/services/player.service';
 import { SocketService } from '../shared/socket/socket.service';
 
@@ -26,7 +27,6 @@ interface Tab {
 })
 export class ChatComponent implements OnInit {
 
-  @Input() lobby: Lobby;
   @Input() match: Match;
 
   globalInput = new FormControl('');
@@ -50,6 +50,7 @@ export class ChatComponent implements OnInit {
 
   constructor(
     private socket: SocketService,
+    private lobbyService: LobbyService,
     private playerService: PlayerService
   ) { }
 
@@ -61,7 +62,7 @@ export class ChatComponent implements OnInit {
       const idNotMine = message.recipients.find(id => id !== myId);
       let tab = message.type === 'global' ? this.globalTab : this.tabs.find(tab => tab.player?.id === idNotMine);
       if (!tab) {
-        const player = this.lobby.players[idNotMine];
+        const player = this.lobbyService.lobby.players[idNotMine];
         tab = this.addTab(player, false);
       }
       this.pushMessageToTab(tab, message);
@@ -108,7 +109,7 @@ export class ChatComponent implements OnInit {
   pushMessageToTab(tab: Tab, ...messages: Message[]) {
     tab.visible = true;
     tab.chat.push(...messages.map(({from, data}) => {
-      const fromPlayer = this.lobby.players[from];
+      const fromPlayer = this.lobbyService.lobby.players[from];
       return {
         from: fromPlayer?.id,
         data, type: tab.type,
