@@ -1,7 +1,8 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { Trade, Message, PlayerComplete, Lobby, Match, Player } from '@moar-munz/api-interfaces';
+import { Trade, Message, PlayerComplete, Player } from '@moar-munz/api-interfaces';
 import { LobbyService } from '../shared/services/lobby.service';
+import { MatchService } from '../shared/services/match.service';
 import { PlayerService } from '../shared/services/player.service';
 import { SocketService } from '../shared/socket/socket.service';
 
@@ -27,9 +28,6 @@ interface Tab {
   styleUrls: ['./chat.component.scss']
 })
 export class ChatComponent implements OnInit {
-
-  @Input() match: Match;
-
   globalInput = new FormControl('');
   selected = new FormControl(0);
   formGroup = new FormGroup({
@@ -52,6 +50,7 @@ export class ChatComponent implements OnInit {
   constructor(
     private socket: SocketService,
     private lobbyService: LobbyService,
+    private matchService: MatchService,
     private playerService: PlayerService
   ) { }
 
@@ -147,7 +146,7 @@ export class ChatComponent implements OnInit {
     const data = control.value;
     control.reset();
     const me = this.playerService.player;
-    const recipients = tab.type === 'global' ? this.match.playerOrder : [ me.id, tab.player?.id ];
+    const recipients = tab.type === 'global' ? this.matchService.match.playerOrder : [ me.id, tab.player?.id ];
     const message: Message = { from: me.id, recipients, data, type: tab.type };
     this.socket.emit('send message', { message });
   }

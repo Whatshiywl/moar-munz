@@ -89,7 +89,6 @@ export class MatchService {
     }
 
     private rollDice(): [ number, number ] {
-        // return [ 0, 1 ];
         return [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
     }
 

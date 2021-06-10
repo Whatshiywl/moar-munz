@@ -21,6 +21,8 @@ import { PlayerService } from '../shared/services/player.service';
 import { LobbyComponent } from '../lobby/lobby.component';
 import { LobbyService } from '../shared/services/lobby.service';
 import { MatchService } from '../shared/services/match.service';
+import { PromptComponent } from '../prompt/prompt.component';
+import { PromptService } from '../shared/services/prompt.service';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -30,6 +32,7 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     TileComponent,
     ChatComponent,
     LobbyComponent,
+    PromptComponent,
     LightenPipe,
   ],
   imports: [
@@ -51,7 +54,8 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     SocketService,
     PlayerService,
     LobbyService,
-    MatchService
+    MatchService,
+    PromptService
   ],
   exports: [ PlayComponent ]
 })

@@ -36,30 +36,15 @@
                     </mat-expansion-panel>
                 </mat-accordion>
             </mat-card>
+            <moar-munz-prompt *ngIf="promptService.awaitingResponse"
+                [debug]="debug"
+                [style.gridRowEnd]="'span ' + (activeTrade ? '1' : '2')"
+                (optionmouseenter)="highlightOption($event, true)"
+                (optionmouseleave)="highlightOption($event, false)"
+            ></moar-munz-prompt>
             <mat-card *ngIf="activeTrade" class="trade-info"></mat-card>
-            <div class="board-input-wrapper">
-                <mat-card *ngIf="notificationData" class="board-input">
-                    <mat-card-title>
-                        <pre>{{notificationData.message}}</pre>
-                    </mat-card-title>
-                    <mat-action-list>
-                        <mat-divider></mat-divider>
-                        <button mat-list-item *ngFor="let option of notificationData?.options; last as last"
-                        (click)="onQuestionAnswer(option)"
-                        (mouseenter)="highlightOption(option, true)"
-                        (mouseleave)="highlightOption(option, false)">
-                            <span>{{option}}</span>
-                            <mat-divider *ngIf="!last"></mat-divider>
-                        </button>
-                        <button mat-list-item *ngIf="!notificationData.options"
-                        (click)="notificationData = undefined">
-                            <span>OK</span>
-                        </button>
-                    </mat-action-list>
-                </mat-card>
-            </div>
             <mat-card class="board-chat">
-                <moar-munz-chat [match]="match"></moar-munz-chat>
+                <moar-munz-chat></moar-munz-chat>
             </mat-card>
         </div>
         <moar-munz-tile *ngFor="let tile of tiles; let i = index"

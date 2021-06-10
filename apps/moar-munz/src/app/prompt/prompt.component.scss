@@ -1,0 +1,37 @@
+.board-input {
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    padding: 0;
+
+    mat-card-title {
+        max-height: 100%;
+        width: 100%;
+        margin: 15px 0 5px 0;
+
+        pre {
+            width: 100%;
+            text-align: center;
+            white-space: pre-wrap;
+            font-family: inherit;
+            font-size: 16px;
+            margin: 0;
+        }
+    }
+
+    mat-action-list {
+        overflow: auto;
+        height: 100%;
+        flex: 1 1 auto;
+        padding: 0;
+
+        button {
+            height: 36px;
+
+            span {
+                width: 100%;
+                text-align: center;
+            }
+        }
+    }
+}

@@ -1,12 +1,10 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { SocketService } from '../shared/socket/socket.service';
-import { sample } from 'lodash';
-import { Subject, Subscription } from 'rxjs';
 import { Player, PlayerComplete, Tile } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
-import { first } from 'rxjs/operators';
 import { PlayerService } from '../shared/services/player.service';
 import { MatchService } from '../shared/services/match.service';
+import { PromptService } from '../shared/services/prompt.service';
 
 type PlayerCard = { player: PlayerComplete, properties: Tile[] }
 
@@ -33,51 +31,24 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   activeTrade;
 
-  notificationData: {
-    message: string;
-    options?: string[];
-    callback?: (answer: string) => void;
-  };
-  answerSubscription: Subscription;
-
   targetViewportDimentions = {
     w: 0, h: 0
   };
 
-  tileClicked$: Subject<Tile>;
-
   constructor(
     private socket: SocketService,
     public playerService: PlayerService,
-    private matchService: MatchService
+    private matchService: MatchService,
+    public promptService: PromptService,
+    private cd: ChangeDetectorRef
   ) { }
 
   async ngOnInit() {
     console.log('debug play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
-    this.tileClicked$ = new Subject<Tile>();
     this.socket.connect();
     this.matchService.matchChange$.subscribe(this.onMatchUpdate.bind(this));
     this.playerService.playerChange$.subscribe(this.updatePlayerCards.bind(this));
-    this.socket.on('ask question', (question, callback) => {
-      console.log('question asked')
-      this.notificationData = { ...question, callback };
-      if (this.debug) {
-        setTimeout(() => {
-          this.onQuestionAnswer(sample(question.options));
-        }, 100);
-      }
-      if (this.answerSubscription) this.answerSubscription.unsubscribe();
-      this.tileClicked$.pipe(first()).subscribe(tile => {
-        const clickAnswer = question.options.find(o => o.includes(tile.name));
-        if (clickAnswer) {
-          this.onQuestionAnswer(clickAnswer);
-        }
-      });
-    });
-    this.socket.on('notification', (message: string) => {
-      this.notificationData = { message };
-    });
   }
 
   get players() {
@@ -142,14 +113,9 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.socket.emit('throw dice');
   }
 
-  onQuestionAnswer(answer: string) {
-    this.notificationData.callback(answer);
-    this.notificationData = undefined;
-  }
-
   onTileClicked(index: number) {
     const tile = this.getTile(index);
-    this.tileClicked$.next(tile);
+    this.matchService.clickTile(tile);
   }
 
   highlightCardProperties(properties: Tile[], state: boolean) {
@@ -184,6 +150,12 @@ export class PlayComponent implements OnInit, OnDestroy {
   toggleDebug() {
     this.debug = !this.debug;
     console.warn(`Debug mode ${this.debug ? 'enabled' : 'disabled'}!`);
+    this.cd.detectChanges();
+  }
+
+  toggleTrade() {
+    this.activeTrade = !this.activeTrade;
+    this.cd.detectChanges();
   }
 
 }
