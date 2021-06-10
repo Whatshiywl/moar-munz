@@ -239,7 +239,7 @@ export class MatchService {
                     return true;
                 }).map(t => {
                     const rent = this.boardService.getFullRent(match.board, t) / (t.worldcup ? 2 : 1);
-                    return `${t.name} (${rent}})`;
+                    return `${t.name} (${rent})`;
                 });
                 if (!wcOptions.length) return;
                 const wcQuestions = this.socketService.ask(player,

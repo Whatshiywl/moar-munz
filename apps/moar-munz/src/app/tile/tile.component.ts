@@ -1,6 +1,7 @@
-import { Component, Input, OnChanges, SimpleChanges } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { CompanyTile, DeedTile, LobbyState, Match, Player, PlayerComplete, RailroadTile, Tile, VictoryState } from '@moar-munz/api-interfaces';
 import { LobbyService } from '../shared/services/lobby.service';
+import { MatchService } from '../shared/services/match.service';
 import { PlayerService } from '../shared/services/player.service';
 
 @Component({
@@ -8,17 +9,12 @@ import { PlayerService } from '../shared/services/player.service';
   templateUrl: './tile.component.html',
   styleUrls: ['./tile.component.scss']
 })
-export class TileComponent implements OnChanges {
+export class TileComponent {
 
-  @Input() match: Match;
-  @Input() tiles: Tile[];
   @Input() index: number;
   @Input() highlighted: boolean;
 
-  players: (PlayerComplete)[];
-
   tile: Tile;
-
   tileData: {
     players: (PlayerComplete)[],
     owner?: Player & LobbyState,
@@ -32,25 +28,21 @@ export class TileComponent implements OnChanges {
 
   constructor(
     private lobbyService: LobbyService,
+    private matchService: MatchService,
     private playerService: PlayerService
   ) {
-    this.playerService.playerChange$.subscribe(players => {
-      this.players = players;
-      this.tileData.players = this.getPlayersInTile(this.index);
-    });
+    this.matchService.matchChange$.subscribe(this.onMatchChanged.bind(this));
   }
 
-  ngOnChanges(changes: SimpleChanges) {
-    if (changes.tiles) {
-      const tile = changes.tiles.currentValue[this.index] as Tile;
-      this.tile = tile;
-      this.tileData.level = this.getTileLevel(tile);
-      this.tileData.levelString = this.getTileLevelString();
-      this.tileData.value = this.getTilePrice(tile);
-      this.tileData.info = this.getTileInfo(tile);
-      this.tileData.indicators = this.getTileIndicators(tile);
-      this.tileData.owner = this.lobbyService.lobby.players[this.tile.owner];
-    }
+  private onMatchChanged(match: Match) {
+    this.tile = match.board.tiles[this.index];
+    this.tileData.level = this.getTileLevel(this.tile);
+    this.tileData.levelString = this.getTileLevelString();
+    this.tileData.value = this.getTilePrice(this.tile);
+    this.tileData.info = this.getTileInfo(this.tile);
+    this.tileData.indicators = this.getTileIndicators(this.tile);
+    this.tileData.players = this.getPlayersInTile(this.index);
+    this.tileData.owner = this.lobbyService.lobby.players[this.tile.owner];
   }
 
   getTileOwner(tile: Tile) {
@@ -58,7 +50,7 @@ export class TileComponent implements OnChanges {
   }
 
   getPlayersInTile(t: number) {
-    return this.players?.filter(player => {
+    return this.playerService.players?.filter(player => {
       return player.victory !== VictoryState.LOST && player.position === t;
     });
   }

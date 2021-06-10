@@ -20,6 +20,7 @@ import { MaterialModule } from '../material.module';
 import { PlayerService } from '../shared/services/player.service';
 import { LobbyComponent } from '../lobby/lobby.component';
 import { LobbyService } from '../shared/services/lobby.service';
+import { MatchService } from '../shared/services/match.service';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -49,7 +50,8 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
   providers: [
     SocketService,
     PlayerService,
-    LobbyService
+    LobbyService,
+    MatchService
   ],
   exports: [ PlayComponent ]
 })

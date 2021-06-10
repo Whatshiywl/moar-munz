@@ -1,14 +1,12 @@
 import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
 import { SocketService } from '../shared/socket/socket.service';
 import { sample } from 'lodash';
-import { Observable, pipe, Subject, Subscription } from 'rxjs';
-import { Board, Lobby, Match, Player, PlayerComplete, Tile } from '@moar-munz/api-interfaces';
+import { Subject, Subscription } from 'rxjs';
+import { Player, PlayerComplete, Tile } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
-import { Store } from '@ngrx/store';
-import { filter, first, map } from 'rxjs/operators';
-import copy from 'fast-copy';
+import { first } from 'rxjs/operators';
 import { PlayerService } from '../shared/services/player.service';
+import { MatchService } from '../shared/services/match.service';
 
 type PlayerCard = { player: PlayerComplete, properties: Tile[] }
 
@@ -22,13 +20,6 @@ export class PlayComponent implements OnInit, OnDestroy {
   @ViewChild(ChatComponent) chatComponent: ChatComponent;
 
   uuid: string;
-
-  match$: Observable<Match>;
-  match: Match;
-
-  tileOrder: number[];
-  tileDisplayOrder: { tile: Tile, i: number }[];
-  tiles: Tile[];
 
   playerCards: PlayerCard[] = [];
 
@@ -58,20 +49,15 @@ export class PlayComponent implements OnInit, OnDestroy {
   constructor(
     private socket: SocketService,
     public playerService: PlayerService,
-    private store: Store<{
-      match: Match
-    }>
-  ) {
-    const filterCopy = <T>() => pipe<Observable<T>, Observable<T>, Observable<T>>(filter(el => Boolean(el)), map(el => copy(el)));
-    this.match$ = this.store.select('match').pipe(filterCopy());
-  }
+    private matchService: MatchService
+  ) { }
 
   async ngOnInit() {
     console.log('debug play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
     this.tileClicked$ = new Subject<Tile>();
     this.socket.connect();
-    this.match$.subscribe(this.onMatchUpdate.bind(this));
+    this.matchService.matchChange$.subscribe(this.onMatchUpdate.bind(this));
     this.playerService.playerChange$.subscribe(this.updatePlayerCards.bind(this));
     this.socket.on('ask question', (question, callback) => {
       console.log('question asked')
@@ -94,16 +80,25 @@ export class PlayComponent implements OnInit, OnDestroy {
     });
   }
 
-  onMatchUpdate(match: Match) {
-    this.updateMatch(match);
-    this.tileOrder = this.tileOrder || this.getTileOrder(this.match.board);
-    const displayOrder = this.getTileDisplayOrder(this.match.board);
-    this.tileDisplayOrder = this.tileDisplayOrder || displayOrder;
-    const tiles = [];
-    displayOrder.forEach(data => tiles[data.i] = data.tile);
-    this.tiles = tiles;
+  get players() {
+    return this.playerService.players;
+  }
+
+  get match() { return this.matchService.match; }
+
+  get tiles() { return this.match.board.tiles; }
+
+  getTile(index: number) {
+    return this.tiles[index];
+  }
+
+  getTileIndex(tile: Tile) {
+    return this.tiles.findIndex(t => t.name === tile.name);
+  }
+
+  private onMatchUpdate() {
     if (!this.highlighted.tiles.length) {
-      tiles.forEach(_ => this.highlighted.tiles.push(false));
+      this.tiles.forEach(_ => this.highlighted.tiles.push(false));
     }
     if (this.debug) {
       setTimeout(() => {
@@ -127,6 +122,11 @@ export class PlayComponent implements OnInit, OnDestroy {
     });
   }
 
+  private getPlayerProperties(player: Player) {
+    return this.match?.board.tiles
+    .filter(tile => tile.owner === player.id);
+  }
+
   ngOnDestroy() {
     console.log('destroy play component');
     this.socket.disconnect(true);
@@ -138,30 +138,6 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.chatComponent.addTab(player, true, true);
   }
 
-  private getTileOrder(board: Board) {
-    const tiles = board.tiles;
-    const order = [ ];
-    // FIRST LINE
-    for (let i = 0; i < board.lineLength; i++) {
-      order.push(i);
-    }
-    // SECOND LINE AND FOURTH
-    for (let i = 0; i < board.lineLength; i++) {
-      order.push(10 + i);
-      order.push(tiles.length - 1 - i);
-    }
-    // THIRD LINE
-    for (let i = 0; i < board.lineLength; i++) {
-      order.push(3 * board.lineLength - 1 - i);
-    }
-    return order;
-  }
-
-  private getTileDisplayOrder(board: Board) {
-    const { tiles } = board;
-    return this.tileOrder.map(i => ({ tile: tiles[i], i }));
-  }
-
   throwDice() {
     this.socket.emit('throw dice');
   }
@@ -171,34 +147,26 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.notificationData = undefined;
   }
 
-  onTileClicked(tile: Tile) {
+  onTileClicked(index: number) {
+    const tile = this.getTile(index);
     this.tileClicked$.next(tile);
   }
 
-  onCardMouseEnter(card: PlayerCard) {
-    const props = card.properties;
-    props.forEach(tile => this.highlightTile(tile, true));
+  highlightCardProperties(properties: Tile[], state: boolean) {
+    properties.forEach(tile => this.highlightTile(tile, state));
   }
 
-  onCardMouseLeave(card: PlayerCard) {
-    const props = card.properties;
-    props.forEach(tile => this.highlightTile(tile, false));
-  }
-
-  onOptionMouseEnter(option: string) {
+  highlightOption(option: string, state: boolean) {
     const tile = this.match.board.tiles.find(t => option.includes(t.name));
     if (!tile) return;
-    this.highlightTile(tile, true);
+    this.highlightTile(tile, state);
   }
 
-  onOptionMouseLeave(option: string) {
-    const tile = this.match.board.tiles.find(t => option.includes(t.name));
-    if (!tile) return;
-    this.highlightTile(tile, false);
-  }
-
-  highlightTile(tile: Tile, state: boolean) {
-    const index = this.getTileIndex(tile);
+  highlightTile(index: number, state: boolean): void;
+  highlightTile(tile: Tile, state: boolean): void;
+  highlightTile(tileOrIndex: Tile | number, state: boolean) {
+    const index = typeof tileOrIndex === 'number' ? tileOrIndex : this.getTileIndex(tileOrIndex);
+    const tile = this.getTile(index);
     this.highlighted.tiles[index] = state;
     const owner = this.players?.find(p => p.id === tile.owner);
     if (!owner) return;
@@ -213,39 +181,9 @@ export class PlayComponent implements OnInit, OnDestroy {
     return this.highlighted.tiles[index];
   }
 
-  get players() {
-    return this.playerService.players;
-  }
-
-  getTileIndex(tile: Tile) {
-    return this.tileDisplayOrder.find(data => data.tile.name === tile.name)?.i;
-  }
-
-  getPlayerProperties(player: Player) {
-    return this.match?.board.tiles
-    .filter(tile => tile.owner === player.id);
-  }
-
-  private updateMatch(match: Match) {
-    if (!this.match) return this.match = match;
-    const keys: (keyof Match)[] = [
-      'turn', 'lastDice', 'playerState', 'locked', 'over'
-    ];
-    keys.forEach(key => (this.match[key] as any) = match[key]);
-    this.updateBoard(match.board);
-  }
-
-  private updateBoard(board: Board) {
-    board.tiles.forEach((tile, i) => {
-      const oldTile = this.match.board.tiles[i];
-      for (const key in oldTile) {
-        delete oldTile[key];
-      }
-      for (const key in tile) {
-        const value = tile[key];
-        oldTile[key] = value;
-      }
-    });
+  toggleDebug() {
+    this.debug = !this.debug;
+    console.warn(`Debug mode ${this.debug ? 'enabled' : 'disabled'}!`);
   }
 
 }

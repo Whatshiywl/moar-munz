@@ -14,8 +14,8 @@
                     class="player-card"
                     [style.border-left]="playerService.playerTurn === card.player.id ? '5px solid '+card.player.color : 'none'"
                     [style.background-color]="isPlayerHighlighted(card.player.id) ? (card.player.color | lighten: 0.8) : ''"
-                    (mouseenter)="onCardMouseEnter(card)"
-                    (mouseleave)="onCardMouseLeave(card)">
+                    (mouseenter)="highlightCardProperties(card.properties, true)"
+                    (mouseleave)="highlightCardProperties(card.properties, false)">
                         <mat-expansion-panel-header>
                         <mat-panel-title>
                             <span [style.fontWeight]="card.player.id == uuid ? 'bold' : 'normal'"
@@ -30,7 +30,7 @@
                         </mat-panel-description>
                         </mat-expansion-panel-header>
                         <div class="player-properties">
-                            <span *ngFor="let property of getPlayerProperties(card.player)"
+                            <span *ngFor="let property of card.properties"
                             style="font-size: smaller;">{{property.name}}</span>
                         </div>
                     </mat-expansion-panel>
@@ -46,8 +46,8 @@
                         <mat-divider></mat-divider>
                         <button mat-list-item *ngFor="let option of notificationData?.options; last as last"
                         (click)="onQuestionAnswer(option)"
-                        (mouseenter)="onOptionMouseEnter(option)"
-                        (mouseleave)="onOptionMouseLeave(option)">
+                        (mouseenter)="highlightOption(option, true)"
+                        (mouseleave)="highlightOption(option, false)">
                             <span>{{option}}</span>
                             <mat-divider *ngIf="!last"></mat-divider>
                         </button>
@@ -62,14 +62,15 @@
                 <moar-munz-chat [match]="match"></moar-munz-chat>
             </mat-card>
         </div>
-        <moar-munz-tile *ngFor="let tileData of tileDisplayOrder"
-        [match]="match" [tiles]="tiles" [index]="tileData.i"
-        [highlighted]="isTileHighlighted(tileData.i)"
-        class="tile"
-        [style.border]="'1px solid black'"
-        (click)="onTileClicked(tileData.tile)"
-        (mouseenter)="highlightTile(tileData.tile, true)"
-        (mouseleave)="highlightTile(tileData.tile, false)">
+        <moar-munz-tile *ngFor="let tile of tiles; let i = index"
+            [index]="i" [highlighted]="isTileHighlighted(i)"
+            class="tile"
+            [style.gridColumnStart]="tile.x + 1"
+            [style.gridRowStart]="tile.y + 1"
+            [style.border]="'1px solid black'"
+            (click)="onTileClicked(i)"
+            (mouseenter)="highlightTile(i, true)"
+            (mouseleave)="highlightTile(i, false)">
         </moar-munz-tile>
     </div>
 </div>

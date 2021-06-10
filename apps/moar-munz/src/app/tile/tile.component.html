@@ -3,8 +3,8 @@
 [style.backgroundColor]="highlighted ? (getTileHighlightColor() | lighten: 0.8)  : 'white'">
   <div class="tile-info-wrapper">
     <div class="tile-header"
-    [style.backgroundColor]="tile.color | lighten: 0.9">
-      <p>{{tile.name}}</p>
+    [style.backgroundColor]="tile?.color | lighten: 0.9">
+      <p>{{tile?.name}}</p>
       <p *ngIf="tileData.value">{{tileData.value}}</p>
     </div>
     <p *ngIf="tileData.info">{{tileData.info}}</p>
