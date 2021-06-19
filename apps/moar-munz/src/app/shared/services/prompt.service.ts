@@ -3,52 +3,49 @@ import { SocketService } from "../socket/socket.service";
 import { MatchService } from "./match.service";
 import { sample } from 'lodash';
 import { first } from 'rxjs/operators';
+import { Prompt, PromptCallback } from "@moar-munz/api-interfaces";
 
 @Injectable()
 export class PromptService {
   // TODO: move debug state to store
   private debug: boolean;
-  private _awaitingResponse: boolean;
 
-  private _notificationData: {
-    message: string;
-    options?: string[];
-    callback?: (answer: string) => void;
+  private _promptData: {
+    prompt: Prompt<any>,
+    callback?: PromptCallback
   };
 
   constructor(
     private socket: SocketService,
     private matchService: MatchService,
   ) {
-    this.socket.on('ask question', (question, callback) => {
-      console.log('question asked')
-      this._awaitingResponse = true;
-      this._notificationData = { ...question, callback };
+    this.socket.on('new prompt', (prompt: Prompt, callback: PromptCallback) => {
+      console.log('prompt received');
+      this._promptData = { prompt, callback };
       if (this.debug) {
         setTimeout(() => {
-          this.answer(sample(question.options));
+          this.answer(sample(prompt.options));
         }, 100);
       }
       this.matchService.tileClicked$.pipe(first()).subscribe(tile => {
-        const clickAnswer = question.options.find(o => o.includes(tile.name));
+        const clickAnswer = prompt.options.find(o => o.includes(tile.name));
         if (clickAnswer) {
           this.answer(clickAnswer);
         }
       });
     });
-    this.socket.on('notification', (message: string) => {
-      this._notificationData = { message };
+    this.socket.on('update prompt', (prompt: Prompt) => {
+      this._promptData.prompt = prompt;
     });
   }
 
-  get awaitingResponse() { return this._awaitingResponse; }
-  get notificationData() { return this._notificationData; }
+  get awaitingResponse() { return Boolean(this._promptData); }
+  get prompt() { return this._promptData.prompt; }
 
-  answer(answer: string) {
-    if (this._notificationData.callback) {
-      this._notificationData.callback(answer);
+  answer(answer?: string | boolean) {
+    if (this._promptData.callback) {
+      this._promptData.callback(answer);
     }
-    this._notificationData = undefined;
-    this._awaitingResponse = false;
+    this._promptData = undefined;
   }
 }

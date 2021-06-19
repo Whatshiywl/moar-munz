@@ -58,39 +58,6 @@ export class SocketService {
         delete this.sessions[data.uuid];
     }
 
-    ask<T extends ReadonlyArray<unknown>>(player: Player, question: string, options: T) {
-        type A = typeof options[number];
-        if (player.ai) {
-            return new Promise<A>((resolve, reject) => {
-                console.log(`Question: ${question}`);
-                const answer = this.aiService.answer(question, options);
-                console.log(`Answer: ${answer}`);
-                resolve(answer);
-            });
-        } else {
-            const client = this.getClient(player.id);
-            if (!client) return undefined;
-            return new Promise<A>((resolve, reject) => {
-                console.log(`Question: ${question}`);
-                client.emit('ask question', {
-                    message: question, options
-                }, (answer: A) => {
-                    console.log(`Answer: ${answer}`);
-                    resolve(answer);
-                });
-            });
-        }
-    }
-
-    notify(player: Player, message: string) {
-        const client = this.getClient(player.id);
-        client?.emit('notification', message);
-    }
-
-    notifyAll(message: string, players: string[]) {
-        this.emit('notification', message, players);
-    }
-
     getNamespaceFromIdList(ids: string[]) {
         let namespace: Namespace;
         for (const id of ids.filter(Boolean)) {

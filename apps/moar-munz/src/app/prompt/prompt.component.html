@@ -1,19 +1,37 @@
 <mat-card *ngIf="awaitingResponse" class="board-input">
     <mat-card-title>
-        <pre>{{notificationData.message}}</pre>
+        <pre>{{prompt.message}}</pre>
     </mat-card-title>
-    <mat-action-list>
+
+    <mat-action-list *ngIf="prompt.type === 'alert'">
         <mat-divider></mat-divider>
-        <button mat-list-item *ngFor="let option of notificationData?.options; last as last"
+        <button mat-list-item *ngIf="!prompt.options"
+        (click)="onQuestionAnswer()">
+            <span>OK</span>
+        </button>
+    </mat-action-list>
+
+    <mat-action-list *ngIf="prompt.type === 'confirm'">
+        <mat-divider></mat-divider>
+        <button mat-list-item
+        (click)="onQuestionAnswer(false)">
+            <span>No</span>
+            <mat-divider></mat-divider>
+        </button>
+        <button mat-list-item
+        (click)="onQuestionAnswer(true)">
+            <span>Yes</span>
+        </button>
+    </mat-action-list>
+
+    <mat-action-list *ngIf="prompt.type === 'select'">
+        <mat-divider></mat-divider>
+        <button mat-list-item *ngFor="let option of prompt?.options; last as last"
         (click)="onQuestionAnswer(option)"
         (mouseenter)="onOptionMouseEnter(option)"
         (mouseleave)="onOptionMouseLeave(option)">
             <span>{{option}}</span>
             <mat-divider *ngIf="!last"></mat-divider>
-        </button>
-        <button mat-list-item *ngIf="!notificationData.options"
-        (click)="onQuestionAnswer(undefined)">
-            <span>OK</span>
         </button>
     </mat-action-list>
 </mat-card>

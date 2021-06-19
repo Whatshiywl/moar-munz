@@ -36,7 +36,7 @@
                     </mat-expansion-panel>
                 </mat-accordion>
             </mat-card>
-            <moar-munz-prompt *ngIf="promptService.awaitingResponse"
+            <moar-munz-prompt
                 [debug]="debug"
                 [style.gridRowEnd]="'span ' + (activeTrade ? '1' : '2')"
                 (optionmouseenter)="highlightOption($event, true)"

@@ -4,7 +4,6 @@ import { Player, PlayerComplete, Tile } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
 import { PlayerService } from '../shared/services/player.service';
 import { MatchService } from '../shared/services/match.service';
-import { PromptService } from '../shared/services/prompt.service';
 
 type PlayerCard = { player: PlayerComplete, properties: Tile[] }
 
@@ -39,7 +38,6 @@ export class PlayComponent implements OnInit, OnDestroy {
     private socket: SocketService,
     public playerService: PlayerService,
     private matchService: MatchService,
-    public promptService: PromptService,
     private cd: ChangeDetectorRef
   ) { }
 

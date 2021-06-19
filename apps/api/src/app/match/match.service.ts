@@ -5,6 +5,7 @@ import { PlayerService } from '../shared/services/player.service';
 import { BoardService } from '../shared/services/board.service';
 import { SocketService } from '../socket/socket.service';
 import { Lobby, Match, Message, OwnableTile, Player, PlayerState, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
+import { PromptService } from '../shared/services/prompt.service';
 
 @Injectable()
 export class MatchService {
@@ -13,7 +14,8 @@ export class MatchService {
         private db: LowDbService,
         private playerService: PlayerService,
         private socketService: SocketService,
-        private boardService: BoardService
+        private boardService: BoardService,
+        private promptService: PromptService
     ) { }
 
     generateMatch(lobby: Lobby) {
@@ -83,7 +85,7 @@ export class MatchService {
         this.saveAndBroadcastMatch(match);
     }
 
-    saveAndBroadcastMatch(match) {
+    saveAndBroadcastMatch(match: Match) {
         this.saveMatch(match);
         this.broadcastMatchState(match);
     }
@@ -175,11 +177,10 @@ export class MatchService {
                     return true;
                 }).map(t => t.name) ];
                 if (!options.length) return;
-                const question = this.socketService.ask(player,
-                `Would you like to travel for ${tile.cost}?\nIf so, where to?`,
-                options);
-                const answer = await question;
-                if (answer !== options[0]) {
+                const message = `Would you like to travel for ${tile.cost}?\nIf so, where to?`;
+                const prompt = await this.promptService.select(player, message, options);
+                const answer = prompt.answer;
+                if (answer !== prompt.options[0]) {
                     this.givePlayer(match, player, -tile.cost, false);
                     let goToIndex = match.board.tiles.findIndex(t => t.name === answer);
                     if (goToIndex < playerState.position) goToIndex += match.board.tiles.length;
@@ -241,10 +242,10 @@ export class MatchService {
                     return `${t.name} (${rent})`;
                 });
                 if (!wcOptions.length) return;
-                const wcQuestions = this.socketService.ask(player,
-                `Set the location to host the next worldcup!`,
-                wcOptions);
-                const wcAnswer = await wcQuestions;
+                const tileName = tile.name.toLocaleLowerCase();
+                const message = `Set the location to host the next ${tileName}!`;
+                const wcPrompt = await this.promptService.select(player, message, wcOptions);
+                const wcAnswer = wcPrompt.answer;
                 const wcAnswerValue = wcAnswer.match(/^([^\(]+)/)[1].trim();
                 match.board.tiles.forEach(t => {
                     t.worldcup = t.name === wcAnswerValue;
@@ -261,11 +262,10 @@ export class MatchService {
                         options.push(`${n} (${tile.price + cost})`);
                     }
                     if (options.length === 1) return;
-                    const question = this.socketService.ask(player,
-                    `Would you like to buy ${tile.name} for ${tile.price}?\nIf so, how many houses do you want (${tile.building} each)?`,
-                    options);
-                    const answer = await question;
-                    if (answer !== options[0]) {
+                    const message = `Would you like to buy ${tile.name} for ${tile.price}?\nIf so, how many houses do you want (${tile.building} each)?`;
+                    const prompt = await this.promptService.select(player, message, options);
+                    const answer = prompt.answer;
+                    if (answer !== prompt.options[0]) {
                         const answerValue = parseInt(answer.match(/^([^\(]+)/)[1].trim(), 10);
                         tile.owner = player.id;
                         const levelDifference = answerValue - tile.level;
@@ -288,11 +288,10 @@ export class MatchService {
                             options.push(`${n} (${cost})`);
                         }
                         if (options.length === 1) return;
-                        const question = this.socketService.ask(player,
-                        `Would you like to improve your property?\nIf so, to how many houses (${tile.building} each extra)?`,
-                        options);
-                        const answer = await question;
-                        if (answer !== options[0]) {
+                        const message = `Would you like to improve your property?\nIf so, to how many houses (${tile.building} each extra)?`;
+                        const prompt = await this.promptService.select(player, message, options);
+                        const answer = prompt.answer;
+                        if (answer !== prompt.options[0]) {
                             const answerValue = parseInt(answer.match(/^([^\(]+)/)[1].trim(), 10);
                             const levelDifference = answerValue + 1 - tile.level;
                             const cost = tile.building * levelDifference;
@@ -305,11 +304,10 @@ export class MatchService {
                         await this.transferFromTo(match, player, owner, cost);
                         const value = 2 * this.boardService.getTileValue(tile);
                         if (playerState.money >= value) {
-                            const question = this.socketService.ask(player,
-                            `Would you like to buy ${tile.name} from ${owner.name} for ${value}?`,
-                            [ 'No', 'Yes' ] as const);
-                            const answer = await question;
-                            if (answer === 'Yes') {
+                            const message = `Would you like to buy ${tile.name} from ${owner.name} for ${value}?`;
+                            const prompt = await this.promptService.confirm(player, message);
+                            const answer = prompt.answer;
+                            if (answer) {
                                 await this.transferFromTo(match, player, owner, value);
                                 tile.owner = player.id;
                                 this.saveAndBroadcastMatch(match);
@@ -322,11 +320,10 @@ export class MatchService {
             case 'company':
                 if (!tile.owner) {
                     if (tile.price > playerState.money) return;
-                    const question = this.socketService.ask(player,
-                    `Would you like to buy ${tile.name} for ${tile.price}?`,
-                    [ 'No', 'Yes' ] as const);
-                    const answer = await question;
-                    if (answer !== 'No') {
+                    const message = `Would you like to buy ${tile.name} for ${tile.price}?`;
+                    const prompt = await this.promptService.confirm(player, message);
+                    const answer = prompt.answer;
+                    if (answer) {
                         tile.owner = player.id;
                         await this.givePlayer(match, player, -tile.price, false);
                     }
@@ -341,11 +338,10 @@ export class MatchService {
             case 'railroad':
                 if (!tile.owner) {
                     if (tile.price > playerState.money) return;
-                    const question = this.socketService.ask(player,
-                    `Would you like to buy ${tile.name} for ${tile.price}?`,
-                    [ 'No', 'Yes' ] as const);
-                    const answer = await question;
-                    if (answer !== 'No') {
+                    const message = `Would you like to buy ${tile.name} for ${tile.price}?`;
+                    const prompt = await this.promptService.confirm(player, message);
+                    const answer = prompt.answer;
+                    if (answer) {
                         tile.owner = player.id;
                         await this.givePlayer(match, player, -tile.price, false);
                         const boardRails = match.board.tiles.filter(t => t.type === 'railroad') as RentableTile[];
@@ -371,7 +367,12 @@ export class MatchService {
             case 'chance':
                 const cards = [
                     async () => this.sendToJail(match, player),
-                    async () => this.onPass(match, player, 0),
+                    async () => {
+                        this.socketService.broadcastGlobalMessage(
+                            [ player.id ], `Go back to Start!`
+                        );
+                        await this.onPass(match, player, 0)
+                    },
                     async () => this.givePlayer(match, player, 50, true),
                     async () => this.givePlayer(match, player, 75, true),
                     async () => this.givePlayer(match, player, 100, true),
@@ -424,10 +425,10 @@ export class MatchService {
                 const value = this.boardService.getTileValue(prop);
                 return `${prop.name} (${value})`;
             });
-            const question = this.socketService.ask(player,
-            `You must sell some properties.\nAmount remaining: ${Math.abs(playerState.money + amount)}`,
-            options);
-            const answer = await question;
+            const remainingAmount = Math.abs(playerState.money + amount);
+            const message = `You must sell some properties.\nAmount remaining: ${remainingAmount}`;
+            const prompt = await this.promptService.select(player, message, options);
+            const answer = prompt.answer;
             const answerName = answer.match(/^([^\(]+)/)[1].trim();
             const answerTile = properties.find(t => t.name === answerName);
             const answerValue = this.boardService.getTileValue(answerTile);

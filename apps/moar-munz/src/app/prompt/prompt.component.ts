@@ -16,9 +16,9 @@ export class PromptComponent {
   ) { }
 
   get awaitingResponse() { return this.promptService.awaitingResponse; }
-  get notificationData() { return this.promptService.notificationData; }
+  get prompt() { return this.promptService.prompt; }
 
-  onQuestionAnswer(answer: string) {
+  onQuestionAnswer(answer?: string | boolean) {
     this.promptService.answer(answer);
   }
 

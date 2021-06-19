@@ -23,6 +23,7 @@ import { LobbyGateway } from './lobby/lobby.gateway';
 import { AIService } from './shared/services/ai.service';
 import { ChatGateway } from './chat/chat.gateway';
 import { BodyMessagePipe } from './shared/pipes/body-message.pipe';
+import { PromptService } from './shared/services/prompt.service';
 
 @Module({
   imports: [
@@ -50,7 +51,8 @@ import { BodyMessagePipe } from './shared/pipes/body-message.pipe';
     BodyLobbyPipe,
     BodyMatchPipe,
     BodyMessagePipe,
-    AIService
+    AIService,
+    PromptService
   ]
 })
 export class AppModule {}
