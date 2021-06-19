@@ -1,94 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import { sample, groupBy } from 'lodash';
-import { LowDbService } from '../shared/services/lowdb.service';
 import { PlayerService } from '../shared/services/player.service';
 import { BoardService } from '../shared/services/board.service';
 import { SocketService } from '../socket/socket.service';
-import { Lobby, Match, Message, OwnableTile, Player, PlayerState, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
+import { Match, Player, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
 import { PromptService } from '../shared/services/prompt.service';
+import { MatchService } from '../shared/services/match.service';
 
 @Injectable()
-export class MatchService {
+export class EngineService {
 
     constructor(
-        private db: LowDbService,
+        private matchService: MatchService,
         private playerService: PlayerService,
         private socketService: SocketService,
         private boardService: BoardService,
         private promptService: PromptService
     ) { }
-
-    generateMatch(lobby: Lobby) {
-        const id = lobby.id;
-        const playerOrder = [ ...lobby.playerOrder ];
-        const options = { ...lobby.options };
-        const playerState: {
-            [id: string]: PlayerState;
-        } = { };
-        playerOrder.filter(Boolean).forEach((playerId, i) => {
-            playerState[playerId] = {
-                position: 0,
-                money: 2000,
-                victory: VictoryState.UNDEFINED,
-                playAgain: false,
-                prison: 0,
-                equalDie: 0,
-                turn: i === 0
-            };
-        });
-        const board = this.boardService.getBoard(lobby.options.board);
-        const match: Match = {
-            id,
-            turn: 0,
-            lastDice: [ 1, 1 ],
-            playerOrder,
-            playerState,
-            options,
-            board,
-            locked: false,
-            over: false
-        };
-        this.db.createMatch(match);
-        this.saveAndBroadcastMatch(match);
-    }
-
-    getMatch(id: string) {
-        return this.db.readMatch(id);
-    }
-
-    saveMatch(match: Match) {
-        this.db.updateMatch(match);
-    }
-
-    async removePlayer(lobby: Lobby, match: Match, player: Player) {
-        const index = match.playerOrder.findIndex(s => s === player.id);
-        if (index < 0) return;
-        const playerState = this.getPlayerState(match, player);
-        if (match.options.ai) {
-            const aiId = lobby.playerOrder[index];
-            match.playerOrder[index] = aiId;
-            match.playerState[aiId] = { ...playerState };
-            match.board.tiles.forEach(tile => {
-                if (tile.owner === player.id) tile.owner = aiId;
-            });
-        } else {
-            if (playerState.turn) await this.setNextPlayer(match, player);
-            match.playerOrder[index] = undefined;
-            match.board.tiles.forEach(tile => {
-                if (tile.owner === player.id) {
-                    tile.owner = undefined;
-                    if (this.boardService.isRentableTile(tile)) tile.level = 0;
-                }
-            });
-        }
-        delete match.playerState[player.id];
-        this.saveAndBroadcastMatch(match);
-    }
-
-    saveAndBroadcastMatch(match: Match) {
-        this.saveMatch(match);
-        this.broadcastMatchState(match);
-    }
 
     private rollDice(): [ number, number ] {
         return [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
@@ -96,36 +24,37 @@ export class MatchService {
 
     async play(match: Match, player: Player) {
         if (match.locked || match.over) return;
-        const playerState = this.getPlayerState(match, player);
+        const playerState = match.playerState[player.id];
         if (!playerState.turn) return;
         if (playerState.victory === VictoryState.LOST) return;
         match.locked = true;
         console.log(`${player.name}'s turn started`);
-        this.saveAndBroadcastMatch(match);
+        this.matchService.saveAndBroadcastMatch(match);
         const move = await this.onStart(match, player);
-        this.saveAndBroadcastMatch(match);
+        this.matchService.saveAndBroadcastMatch(match);
         const dice = match.lastDice = typeof move === 'number' ?
             [ undefined, undefined ] :
             this.rollDice()
         const diceResult = typeof move === 'number' ? move : dice.reduce((acc, n) => acc + n, 0);
         if (await this.onPlay(match, player, dice)) {
-            this.saveAndBroadcastMatch(match);
+            this.matchService.saveAndBroadcastMatch(match);
             const tiles = match.board.tiles;
             const start = playerState.position;
             for (let i = 1; i <= diceResult; i++) {
                 const position = (start + i) % tiles.length;
                 await this.onPass(match, player, position);
-                this.saveAndBroadcastMatch(match);
+                this.matchService.saveAndBroadcastMatch(match);
                 await this.sleep(250);
                 if (i === diceResult) {
-                    this.saveAndBroadcastMatch(match);
+                    this.matchService.saveAndBroadcastMatch(match);
                     await this.onLand(match, player, position, diceResult);
-                    this.saveAndBroadcastMatch(match);
+                    this.matchService.saveAndBroadcastMatch(match);
                 }
             }
         }
         match.locked = false;
-        const hasLost = this.getPlayerState(match, player).victory === VictoryState.LOST;
+        const winState = match.playerState[player.id];
+        const hasLost = winState.victory === VictoryState.LOST;
         if (playerState.playAgain && !hasLost) {
             playerState.playAgain = false;
             console.log(`${player.name}'s turn continues`);
@@ -133,40 +62,14 @@ export class MatchService {
         }
         else {
             console.log(`${player.name}'s turn ended`);
-            await this.setNextPlayer(match, player);
+            const nextPlayer = await this.matchService.setNextPlayer(match, player);
+            if (nextPlayer) await this.play(match, nextPlayer);
         }
-        this.saveAndBroadcastMatch(match);
-    }
-
-    private async setNextPlayer(match: Match, player: Player) {
-        const playerState = this.getPlayerState(match, player);
-        playerState.turn = false;
-        const index = match.playerOrder.findIndex(id => id === player.id);
-        const next = this.getNextPlayer(match, index);
-        next.state.turn = true;
-        const nextPlayer = this.playerService.getPlayer(next.id);
-        console.log('next player', nextPlayer);
-        if (nextPlayer.ai) {
-            const players = match.playerOrder.map(p => this.playerService.getPlayer(p));
-            const humanPlayers = players.filter(p => !p.ai);
-            if (humanPlayers.length === 0) return console.log('Abord infinite AI match!');
-            await this.play(match, nextPlayer);
-        }
-    }
-
-    private getNextPlayer(match: Match, index: number) {
-        while (true) {
-            index = (index + 1) % match.playerOrder.length;
-            const nextPlayerId = match.playerOrder[index];
-            if (!nextPlayerId) continue;
-            const nextPlayerState = this.getPlayerState(match, nextPlayerId);
-            if (!nextPlayerState || nextPlayerState.victory === VictoryState.LOST) continue;
-            return { id: nextPlayerId, state: nextPlayerState };
-        }
+        this.matchService.saveAndBroadcastMatch(match);
     }
 
     private async onStart(match: Match, player: Player) {
-        const playerState = this.getPlayerState(match, player);
+        const playerState = match.playerState[player.id];
         const tile = match.board.tiles[playerState.position];
         switch (tile.type) {
             case 'worldtour':
@@ -191,7 +94,7 @@ export class MatchService {
     }
 
     private async onPlay(match: Match, player: Player, die: number[]) {
-        const playerState = this.getPlayerState(match, player);
+        const playerState = match.playerState[player.id];
         const tile = match.board.tiles[playerState.position];
         switch (tile.type) {
             case 'prison':
@@ -225,7 +128,7 @@ export class MatchService {
     }
 
     private async onLand(match: Match, player: Player, position: number, diceResult: number) {
-        const playerState = this.getPlayerState(match, player);
+        const playerState = match.playerState[player.id];
         const tile = match.board.tiles[position];
         console.log(player.id, player.name, 'landed on', tile);
         switch (tile.type) {
@@ -310,7 +213,7 @@ export class MatchService {
                             if (answer) {
                                 await this.transferFromTo(match, player, owner, value);
                                 tile.owner = player.id;
-                                this.saveAndBroadcastMatch(match);
+                                this.matchService.saveAndBroadcastMatch(match);
                                 await this.onLand(match, player, position, diceResult);
                             }
                         }
@@ -357,7 +260,7 @@ export class MatchService {
                 }
                 break;
             case 'tax':
-                const ownedProperties = this.getPlayerProperties(match, player);
+                const ownedProperties = this.matchService.getPlayerProperties(match, player);
                 const propretyValue = ownedProperties.reduce((acc, t) => acc += this.boardService.getTileValue(t), 0);
                 const totalValue = playerState.money + propretyValue;
                 const tax = tile.tax;
@@ -417,9 +320,9 @@ export class MatchService {
     }
 
     private async givePlayer(match: Match, player: Player, amount: number, origin?: string | boolean) {
-        const playerState = this.getPlayerState(match, player);
+        const playerState = match.playerState[player.id];
         while (playerState.money + amount < 0) {
-            const properties = this.getPlayerProperties(match, player);
+            const properties = this.matchService.getPlayerProperties(match, player);
             if (!properties.length) break;
             const options = properties.map(prop => {
                 const value = this.boardService.getTileValue(prop);
@@ -443,7 +346,7 @@ export class MatchService {
                 const ownedRails = boardRails.filter(t => t.owner === player.id);
                 ownedRails.forEach(t => t.level = ownedRails.length);
             }
-            this.saveAndBroadcastMatch(match);
+            this.matchService.saveAndBroadcastMatch(match);
         }
         const startAmount = playerState.money;
         playerState.money += amount;
@@ -456,7 +359,7 @@ export class MatchService {
             const notLost = match.playerOrder.filter(Boolean).filter(id => {
                 if (id === player.id) return false;
                 const otherPlayer = this.playerService.getPlayer(id);
-                const otherPlayerState = this.getPlayerState(match, otherPlayer);
+                const otherPlayerState = match.playerState[otherPlayer.id];
                 if (otherPlayerState.victory === VictoryState.LOST) {
                     lost.push(id);
                     return false;
@@ -490,12 +393,8 @@ export class MatchService {
                 );
             }
         }
-        this.saveAndBroadcastMatch(match);
+        this.matchService.saveAndBroadcastMatch(match);
         return playerState.money - startAmount;
-    }
-
-    private getPlayerProperties(match: Match, player: Player) {
-        return match.board.tiles.filter(title => title.owner === player.id) as OwnableTile[];
     }
 
     private win(match: Match, winner: Player) {
@@ -509,13 +408,13 @@ export class MatchService {
         const lost = match.playerOrder.filter(Boolean).filter(p => p !== winner.id);
         lost.forEach(id => {
             const player = this.playerService.getPlayer(id);
-            const playerState = this.getPlayerState(match, player);
+            const playerState = match.playerState[player.id];
             playerState.victory = VictoryState.LOST;
         });
-        const winnerState = this.getPlayerState(match, winner);
+        const winnerState = match.playerState[winner.id];
         winnerState.victory = VictoryState.WON;
         match.over = true;
-        this.saveAndBroadcastMatch(match);
+        this.matchService.saveAndBroadcastMatch(match);
     }
 
     private async transferFromTo(match: Match, from: Player, to: Player, amount: number) {
@@ -525,11 +424,11 @@ export class MatchService {
         console.log(`${to.name} will receive ${-actualAmount}`);
         const fromOrigin = toOrigin ? false : from.name;
         await this.givePlayer(match, to, -actualAmount, fromOrigin);
-        this.saveAndBroadcastMatch(match);
+        this.matchService.saveAndBroadcastMatch(match);
     }
 
     private sendToJail(match: Match, player: Player) {
-        const playerState = this.getPlayerState(match, player);
+        const playerState = match.playerState[player.id];
         this.move(match, player, 10);
         playerState.prison = 2;
         playerState.equalDie = 0;
@@ -551,21 +450,10 @@ export class MatchService {
         }
     }
 
-    broadcastMatchState(match: Match) {
-        this.boardService.postProcessBoard(match.board);
-        const players = match.playerOrder;
-        this.socketService.emit('match', match, players);
-    }
-
     private move(match: Match, player: Player, to: number) {
-        const playerState = this.getPlayerState(match, player);
+        const playerState = match.playerState[player.id];
         playerState.position = to;
-        this.saveAndBroadcastMatch(match);
-    }
-
-    private getPlayerState(match: Match, player: Player | string) {
-        const id = typeof player === 'string' ? player : player.id;
-        return match.playerState[id];
+        this.matchService.saveAndBroadcastMatch(match);
     }
 
     private sleep(n: number) {

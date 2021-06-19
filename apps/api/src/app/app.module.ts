@@ -7,7 +7,7 @@ import { AppService } from './app.service';
 import { join } from 'path';
 import { routes } from './routes';
 import { LowDbService } from './shared/services/lowdb.service';
-import { MatchService } from './match/match.service';
+import { EngineService } from './engine/engine.service';
 import { SocketGateway } from './socket/socket.gateway';
 import { LobbyService } from './lobby/lobby.service';
 import { UUIDService } from './shared/services/uuid.service';
@@ -18,12 +18,13 @@ import { BoardService } from './shared/services/board.service';
 import { BodyLobbyPipe } from './shared/pipes/body-lobby.pipe';
 import { BodyMatchPipe } from './shared/pipes/body-match.pipe';
 import { BodyPlayerPipe } from './shared/pipes/body-player.pipe';
-import { MatchGateway } from './match/match.gateway';
+import { EngineGateway } from './engine/engine.gateway';
 import { LobbyGateway } from './lobby/lobby.gateway';
 import { AIService } from './shared/services/ai.service';
 import { ChatGateway } from './chat/chat.gateway';
 import { BodyMessagePipe } from './shared/pipes/body-message.pipe';
 import { PromptService } from './shared/services/prompt.service';
+import { MatchService } from './shared/services/match.service';
 
 @Module({
   imports: [
@@ -36,13 +37,13 @@ import { PromptService } from './shared/services/prompt.service';
   providers: [
     AppService,
     SocketGateway,
-    MatchGateway,
+    EngineGateway,
     LobbyGateway,
     ChatGateway,
     UUIDService,
     JWTService,
     LowDbService,
-    MatchService,
+    EngineService,
     LobbyService,
     PlayerService,
     SocketService,
@@ -52,7 +53,8 @@ import { PromptService } from './shared/services/prompt.service';
     BodyMatchPipe,
     BodyMessagePipe,
     AIService,
-    PromptService
+    PromptService,
+    MatchService
   ]
 })
 export class AppModule {}

@@ -3,8 +3,9 @@ import { LowDbService } from '../shared/services/lowdb.service';
 import { UUIDService } from '../shared/services/uuid.service';
 import { PlayerService } from '../shared/services/player.service';
 import { SocketService } from '../socket/socket.service';
-import { MatchService } from '../match/match.service';
-import { Lobby, LobbyOptions, LobbyState, Match, Player } from '@moar-munz/api-interfaces';
+import { Lobby, LobbyOptions, LobbyState, Player } from '@moar-munz/api-interfaces';
+import { MatchService } from '../shared/services/match.service';
+import { EngineService } from '../engine/engine.service';
 
 @Injectable()
 export class LobbyService {
@@ -14,7 +15,8 @@ export class LobbyService {
         private uuidService: UUIDService,
         private socketService: SocketService,
         private playerService: PlayerService,
-        private matchService: MatchService
+        private matchService: MatchService,
+        private engineService: EngineService
     ) { }
 
     generateLobby(options: LobbyOptions) {
@@ -53,7 +55,7 @@ export class LobbyService {
         const match = this.matchService.getMatch(lobby.id);
         if (match) await this.matchService.removePlayer(lobby, match, player);
         this.playerService.deletePlayer(player.id);
-        if (aiPlayer) await this.matchService.play(match, aiPlayer);
+        if (aiPlayer) await this.engineService.play(match, aiPlayer);
     }
 
     private deletePlayer(lobby: Lobby, player: Player) {
