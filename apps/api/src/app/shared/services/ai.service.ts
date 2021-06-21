@@ -5,11 +5,15 @@ import { sample } from 'lodash';
 @Injectable()
 export class AIService {
 
-    answer<T>(prompt: Prompt<T>) {
-        return new Promise<T>((resolve, reject) => {
-            const answer = sample(prompt.options);
-            return answer;
-        });
+    async answer<T>(prompt: Prompt<T>) {
+        switch (prompt.type) {
+            case 'alert':
+                return;
+            case 'confirm':
+                return sample([ true, false ]);
+            case 'select':
+                return sample(prompt.options);
+        }
     }
 
 }

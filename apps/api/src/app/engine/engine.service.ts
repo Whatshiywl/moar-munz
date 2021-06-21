@@ -22,48 +22,59 @@ export class EngineService {
         return [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
     }
 
+    private sumDice(dice: number[]) {
+        return dice.reduce((acc, n) => acc + n, 0);
+    }
+
+    private async determineDice(player: Player, canMove: boolean) {
+        const dice = canMove ?
+            this.rollDice() :
+            [ undefined, undefined ] as [ number, number ];
+        if (canMove) {
+            for (let i = 0; i < 20; i++) {
+                this.matchService.setLastDice(player.lobby, this.rollDice());
+                await this.sleep(100);
+            }
+        }
+        this.matchService.setLastDice(player.lobby, dice);
+        return canMove ? this.sumDice(dice) : 0;
+    }
+
     async play(playerId: string) {
         const player = this.playerService.getPlayer(playerId);
         if (!player) return;
         if (!this.matchService.isPlayable(player.lobby)) return;
-        let playerState = this.matchService.getPlayerState(player);
+        const playerState = this.matchService.getPlayerState(player);
         if (!playerState.turn) return;
         if (playerState.victory === VictoryState.LOST) return;
         this.matchService.setLocked(player.lobby, true);
-        console.log(`${player.name}'s turn started`);
-        const move = await this.onStart(player);
-        const dice = typeof move === 'number' ?
-            [ undefined, undefined ] as [ number, number ] :
-            this.rollDice()
-        this.matchService.setLastDice(player.lobby, dice);
-        const diceResult = typeof move === 'number' ? move : dice.reduce((acc, n) => acc + n, 0);
-        const canPlay = this.onPlay(player, dice);
-        if (canPlay) {
-            const boardSize = this.matchService.getBoardSize(player.lobby);
-            const start = this.matchService.getPlayerPosition(player);
-            for (let i = 1; i <= diceResult; i++) {
-                const position = (start + i) % boardSize;
-                await this.onPass(player, position);
-                await this.sleep(250);
-                if (i === diceResult) await this.onLand(player, position, diceResult);
-            }
-        }
+        const canMove = await this.onStart(player);
+        const diceResult = await this.determineDice(player, canMove);
+        const canPlay = canMove && this.onPlay(player);
+        if (canPlay) await this.walkNTiles(player, diceResult);
         this.matchService.setLocked(player.lobby, false);
-        const winState = this.matchService.getPlayerState(player);
-        const hasLost = winState.victory === VictoryState.LOST;
-        if (playerState.playAgain && !hasLost) {
-            playerState.playAgain = false;
-            console.log(`${player.name}'s turn continues`);
-            if (player.ai) await this.play(player.id);
-        }
-        else {
-            console.log(`${player.name}'s turn ended`);
-            const nextPlayer = this.matchService.setNextPlayer(player.lobby);
-            if (nextPlayer) await this.play(nextPlayer.id);
+        this.onEnd(player);
+    }
+
+    private async walkNTiles(player: Player, n: number) {
+        const boardSize = this.matchService.getBoardSize(player.lobby);
+        const start = this.matchService.getPlayerPosition(player);
+        for (let i = 1; i <= n; i++) {
+            const position = (start + i) % boardSize;
+            this.movePlayerToPosition(player, position);
+            await this.sleep(250);
+            if (i === n) await this.onLand(player);
         }
     }
 
+    private async movePlayerToPosition(player: Player, position: number, land?: boolean) {
+        this.matchService.move(player, position);
+        await this.onPass(player);
+        if (land) await this.onLand(player);
+    }
+
     private async onStart(player: Player) {
+        console.log(`${player.name}'s turn started`);
         const playerState = this.matchService.getPlayerState(player);
         let board = this.matchService.getBoard(player.lobby);
         const tile = board.tiles[playerState.position];
@@ -84,19 +95,24 @@ export class EngineService {
                     this.givePlayer(player, -tile.cost, false);
                     let goToIndex = board.tiles.findIndex(t => t.name === answer);
                     if (goToIndex < playerState.position) goToIndex += board.tiles.length;
-                    return goToIndex - playerState.position;
+                    const walkDistance = goToIndex - this.matchService.getPlayerPosition(player);
+                    const canPlay = this.onPlay(player);
+                    if (canPlay) await this.walkNTiles(player, walkDistance);
+                    return false;
                 }
                 break;
         }
+        return true;
     }
 
-    private onPlay(player: Player, die: number[]) {
+    private onPlay(player: Player) {
+        const dice = this.matchService.getLastDice(player.lobby);
         const playerState = this.matchService.getPlayerState(player);
         const tile = this.matchService.getTileWithPlayer(player);
         switch (tile.type) {
             case 'prison':
                 if (playerState.prison > 0) {
-                    if (die[0] !== undefined && die[0] === die[1]) {
+                    if (dice[0] !== undefined && dice[0] === dice[1]) {
                         this.matchService.updatePlayerState(player, {
                             prison: 0, playAgain: true
                         });
@@ -110,7 +126,7 @@ export class EngineService {
                 }
                 break;
             default:
-                if (die[0] !== undefined && die[0] === die[1]) {
+                if (dice[0] !== undefined && dice[0] === dice[1]) {
                     const equalDie = (playerState.equalDie || 0) + 1;
                     this.matchService.updatePlayerState(player, { equalDie });
                     if (equalDie === 3) {
@@ -128,7 +144,18 @@ export class EngineService {
         return true;
     }
 
-    private async onLand(player: Player, position: number, diceResult: number) {
+    private async onPass(player: Player) {
+        const position = this.matchService.getPlayerPosition(player);
+        const tile = this.matchService.getTileAtPosition(player.lobby, position);
+        switch (tile.type) {
+            case 'start':
+                await this.givePlayer(player, 300, true);
+                break;
+        }
+    }
+
+    private async onLand(player: Player) {
+        const position = this.matchService.getPlayerPosition(player);
         const playerState = this.matchService.getPlayerState(player);
         const board = this.matchService.getBoard(player.lobby);
         let tile = board.tiles[position];
@@ -215,7 +242,7 @@ export class EngineService {
                                 if (tile.owner !== player.id) return;
                                 await this.transferFromTo(player, owner, value);
                                 this.matchService.setTileOwner(tile.name, player);
-                                await this.onLand(player, position, diceResult);
+                                await this.onLand(player);
                             }
                         }
                     }
@@ -234,7 +261,8 @@ export class EngineService {
                 } else {
                     if (tile.owner !== player.id) {
                         const owner = this.playerService.getPlayer(tile.owner);
-                        const cost = diceResult * tile.multiplier;
+                        const dice = this.matchService.getLastDice(player.lobby);
+                        const cost = this.sumDice(dice) * tile.multiplier;
                         await this.transferFromTo(player, owner, cost);
                     }
                 }
@@ -276,7 +304,7 @@ export class EngineService {
                         this.socketService.broadcastGlobalMessage(
                             [ player.id ], `Go back to Start!`
                         );
-                        await this.onPass(player, 0)
+                        await this.movePlayerToPosition(player, 0, true);
                     },
                     async () => this.givePlayer(player, 50, true),
                     async () => this.givePlayer(player, 75, true),
@@ -308,6 +336,21 @@ export class EngineService {
         }
     }
 
+    private async onEnd(player: Player) {
+        const playerState = this.matchService.getPlayerState(player);
+        const hasLost = playerState.victory === VictoryState.LOST;
+        if (playerState.playAgain && !hasLost) {
+            this.matchService.updatePlayerState(player, { playAgain: false });
+            console.log(`${player.name}'s turn continues`);
+            if (player.ai) await this.play(player.id);
+        }
+        else {
+            console.log(`${player.name}'s turn ended`);
+            const nextPlayer = this.matchService.setNextPlayer(player.lobby);
+            if (nextPlayer) await this.play(nextPlayer.id);
+        }
+    }
+
     private getPlayerMonopolies(player: Player) {
         const board = this.matchService.getBoard(player.lobby);
         const colorGroups = groupBy(board.tiles, 'color');
@@ -320,16 +363,6 @@ export class EngineService {
             if (ownedByPlayer.length === group.length) monopolies++;
         });
         return monopolies;
-    }
-
-    private async onPass(player: Player, position: number) {
-        this.matchService.move(player, position);
-        const tile = this.matchService.getTileAtPosition(player.lobby, position);
-        switch (tile.type) {
-            case 'start':
-                await this.givePlayer(player, 300, true);
-                break;
-        }
     }
 
     private async givePlayer(player: Player, amount: number, origin?: string | boolean) {

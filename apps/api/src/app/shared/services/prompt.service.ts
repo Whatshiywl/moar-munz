@@ -30,13 +30,18 @@ export class PromptService {
     return this.processPrompt<T>('select', player, message, options);
   }
 
+  getHash(player: Player) {
+    return `${player.lobby}|${player.id}`;
+  }
+
   private processPrompt<T>(type: PromptType, player: Player, message: string, options?: T[]) {
     const prompt: Prompt<T> = {
       type, message, options
     };
-    if (!this.prompts[player.id]) {
+    const hash = this.getHash(player);
+    if (!this.prompts[hash]) {
       const promise = this.promptPlayer<T>(player, prompt);
-      this.prompts[player.id] = {
+      this.prompts[hash] = {
         prompt, promise
       };
       return promise;
@@ -46,15 +51,16 @@ export class PromptService {
   private promptPlayer<T>(player: Player, prompt: Prompt<T>) {
     const client = player.ai ? undefined : this.socket.getClient(player.id);
     if (!player.ai && !client) return;
-    return this.submitPrompt<T>(player.id, prompt, client);
+    const hash = this.getHash(player);
+    return this.submitPrompt<T>(hash, prompt, client);
   }
 
-  private submitPrompt<T>(id: string, prompt: Prompt, client?: SocketIO.Socket) {
+  private submitPrompt<T>(hash: string, prompt: Prompt, client?: SocketIO.Socket) {
     return new Promise<Prompt<T>>((resolve, reject) => {
       const onAnswer = ((answer: T) => {
         console.log(`Answer: ${answer}`);
-        const prompt = this.prompts[id].prompt;
-        delete this.prompts[id];
+        const prompt = this.prompts[hash].prompt;
+        delete this.prompts[hash];
         prompt.answer = answer;
         resolve(prompt);
       }).bind(this);
@@ -69,7 +75,8 @@ export class PromptService {
     if (player.ai) return;
     const client = this.socket.getClient(player.id);
     if (!client || !prompt) return undefined;
-    const promptData = this.prompts[player.id];
+    const hash = this.getHash(player);
+    const promptData = this.prompts[hash];
     promptData.prompt = prompt;
     client.emit('update prompt', prompt);
     return promptData.promise as Promise<Prompt<T>>;

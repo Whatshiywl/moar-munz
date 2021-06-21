@@ -22,7 +22,7 @@ export class MatchService implements OnApplicationBootstrap {
   onApplicationBootstrap() {
     this.matchBroadcastSubject = new Subject<Match>();
     this.matchBroadcastSubject.pipe(
-      debounceTime(100)
+      debounceTime(50)
     ).subscribe(match => {
       this.boardService.postProcessBoard(match.board);
       const players = match.playerOrder;
@@ -170,6 +170,11 @@ export class MatchService implements OnApplicationBootstrap {
   isPlayable(id: string) {
     const match = this.getMatch(id);
     return match && !match.locked && !match.over;
+  }
+
+  getLastDice(id: string) {
+    const match = this.getMatch(id);
+    return match.lastDice;
   }
 
   getBoard(id: string) {
