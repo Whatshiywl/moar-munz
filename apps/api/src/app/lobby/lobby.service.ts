@@ -53,9 +53,9 @@ export class LobbyService {
             this.deletePlayer(lobby, player);
         }
         const match = this.matchService.getMatch(lobby.id);
-        if (match) await this.matchService.removePlayer(lobby, match, player);
+        if (match) this.matchService.removePlayer(lobby.playerOrder, player);
         this.playerService.deletePlayer(player.id);
-        if (aiPlayer) await this.engineService.play(match, aiPlayer);
+        if (aiPlayer) await this.engineService.play(aiPlayer.id);
     }
 
     private deletePlayer(lobby: Lobby, player: Player) {

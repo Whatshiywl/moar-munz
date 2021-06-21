@@ -45,7 +45,7 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
         return id;
     }
 
-    readMatch(id: string) {
+    readMatch(id: string): Match {
         return this.db.get(`matches.${id}`).value();
     }
 

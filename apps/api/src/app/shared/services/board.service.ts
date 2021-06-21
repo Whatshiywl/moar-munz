@@ -70,7 +70,7 @@ export class BoardService {
       }
     }
   }
-  
+
   getBoard(name: string) {
     return cloneDeep(this.boards[name]);
   }
