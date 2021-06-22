@@ -38,55 +38,12 @@ export class PromptService {
     this.answerSubject = new Subject<Prompt>();
   }
 
-  alert(player: Player, message: string) {
-    return this.processPrompt<void>('alert', player, message);
-  }
-
-  confirm(player: Player, message: string) {
-    return this.processPrompt<boolean>('confirm', player, message);
-  }
-
-  select<T>(player: Player, message: string, options: T[]) {
-    return this.processPrompt<T>('select', player, message, options);
-  }
-
-  getHash(player: Player) {
-    return `${player.lobby}|${player.id}`;
-  }
-
   async process<T extends void | boolean | string>(player: Player, factory: AbstractPromptFactory<T>): Promise<Prompt<T>> {
     const prompt = await factory.build(player);
     if (!prompt) return;
     if (!this.prompts[prompt.id]) {
       this.prompts[prompt.id] = prompt;
       return this.promptPlayer<T>(player, prompt)
-    } else return this.updatePrompt<T>(player, prompt);
-  }
-
-  async update<T = any>(player: Player) {
-    const hash = this.getHash(player);
-    const prompt = this.prompts[hash];
-    if (!prompt) return;
-    const factory = this[prompt.factoryName] as AbstractPromptFactory<T>;
-    if (!factory) return;
-    if (!factory.build) return;
-    if (factory.name !== prompt.factoryName) {
-      console.error(`Factory name not matching! Expected ${prompt.factoryName}, got ${factory.name}`);
-      return;
-    }
-    const newPrompt = await factory.build(player);
-    this.prompts[hash] = newPrompt;
-    return newPrompt;
-  }
-
-  private processPrompt<T>(type: PromptType, player: Player, message: string, options?: T[]) {
-    const hash = this.getHash(player);
-    const prompt: Prompt<T> = {
-      id: hash, factoryName: 'none', type, message, options
-    };
-    if (!this.prompts[hash]) {
-      this.prompts[hash] = prompt;
-      return this.promptPlayer<T>(player, prompt);
     } else return this.updatePrompt<T>(player, prompt);
   }
 
@@ -103,6 +60,21 @@ export class PromptService {
       this.answer(player.id, p);
     });
     return this.onAnswer$<T>(player);
+  }
+
+  async update<T = any>(player: Player) {
+    const hash = this.getHash(player);
+    const prompt = this.prompts[hash];
+    if (!prompt) return;
+    const factory = this[prompt.factoryName] as AbstractPromptFactory<T>;
+    if (!factory) return;
+    if (!factory.build) return;
+    if (factory.name !== prompt.factoryName) {
+      console.error(`Factory name not matching! Expected ${prompt.factoryName}, got ${factory.name}`);
+      return;
+    }
+    const newPrompt = await factory.build(player);
+    return this.updatePrompt<T>(player, newPrompt);
   }
 
   private updatePrompt<T>(player: Player, prompt: Prompt) {
@@ -138,6 +110,10 @@ export class PromptService {
     const hash = this.getHash(player);
     delete this.prompts[hash];
     this.answerSubject.next(prompt);
+  }
+
+  private getHash(player: Player) {
+    return `${player.lobby}|${player.id}`;
   }
 
 }
