@@ -1,7 +1,3 @@
-@import "~@angular/material/theming";
-@include mat-core();
-$app-primary: mat-palette($mat-indigo);
-
 ::ng-deep .right-aligned-header > .mat-content {
     justify-content: space-between;
 }
