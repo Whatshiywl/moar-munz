@@ -28,11 +28,9 @@ export class PlayComponent implements OnInit, OnDestroy {
     tiles: [ ]
   }
 
-  activeTrade;
+  currentRoll: number[] = [ ];
 
-  targetViewportDimentions = {
-    w: 0, h: 0
-  };
+  activeTrade;
 
   constructor(
     private socket: SocketService,
@@ -45,6 +43,10 @@ export class PlayComponent implements OnInit, OnDestroy {
     console.log('debug play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
     this.socket.connect();
+    this.socket.on('dice roll', (dice: number[]) => {
+      this.currentRoll[0] = dice[0];
+      this.currentRoll[1] = dice[1];
+    });
     this.matchService.matchChange$.subscribe(this.onMatchUpdate.bind(this));
     this.playerService.playerChange$.subscribe(this.updatePlayerCards.bind(this));
   }
@@ -154,6 +156,10 @@ export class PlayComponent implements OnInit, OnDestroy {
   toggleTrade() {
     this.activeTrade = !this.activeTrade;
     this.cd.detectChanges();
+  }
+
+  getDieMarginLeft(die: number) {
+    return `${-30 * die + 15}px`;
   }
 
 }

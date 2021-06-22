@@ -3,16 +3,10 @@
     <div class="board">
         <div class="board-center">
             <mat-card class="info-column">
-                <p>Last roll:</p>
-                <div class="dice">
-                    <div>{{match?.lastDice[0]}}</div>
-                    <div>{{match?.lastDice[1]}}</div>
-                    <button mat-flat-button color="primary" [style.visibility]="playerService.isMyTurn ? 'visible' : 'hidden'" (click)="throwDice()">Play!</button>
-                </div>
                 <mat-accordion class="player-list" multi>
                     <mat-expansion-panel *ngFor="let card of playerCards; let i = index"
                     class="player-card"
-                    [style.border-left]="playerService.playerTurn === card.player.id ? '5px solid '+card.player.color : 'none'"
+                    [style.border-left]="playerService.playerTurnId === card.player.id ? '5px solid '+card.player.color : 'none'"
                     [style.background-color]="isPlayerHighlighted(card.player.id) ? (card.player.color | lighten: 0.8) : ''"
                     (mouseenter)="highlightCardProperties(card.properties, true)"
                     (mouseleave)="highlightCardProperties(card.properties, false)">
@@ -36,9 +30,49 @@
                     </mat-expansion-panel>
                 </mat-accordion>
             </mat-card>
+            <mat-card class="action-card">
+                <button *ngIf="playerService.isMyTurn"
+                class="play-button"
+                mat-flat-button color="primary"
+                (click)="throwDice()">
+                    Play!
+                </button>
+                <mat-card *ngIf="!playerService.isMyTurn && playerService.playerTurn"
+                class="turn-display">
+                    <span [style.color]="playerService.playerTurn.color">
+                        {{playerService.playerTurn.name}}
+                    </span> is playing
+                </mat-card>
+                <mat-card class="dice-wrapper last-roll">
+                    <mat-card-header>
+                        <mat-card-subtitle>Last roll</mat-card-subtitle>
+                    </mat-card-header>
+                    <mat-card-content>
+                        <div class="dice">
+                            <div *ngFor="let die of match?.lastDice" class="crop">
+                                <img [src]="'assets/images/dice.svg'"
+                                [style.marginLeft]="getDieMarginLeft(die)">
+                            </div>
+                        </div>
+                    </mat-card-content>
+                </mat-card>
+                <mat-card class="dice-wrapper current-roll">
+                    <mat-card-header>
+                        <mat-card-subtitle>Current roll</mat-card-subtitle>
+                    </mat-card-header>
+                    <mat-card-content>
+                        <div class="dice">
+                            <div *ngFor="let die of currentRoll" class="crop">
+                                <img [src]="'assets/images/dice.svg'"
+                                [style.marginLeft]="getDieMarginLeft(die)">
+                            </div>
+                        </div>
+                    </mat-card-content>
+                </mat-card>
+            </mat-card>
             <moar-munz-prompt
                 [debug]="debug"
-                [style.gridRowEnd]="'span ' + (activeTrade ? '1' : '2')"
+                [style.gridRowEnd]="'span ' + (activeTrade ? '3' : '9')"
                 (optionmouseenter)="highlightOption($event, true)"
                 (optionmouseleave)="highlightOption($event, false)"
             ></moar-munz-prompt>

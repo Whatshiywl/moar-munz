@@ -30,12 +30,15 @@ export class EngineService {
         const dice = canMove ?
             this.rollDice() :
             [ undefined, undefined ] as [ number, number ];
+        const playerOrder = this.matchService.getPlayerOrder(player.lobby);
         if (canMove) {
             for (let i = 0; i < 20; i++) {
-                this.matchService.setLastDice(player.lobby, this.rollDice());
+                const tempDice = this.rollDice();
+                this.socketService.emit('dice roll', tempDice, playerOrder);
                 await this.sleep(100);
             }
         }
+        this.socketService.emit('dice roll', dice, playerOrder);
         this.matchService.setLastDice(player.lobby, dice);
         return canMove ? this.sumDice(dice) : 0;
     }
@@ -308,12 +311,18 @@ export class EngineService {
         if (playerState.playAgain && !hasLost) {
             this.matchService.updatePlayerState(player, { playAgain: false });
             console.log(`${player.name}'s turn continues`);
-            if (player.ai) await this.play(player.id);
+            if (player.ai) {
+                await this.sleep(2000);
+                await this.play(player.id);
+            }
         }
         else {
             console.log(`${player.name}'s turn ended`);
             const nextPlayer = this.matchService.setNextPlayer(player.lobby);
-            if (nextPlayer) await this.play(nextPlayer.id);
+            if (nextPlayer) {
+                await this.sleep(2000);
+                await this.play(nextPlayer.id);
+            }
         }
     }
 

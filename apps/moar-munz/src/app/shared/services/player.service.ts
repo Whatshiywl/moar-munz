@@ -19,7 +19,8 @@ export class PlayerService {
   private _players: PlayerComplete[];
   private _player: PlayerComplete;
 
-  private _playerTurn: string;
+  private _playerTurnId: string;
+  private _playerTurn: PlayerComplete;
   private _isMyTurn: boolean;
 
   private _playerChange$: Subject<PlayerComplete[]>;
@@ -43,11 +44,11 @@ export class PlayerService {
 
     this.match$.subscribe(match => {
       this._playerState = match.playerState;
-      this._playerTurn = Object.keys(match.playerState).find(playerId => {
+      this._playerTurnId = Object.keys(match.playerState).find(playerId => {
         const playerState = match.playerState[playerId];
         return playerState.turn;
       });
-      this._isMyTurn = this._playerTurn === this.uuid;
+      this._isMyTurn = this._playerTurnId === this.uuid;
       this.updatePlayers();
     });
   }
@@ -60,6 +61,7 @@ export class PlayerService {
   get player() { return this._player }
 
   get first() { return this._playerOrder ? this.uuid === this._playerOrder[0] : false }
+  get playerTurnId() { return this._playerTurnId }
   get playerTurn() { return this._playerTurn }
   get isMyTurn() { return this._isMyTurn }
 
@@ -68,6 +70,7 @@ export class PlayerService {
   private updatePlayers() {
     this._players = this.getPlayers();
     this._player = this._players.find(p => p.id === this.uuid);
+    this._playerTurn = this._players.find(p => p.id === this._playerTurnId);
     setTimeout(() => {
       this._playerChange$.next(this._players);
     }, 0);
