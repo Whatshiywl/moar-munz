@@ -4,7 +4,7 @@ import { PlayerService } from '../shared/services/player.service';
 import { BoardService } from '../shared/services/board.service';
 import { SocketService } from '../socket/socket.service';
 import { DeedTile, DynamicTile, Player, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
-import { PromptService } from '../shared/services/prompt.service';
+import { PromptService } from '../prompt/prompt.service';
 import { MatchService } from '../shared/services/match.service';
 
 @Injectable()
@@ -81,14 +81,8 @@ export class EngineService {
         switch (tile.type) {
             case 'worldtour':
                 if (this.matchService.getPlayerMoney(player) < tile.cost) return;
-                const options = [ 'No', ...board.tiles.filter(t => {
-                    if (t.type !== 'deed') return false;
-                    if (t.owner && t.owner !== player.id) return false;
-                    return true;
-                }).map(t => t.name) ];
-                if (!options.length) return;
-                const message = `Would you like to travel for ${tile.cost}?\nIf so, where to?`;
-                const prompt = await this.promptService.select(player, message, options);
+                const prompt = await this.promptService.process(player, this.promptService.worldtourPromptFactory);
+                if (!prompt) return;
                 board = this.matchService.getBoard(player.lobby);
                 const answer = prompt.answer;
                 if (answer !== prompt.options[0]) {
@@ -155,28 +149,16 @@ export class EngineService {
     }
 
     private async onLand(player: Player) {
-        const position = this.matchService.getPlayerPosition(player);
-        const playerState = this.matchService.getPlayerState(player);
         const board = this.matchService.getBoard(player.lobby);
-        let tile = board.tiles[position];
+        let tile = this.matchService.getTileWithPlayer(player);
         console.log(player.id, player.name, 'landed on', tile);
         switch (tile.type) {
             case 'prison':
                 this.matchService.updatePlayerState(player, { prison: 2 });
                 break;
             case 'worldcup':
-                const deeds = board.tiles.filter(t => t.type === 'deed') as RentableTile[];
-                const wcOptions = deeds.filter(t => {
-                    if (!t.owner || t.owner !== player.id) return false;
-                    return true;
-                }).map(t => {
-                    const rent = this.boardService.getFullRent(board, t) / (t.worldcup ? 2 : 1);
-                    return `${t.name} (${rent})`;
-                });
-                if (!wcOptions.length) return;
-                const tileName = tile.name.toLocaleLowerCase();
-                const message = `Set the location to host the next ${tileName}!`;
-                const wcPrompt = await this.promptService.select(player, message, wcOptions);
+                const wcPrompt = await this.promptService.process(player, this.promptService.worldcupPromptFactory);
+                if (!wcPrompt) return;
                 const wcAnswer = wcPrompt.answer;
                 const wcAnswerValue = wcAnswer.match(/^([^\(]+)/)[1].trim();
                 this.matchService.setWorldcup(player.lobby, wcAnswerValue);
@@ -184,16 +166,8 @@ export class EngineService {
             case 'deed':
                 if (!tile.owner) {
                     if (tile.price > this.matchService.getPlayerMoney(player)) return;
-                    const options = [ 'No' ];
-                    for (let n = tile.level; n < tile.rent.length - 1; n++) {
-                        const levelDifference = n - tile.level;
-                        const cost = tile.building * levelDifference;
-                        if (tile.price + cost > playerState.money) break;
-                        options.push(`${n} (${tile.price + cost})`);
-                    }
-                    if (options.length === 1) return;
-                    const message = `Would you like to buy ${tile.name} for ${tile.price}?\nIf so, how many houses do you want (${tile.building} each)?`;
-                    const prompt = await this.promptService.select(player, message, options);
+                    const prompt = await this.promptService.process(player, this.promptService.buyDeedPromptFactory);
+                    if (!prompt) return;
                     const answer = prompt.answer;
                     if (answer !== prompt.options[0]) {
                         const answerValue = parseInt(answer.match(/^([^\(]+)/)[1].trim(), 10);
@@ -208,19 +182,11 @@ export class EngineService {
                     }
                 } else {
                     if (tile.owner === player.id) {
-                        const options = [ 'No' ];
-                        for (let n = tile.level; n < tile.rent.length; n++) {
-                            const levelDifference = n + 1 - tile.level;
-                            const cost = tile.building * levelDifference;
-                            if (cost > playerState.money) break;
-                            options.push(`${n} (${cost})`);
-                        }
-                        if (options.length === 1) return;
-                        const message = `Would you like to improve your property?\nIf so, to how many houses (${tile.building} each extra)?`;
-                        const prompt = await this.promptService.select(player, message, options);
+                        const prompt = await this.promptService.process(player, this.promptService.improveDeedPromptFactory);
+                        if (!prompt) return;
                         const answer = prompt.answer;
                         if (answer !== prompt.options[0]) {
-                            tile = this.matchService.getTileAtPosition(player.lobby, position) as DeedTile & DynamicTile;
+                            tile = this.matchService.getTileWithPlayer(player) as DeedTile & DynamicTile;
                             if (tile.owner !== player.id) return;
                             const answerValue = parseInt(answer.match(/^([^\(]+)/)[1].trim(), 10);
                             const levelDifference = answerValue + 1 - tile.level;
@@ -233,13 +199,13 @@ export class EngineService {
                         const cost = this.boardService.getFullRent(board, tile);
                         await this.transferFromTo(player, owner, cost);
                         const value = 2 * this.boardService.getTileValue(tile);
-                        if (playerState.money >= value) {
-                            const message = `Would you like to buy ${tile.name} from ${owner.name} for ${value}?`;
-                            const prompt = await this.promptService.confirm(player, message);
+                        if (this.matchService.getPlayerMoney(player) >= value) {
+                            const prompt = await this.promptService.process(player, this.promptService.aquireDeedPromptFactory);
+                            if (!prompt) return;
                             const answer = prompt.answer;
                             if (answer) {
-                                tile = this.matchService.getTileAtPosition(player.lobby, position) as DeedTile & DynamicTile;
-                                if (tile.owner !== player.id) return;
+                                tile = this.matchService.getTileWithPlayer(player) as DeedTile & DynamicTile;
+                                if (tile.owner === player.id) return;
                                 await this.transferFromTo(player, owner, value);
                                 this.matchService.setTileOwner(tile.name, player);
                                 await this.onLand(player);
@@ -251,8 +217,8 @@ export class EngineService {
             case 'company':
                 if (!tile.owner) {
                     if (tile.price > this.matchService.getPlayerMoney(player)) return;
-                    const message = `Would you like to buy ${tile.name} for ${tile.price}?`;
-                    const prompt = await this.promptService.confirm(player, message);
+                    const prompt = await this.promptService.process(player, this.promptService.buyTilePromptFactory);
+                    if (!prompt) return;
                     const answer = prompt.answer;
                     if (answer) {
                         this.matchService.setTileOwner(tile.name, player);
@@ -269,9 +235,9 @@ export class EngineService {
                 break;
             case 'railroad':
                 if (!tile.owner) {
-                    if (tile.price > playerState.money) return;
-                    const message = `Would you like to buy ${tile.name} for ${tile.price}?`;
-                    const prompt = await this.promptService.confirm(player, message);
+                    if (tile.price > this.matchService.getPlayerMoney(player)) return;
+                    const prompt = await this.promptService.process(player, this.promptService.buyTilePromptFactory);
+                    if (!prompt) return;
                     const answer = prompt.answer;
                     if (answer) {
                         this.matchService.setTileOwner(tile.name, player);
@@ -367,17 +333,15 @@ export class EngineService {
 
     private async givePlayer(player: Player, amount: number, origin?: string | boolean) {
       const { lobby: matchId } = player;
-      while (this.matchService.getPlayerMoney(player) + amount < 0) {
+      const startAmount = this.matchService.getPlayerMoney(player);
+      this.matchService.addPlayerMoney(player, amount);
+      while (this.matchService.getPlayerMoney(player) < 0) {
         const properties = this.matchService.getPlayerProperties(player);
         if (!properties.length) break;
-        const options = properties.map(prop => {
-          const value = this.boardService.getTileValue(prop);
-          return `${prop.name} (${value})`;
-        });
-        const remainingAmount = Math.abs(this.matchService.getPlayerMoney(player) + amount);
-        const message = `You must sell some properties.\nAmount remaining: ${remainingAmount}`;
-        const prompt = await this.promptService.select(player, message, options);
+        const prompt = await this.promptService.process(player, this.promptService.sellTilesPromptFactory);
+        if (!prompt) return;
         const answer = prompt.answer;
+        if (answer === prompt.options[0]) continue;
         const answerName = answer.match(/^([^\(]+)/)[1].trim();
         const answerTile = properties.find(t => t.name === answerName);
         if (!answerTile) continue;
@@ -392,8 +356,6 @@ export class EngineService {
           });
         }
       }
-      const startAmount = this.matchService.getPlayerMoney(player);
-      this.matchService.addPlayerMoney(player, amount);
       const playerOrder = this.matchService.getPlayerOrder(matchId);
       if (this.matchService.getPlayerMoney(player) < 0) {
         console.log(`${player.name} LOSES`);

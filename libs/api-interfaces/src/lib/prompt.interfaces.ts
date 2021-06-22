@@ -1,6 +1,8 @@
 export type PromptType = 'alert' | 'confirm' | 'select';
 
 export interface Prompt<T = any> {
+  id: string,
+  factoryName: string,
   type?: PromptType;
   message: string;
   options?: T[];

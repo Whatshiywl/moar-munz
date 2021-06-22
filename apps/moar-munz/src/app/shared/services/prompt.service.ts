@@ -2,50 +2,46 @@ import { Injectable } from "@angular/core";
 import { SocketService } from "../socket/socket.service";
 import { MatchService } from "./match.service";
 import { sample } from 'lodash';
-import { first } from 'rxjs/operators';
-import { Prompt, PromptCallback } from "@moar-munz/api-interfaces";
+import { Prompt } from "@moar-munz/api-interfaces";
 
 @Injectable()
 export class PromptService {
   // TODO: move debug state to store
   private debug: boolean;
 
-  private _promptData: {
-    prompt: Prompt<any>,
-    callback?: PromptCallback
-  };
+  private _prompt: Prompt;
 
   constructor(
     private socket: SocketService,
     private matchService: MatchService,
   ) {
-    this.socket.on('new prompt', (prompt: Prompt, callback: PromptCallback) => {
+    this.matchService.tileClicked$.pipe().subscribe(tile => {
+      if (!this._prompt || !this.prompt.options) return;
+      const clickAnswer = this._prompt.options.find(o => o.includes(tile.name));
+      if (clickAnswer) {
+        this.answer(clickAnswer);
+      }
+    });
+    this.socket.on('new prompt', (prompt: Prompt) => {
       console.log('prompt received');
-      this._promptData = { prompt, callback };
+      this._prompt = prompt;
       if (this.debug) {
         setTimeout(() => {
           this.answer(sample(prompt.options));
         }, 100);
       }
-      this.matchService.tileClicked$.pipe(first()).subscribe(tile => {
-        const clickAnswer = prompt.options.find(o => o.includes(tile.name));
-        if (clickAnswer) {
-          this.answer(clickAnswer);
-        }
-      });
     });
     this.socket.on('update prompt', (prompt: Prompt) => {
-      this._promptData.prompt = prompt;
+      this._prompt = prompt;
     });
   }
 
-  get awaitingResponse() { return Boolean(this._promptData); }
-  get prompt() { return this._promptData.prompt; }
+  get awaitingResponse() { return Boolean(this._prompt); }
+  get prompt() { return this._prompt; }
 
   answer(answer?: string | boolean) {
-    if (this._promptData.callback) {
-      this._promptData.callback(answer);
-    }
-    this._promptData = undefined;
+    this._prompt.answer = answer;
+    this.socket.emit('prompt answer', this._prompt);
+    this._prompt = undefined;
   }
 }

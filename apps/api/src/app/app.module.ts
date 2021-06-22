@@ -23,8 +23,17 @@ import { LobbyGateway } from './lobby/lobby.gateway';
 import { AIService } from './shared/services/ai.service';
 import { ChatGateway } from './chat/chat.gateway';
 import { BodyMessagePipe } from './shared/pipes/body-message.pipe';
-import { PromptService } from './shared/services/prompt.service';
 import { MatchService } from './shared/services/match.service';
+
+import { PromptGateway } from './prompt/prompt.gateway';
+import { PromptService } from './prompt/prompt.service';
+import { WorldtourPromptFactory } from './prompt/factories/worldtour.factory';
+import { WorldcupPromptFactory } from './prompt/factories/worldcup.factory';
+import { BuyDeedPromptFactory } from './prompt/factories/buydeed.factory';
+import { ImproveDeedPromptFactory } from './prompt/factories/improvedeed.factory';
+import { AquireDeedPromptFactory } from './prompt/factories/aquiredeed.factory';
+import { BuyTilePromptFactory } from './prompt/factories/buytile.factory';
+import { SellTilesPromptFactory } from './prompt/factories/selltiles.factory';
 
 @Module({
   imports: [
@@ -53,8 +62,18 @@ import { MatchService } from './shared/services/match.service';
     BodyMatchPipe,
     BodyMessagePipe,
     AIService,
+    MatchService,
+
+    // TODO: Create PromptModule
+    PromptGateway,
     PromptService,
-    MatchService
+    WorldtourPromptFactory,
+    WorldcupPromptFactory,
+    BuyDeedPromptFactory,
+    ImproveDeedPromptFactory,
+    AquireDeedPromptFactory,
+    BuyTilePromptFactory,
+    SellTilesPromptFactory
   ]
 })
 export class AppModule {}

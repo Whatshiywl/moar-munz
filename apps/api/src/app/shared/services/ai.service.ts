@@ -6,6 +6,11 @@ import { sample } from 'lodash';
 export class AIService {
 
     async answer<T>(prompt: Prompt<T>) {
+        prompt.answer = this.getAnswer(prompt) as any;
+        return prompt;
+    }
+
+    private getAnswer<T>(prompt: Prompt<T>) {
         switch (prompt.type) {
             case 'alert':
                 return;
