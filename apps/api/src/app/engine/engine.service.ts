@@ -38,7 +38,6 @@ export class EngineService {
                 await this.sleep(100);
             }
         }
-        this.socketService.emit('dice roll', dice, playerOrder);
         this.matchService.setLastDice(player.lobby, dice);
         return canMove ? this.sumDice(dice) : 0;
     }
@@ -94,6 +93,7 @@ export class EngineService {
                     if (goToIndex < playerState.position) goToIndex += board.tiles.length;
                     const walkDistance = goToIndex - this.matchService.getPlayerPosition(player);
                     const canPlay = this.onPlay(player);
+                    this.matchService.setLastDice(player.lobby, [ undefined, undefined ]);
                     if (canPlay) await this.walkNTiles(player, walkDistance);
                     return false;
                 }

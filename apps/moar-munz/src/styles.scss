@@ -1,15 +1,44 @@
 /* You can add global styles to this file, and also import other style files */
+$primary-color: #673ab7;
 
 html, body { height: 100%; }
 body { margin: 0; font-family: Roboto, "Helvetica Neue", sans-serif; }
 
 moar-munz-root {
-    display: flex;
-    flex-direction: column;
-    height: 100vh;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
 }
 
 mat-sidenav-container.mat-drawer-container {
   overflow: auto;
   flex-grow: 1;
+}
+
+mat-card.header-colored-card {
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  mat-card-header {
+    justify-content: center;
+    background-color: $primary-color;
+    margin-bottom: 3px;
+
+    mat-card-title, mat-card-subtitle {
+      margin: 0;
+      color: white;
+    }
+
+    mat-card-title {
+      margin: 12px 0;
+    }
+  }
+
+  mat-card-content {
+    overflow-y: auto;
+    flex-grow: 1;
+    padding: 16px;
+  }
 }

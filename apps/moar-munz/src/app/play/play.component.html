@@ -2,33 +2,38 @@
 <div *ngIf="match" class="game-wrapper">
     <div class="board">
         <div class="board-center">
-            <mat-card class="info-column">
-                <mat-accordion class="player-list" multi>
-                    <mat-expansion-panel *ngFor="let card of playerCards; let i = index"
-                    class="player-card"
-                    [style.border-left]="playerService.playerTurnId === card.player.id ? '5px solid '+card.player.color : 'none'"
-                    [style.background-color]="isPlayerHighlighted(card.player.id) ? (card.player.color | lighten: 0.8) : ''"
-                    (mouseenter)="highlightCardProperties(card.properties, true)"
-                    (mouseleave)="highlightCardProperties(card.properties, false)">
-                        <mat-expansion-panel-header>
-                        <mat-panel-title>
-                            <span [style.fontWeight]="card.player.id == uuid ? 'bold' : 'normal'"
-                            [style.color]="card.player.color">{{card.player.name}}</span>
-                        </mat-panel-title>
-                        <mat-panel-description>
-                            <span><strong>Ƶ {{card.player.money}}</strong></span>
-                            <mat-icon [style.visibility]="card.player.id === uuid ? 'hidden' : 'visible'"
-                            (click)="openPlayerChat(card.player, $event)"
-                            [matBadge]="chatComponent.getUnreadMessages(card.player.id) || undefined"
-                            matBadgeColor="warn" matBadgeSize="small">message</mat-icon>
-                        </mat-panel-description>
-                        </mat-expansion-panel-header>
-                        <div class="player-properties">
-                            <span *ngFor="let property of card.properties"
-                            style="font-size: smaller;">{{property.name}}</span>
-                        </div>
-                    </mat-expansion-panel>
-                </mat-accordion>
+            <mat-card class="info-column header-colored-card">
+                <mat-card-header>
+                    <mat-card-title>Players</mat-card-title>
+                </mat-card-header>
+                <mat-card-content>
+                    <mat-accordion class="player-list" multi>
+                        <mat-expansion-panel *ngFor="let card of playerCards; let i = index"
+                        class="player-card"
+                        [style.border-left]="playerService.playerTurnId === card.player.id ? '5px solid '+card.player.color : 'none'"
+                        [style.background-color]="isPlayerHighlighted(card.player.id) ? (card.player.color | lighten: 0.8) : ''"
+                        (mouseenter)="highlightCardProperties(card.properties, true)"
+                        (mouseleave)="highlightCardProperties(card.properties, false)">
+                            <mat-expansion-panel-header>
+                            <mat-panel-title>
+                                <span [style.fontWeight]="card.player.id == uuid ? 'bold' : 'normal'"
+                                [style.color]="card.player.color">{{card.player.name}}</span>
+                            </mat-panel-title>
+                            <mat-panel-description>
+                                <span><strong>Ƶ {{card.player.money}}</strong></span>
+                                <mat-icon [style.visibility]="card.player.id === uuid ? 'hidden' : 'visible'"
+                                (click)="openPlayerChat(card.player, $event)"
+                                [matBadge]="chatComponent.getUnreadMessages(card.player.id) || undefined"
+                                matBadgeColor="warn" matBadgeSize="small">message</mat-icon>
+                            </mat-panel-description>
+                            </mat-expansion-panel-header>
+                            <div class="player-properties">
+                                <span *ngFor="let property of card.properties"
+                                style="font-size: smaller;">{{property.name}}</span>
+                            </div>
+                        </mat-expansion-panel>
+                    </mat-accordion>
+                </mat-card-content>
             </mat-card>
             <mat-card class="action-card">
                 <button *ngIf="playerService.isMyTurn"
@@ -43,11 +48,11 @@
                         {{playerService.playerTurn.name}}
                     </span> is playing
                 </mat-card>
-                <mat-card class="dice-wrapper last-roll">
+                <mat-card class="dice-wrapper last-roll header-colored-card">
                     <mat-card-header>
                         <mat-card-subtitle>Last roll</mat-card-subtitle>
                     </mat-card-header>
-                    <mat-card-content>
+                    <mat-card-content class="dice-content">
                         <div class="dice">
                             <div *ngFor="let die of match?.lastDice" class="crop">
                                 <img [src]="'assets/images/dice.svg'"
@@ -56,11 +61,11 @@
                         </div>
                     </mat-card-content>
                 </mat-card>
-                <mat-card class="dice-wrapper current-roll">
+                <mat-card class="dice-wrapper current-roll header-colored-card">
                     <mat-card-header>
                         <mat-card-subtitle>Current roll</mat-card-subtitle>
                     </mat-card-header>
-                    <mat-card-content>
+                    <mat-card-content class="dice-content">
                         <div class="dice">
                             <div *ngFor="let die of currentRoll" class="crop">
                                 <img [src]="'assets/images/dice.svg'"
@@ -77,8 +82,13 @@
                 (optionmouseleave)="highlightOption($event, false)"
             ></moar-munz-prompt>
             <mat-card *ngIf="activeTrade" class="trade-info"></mat-card>
-            <mat-card class="board-chat">
-                <moar-munz-chat></moar-munz-chat>
+            <mat-card class="board-chat header-colored-card">
+                <mat-card-header>
+                    <mat-card-title>Chat</mat-card-title>
+                </mat-card-header>
+                <mat-card-content class="chat-content">
+                    <moar-munz-chat></moar-munz-chat>
+                </mat-card-content>
             </mat-card>
         </div>
         <moar-munz-tile *ngFor="let tile of tiles; let i = index"

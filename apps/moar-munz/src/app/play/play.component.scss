@@ -87,8 +87,6 @@
                 .dice-wrapper {
                     grid-column-end: span 2;
                     grid-row: 2 / span 2;
-                    padding: 0;
-                    overflow: hidden;
 
                     &.last-roll {
                         grid-column-start: 1;
@@ -98,33 +96,25 @@
                         grid-column-start: 3;
                     }
 
-                    mat-card-header {
-                        justify-content: center;
-                        background-color: #673ab7;
-                        margin-bottom: 3px;
+                    .dice-content {
+                        padding: 0;
 
-                        mat-card-subtitle {
-                            margin: 0;
-                            color: white;
-                        }
-                    }
+                        .dice {
+                            display: flex;
+                            justify-content: center;
 
-                    .dice {
-                        display: flex;
-                        justify-content: center;
+                            >.crop {
+                                width: 30px;
+                                height: 30px;
+                                overflow: hidden;
+                                margin: 0 3px;
 
-                        >.crop {
-                            width: 30px;
-                            height: 30px;
-                            overflow: hidden;
-                            margin: 0 3px;
-
-                            >img {
-                                height: 66px;
-                                margin-top: -16px;
+                                >img {
+                                    height: 66px;
+                                    margin-top: -16px;
+                                }
                             }
                         }
-
                     }
                 }
             }
@@ -146,7 +136,10 @@
                 grid-column: 7 / span 3;
                 grid-row: 1 / span 9;
                 overflow-y: auto;
-                padding-bottom: 0;
+
+                .chat-content {
+                    padding-bottom: 0;
+                }
             }
         }
     }

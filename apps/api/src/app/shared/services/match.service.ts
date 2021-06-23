@@ -164,6 +164,7 @@ export class MatchService implements OnApplicationBootstrap {
   setLastDice(id: string, dice: [ number, number ]) {
     const match = this.getMatch(id);
     match.lastDice = dice;
+    this.socketService.emit('dice roll', dice, match.playerOrder);
     this.saveAndBroadcastMatch(match);
   }
 
