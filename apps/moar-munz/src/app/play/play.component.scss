@@ -126,8 +126,8 @@
                 grid-row-start: 3;
             }
 
-            >.trade-info {
-                overflow-y: auto;
+            >moar-munz-trade {
+                overflow: visible;
                 grid-column: 4 / span 3;
                 grid-row: 6 / span 4;
             }

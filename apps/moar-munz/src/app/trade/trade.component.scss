@@ -1,0 +1,113 @@
+.example-right-align {
+  text-align: right;
+}
+
+input.example-right-align::-webkit-outer-spin-button,
+input.example-right-align::-webkit-inner-spin-button {
+  display: none;
+}
+
+input.example-right-align {
+  -moz-appearance: textfield;
+}
+
+mat-card.main-trade-card {
+  height: 100%;
+
+  >mat-card-header mat-card-subtitle {
+    font-size: 1.2em;
+    padding: 0 5px;
+  }
+
+  >mat-card-content {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-rows: repeat(12, minmax(0, 1fr));
+    column-gap: 5px;
+    row-gap: 5px;
+    padding-top: 5px;
+    padding-bottom: 5px;
+
+    .trade-card {
+      grid-row: 1 / span 8;
+      grid-column-end: span 4;
+
+      &.trade-card-me {
+        grid-column-start: 1;
+      }
+
+      &.trade-card-them {
+        grid-column-start: 5;
+      }
+
+      mat-card-content {
+        padding: 0;
+      }
+    }
+
+    .trade-value {
+      grid-row: 9 / span 2;
+      grid-column-end: span 4;
+
+      &.trade-value-me {
+        grid-column-start: 1;
+      }
+
+      &.trade-value-them {
+        grid-column-start: 5;
+      }
+    }
+
+    .trade-icons {
+      grid-row: 11 / span 2;
+      grid-column-end: span 1;
+      margin-top: 5px;
+
+      &.trade-icons-negative-me {
+        grid-column-start: 1;
+      }
+
+      &.trade-icons-question-me {
+        grid-column-start: 2;
+      }
+
+      &.trade-icons-positive-me {
+        grid-column-start: 3;
+      }
+
+      &.trade-icons-positive-them {
+        grid-column-start: 6;
+      }
+
+      &.trade-icons-question-them {
+        grid-column-start: 7;
+      }
+
+      &.trade-icons-negative-them {
+        grid-column-start: 8;
+      }
+
+      &[class*="trade-icons-negative-"]:focus {
+        color: red;
+      }
+
+      &[class*="trade-icons-question-"]:focus {
+        color: orange;
+      }
+
+      &[class*="trade-icons-positive-"]:focus {
+        color: green;
+      }
+    }
+
+    .trade-confirm-button {
+      grid-row: 11 / span 2;
+      grid-column: 4 / span 2;
+      padding-top: 7px;
+
+      button {
+        width: 100%;
+      }
+    }
+  }
+}

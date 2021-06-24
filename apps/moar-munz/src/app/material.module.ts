@@ -33,7 +33,8 @@ const moduleList: (any[] | Type<any>)[] = [
     MatInputModule,
     MatFormFieldModule,
     MatExpansionModule,
-    MatBadgeModule
+    MatBadgeModule,
+    MatFormFieldModule
 ];
 
 @NgModule({

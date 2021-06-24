@@ -4,6 +4,7 @@ import { Player, PlayerComplete, Tile } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
 import { PlayerService } from '../shared/services/player.service';
 import { MatchService } from '../shared/services/match.service';
+import { TradeService } from '../shared/services/trade.service';
 
 type PlayerCard = { player: PlayerComplete, properties: Tile[] }
 
@@ -30,12 +31,11 @@ export class PlayComponent implements OnInit, OnDestroy {
 
   currentRoll: number[] = [ ];
 
-  activeTrade;
-
   constructor(
     private socket: SocketService,
     public playerService: PlayerService,
     private matchService: MatchService,
+    public tradeService: TradeService,
     private cd: ChangeDetectorRef
   ) { }
 
@@ -150,11 +150,6 @@ export class PlayComponent implements OnInit, OnDestroy {
   toggleDebug() {
     this.debug = !this.debug;
     console.warn(`Debug mode ${this.debug ? 'enabled' : 'disabled'}!`);
-    this.cd.detectChanges();
-  }
-
-  toggleTrade() {
-    this.activeTrade = !this.activeTrade;
     this.cd.detectChanges();
   }
 

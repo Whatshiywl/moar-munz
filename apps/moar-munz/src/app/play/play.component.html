@@ -77,11 +77,11 @@
             </mat-card>
             <moar-munz-prompt
                 [debug]="debug"
-                [style.gridRowEnd]="'span ' + (activeTrade ? '3' : '9')"
+                [style.gridRowEnd]="'span ' + (tradeService.activeTrade ? '3' : '9')"
                 (optionmouseenter)="highlightOption($event, true)"
                 (optionmouseleave)="highlightOption($event, false)"
             ></moar-munz-prompt>
-            <mat-card *ngIf="activeTrade" class="trade-info"></mat-card>
+            <moar-munz-trade></moar-munz-trade>
             <mat-card class="board-chat header-colored-card">
                 <mat-card-header>
                     <mat-card-title>Chat</mat-card-title>

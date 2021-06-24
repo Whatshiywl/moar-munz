@@ -1,0 +1,65 @@
+<mat-card *ngIf="tradeService.activeTrade" class="header-colored-card main-trade-card">
+  <mat-card-header>
+    <mat-card-subtitle>Trade</mat-card-subtitle>
+  </mat-card-header>
+  <mat-card-content>
+
+    <mat-card class="header-colored-card trade-card trade-card-me">
+      <mat-card-header>
+        <mat-card-subtitle>You</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-list dense>
+          <mat-list-item>Item 1</mat-list-item>
+          <mat-list-item>Item 2</mat-list-item>
+          <mat-list-item>Item 3</mat-list-item>
+         </mat-list>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-form-field class="trade-value trade-value-me" appearance="fill" floatLabel="always">
+      <mat-label>Amount</mat-label>
+      <input matInput type="number" class="example-right-align" placeholder="0">
+      <span matPrefix>Ƶ&nbsp;</span>
+    </mat-form-field>
+
+    <mat-card class="header-colored-card trade-card trade-card-them">
+      <mat-card-header>
+        <mat-card-subtitle>Them</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-form-field class="trade-value trade-value-them" appearance="fill" floatLabel="always">
+      <mat-label>Amount</mat-label>
+      <input matInput type="number" class="example-right-align" placeholder="0" disabled>
+      <span matPrefix>Ƶ&nbsp;</span>
+    </mat-form-field>
+
+    <button class="trade-icons trade-icons-negative-me" mat-icon-button disableRipple>
+      <span class="material-icons-outlined">mood_bad</span>
+    </button>
+    <button class="trade-icons trade-icons-question-me" mat-icon-button disableRipple>
+      <span class="material-icons-outlined">sentiment_neutral</span>
+    </button>
+    <button class="trade-icons trade-icons-positive-me" mat-icon-button disableRipple>
+      <span class="material-icons-outlined">mood</span>
+    </button>
+
+    <div class="trade-confirm-button">
+      <button color="primary" mat-flat-button>Confirm</button>
+    </div>
+
+    <button class="trade-icons trade-icons-positive-them" mat-icon-button disableRipple disabled>
+      <span class="material-icons-outlined">mood</span>
+    </button>
+    <button class="trade-icons trade-icons-question-them" mat-icon-button disableRipple disabled>
+      <span class="material-icons-outlined">sentiment_neutral</span>
+    </button>
+    <button class="trade-icons trade-icons-negative-them" mat-icon-button disableRipple disabled>
+      <span class="material-icons-outlined">mood_bad</span>
+    </button>
+
+  </mat-card-content>
+</mat-card>
