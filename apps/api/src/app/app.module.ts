@@ -34,6 +34,7 @@ import { ImproveDeedPromptFactory } from './prompt/factories/improvedeed.factory
 import { AquireDeedPromptFactory } from './prompt/factories/aquiredeed.factory';
 import { BuyTilePromptFactory } from './prompt/factories/buytile.factory';
 import { SellTilesPromptFactory } from './prompt/factories/selltiles.factory';
+import { TradeGateway } from './trade/trade.gateway';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { SellTilesPromptFactory } from './prompt/factories/selltiles.factory';
     EngineGateway,
     LobbyGateway,
     ChatGateway,
+    TradeGateway,
     UUIDService,
     JWTService,
     LowDbService,

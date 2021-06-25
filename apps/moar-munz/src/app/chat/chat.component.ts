@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { Trade, Message, PlayerComplete, Player } from '@moar-munz/api-interfaces';
+import { Message, PlayerComplete, Player } from '@moar-munz/api-interfaces';
 import { LobbyService } from '../shared/services/lobby.service';
 import { MatchService } from '../shared/services/match.service';
 import { PlayerService } from '../shared/services/player.service';
+import { TradeService } from '../shared/services/trade.service';
 import { SocketService } from '../shared/socket/socket.service';
 
 interface ClientMessage extends Message {
@@ -18,8 +19,8 @@ interface Tab {
   chat: ClientMessage[],
   input: FormControl,
   visible: boolean,
-  player?: PlayerComplete
-  trade?: Trade,
+  player?: PlayerComplete,
+  tradeRead: boolean
 }
 
 @Component({
@@ -40,7 +41,8 @@ export class ChatComponent implements OnInit {
     title: 'Global',
     chat: [ ],
     input: this.globalInput,
-    visible: true
+    visible: true,
+    tradeRead: true
   };
 
   tabs: Tab[] = [ this.globalTab ];
@@ -51,7 +53,8 @@ export class ChatComponent implements OnInit {
     private socket: SocketService,
     private lobbyService: LobbyService,
     private matchService: MatchService,
-    private playerService: PlayerService
+    private playerService: PlayerService,
+    private tradeService: TradeService
   ) { }
 
   ngOnInit() {
@@ -70,6 +73,16 @@ export class ChatComponent implements OnInit {
         this.scrollTabToBottom();
       }, 0);
     });
+
+    this.tradeService.tradeUpdated$.subscribe(trade => {
+      const playerId = trade.player;
+      let tab = this.tabs.find(tab => tab.player?.id === playerId);
+      if (!tab) {
+        const player = this.lobbyService.lobby.players[playerId];
+        tab = this.addTab(player, false, false);
+      }
+      tab.tradeRead = this.selectedTab === tab;
+    });
   }
 
   get visibleTabs() {
@@ -87,7 +100,9 @@ export class ChatComponent implements OnInit {
 
   getUnreadMessages(id: string) {
     const tab = this.tabs.find(t => t.player?.id === id);
-    return tab?.chat.filter(m => !m.read).length;
+    const unreadMessages = tab?.chat.filter(m => !m.read).length;
+    const tradeRead = tab ? tab.tradeRead : true;
+    return unreadMessages || (tradeRead ? undefined : 'T');
   }
 
   addTab(player: Player, visible: boolean, selectAfterAdding: boolean) {
@@ -105,7 +120,7 @@ export class ChatComponent implements OnInit {
     }
     const input = new FormControl('');
     this.formGroup.addControl(player.name, input);
-    const tab = { type: 'private', title: player.name, player, input, chat: [ ], visible } as Tab;
+    const tab = { type: 'private', title: player.name, player, input, chat: [ ], visible, tradeRead: true } as Tab;
     this.tabs.push(tab);
     this.checkSelected(selectAfterAdding, 1);
     return tab;
@@ -116,6 +131,9 @@ export class ChatComponent implements OnInit {
     setTimeout(() => {
       this.selected.setValue(index);
       this.selectedTab.chat.forEach(m => m.read = true);
+      this.selectedTab.tradeRead = true;
+      const tabPlayer = this.selectedTab.player;
+      this.tradeService.activeTrade = tabPlayer?.id;
     }, 0);
   }
 

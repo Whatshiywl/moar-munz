@@ -11,6 +11,10 @@ input.example-right-align {
   -moz-appearance: textfield;
 }
 
+form {
+  height: 100%;
+}
+
 mat-card.main-trade-card {
   height: 100%;
 
@@ -87,15 +91,15 @@ mat-card.main-trade-card {
         grid-column-start: 8;
       }
 
-      &[class*="trade-icons-negative-"]:focus {
+      &[class*="trade-icons-negative-"].trade-icons-active {
         color: red;
       }
 
-      &[class*="trade-icons-question-"]:focus {
+      &[class*="trade-icons-question-"].trade-icons-active {
         color: orange;
       }
 
-      &[class*="trade-icons-positive-"]:focus {
+      &[class*="trade-icons-positive-"].trade-icons-active {
         color: green;
       }
     }

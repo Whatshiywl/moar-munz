@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { NgModule } from '@angular/core';
-import { ReactiveFormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { SocketIoModule, SocketIoConfig } from 'ngx-socket-io';
 
@@ -42,6 +42,7 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     CommonModule,
     RouterModule.forChild([{ path: '', component: PlayComponent }]),
     SocketIoModule,
+    FormsModule,
     ReactiveFormsModule,
     StoreModule.forRoot({
       lobby: lobbyReducer,

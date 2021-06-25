@@ -1,13 +1,16 @@
+export type TradeSentiment = 'negative' | 'question' | 'positive';
+
 export interface TradeForm {
   tiles: string[],
   value: number,
-  sentiment: 'negative' | 'question' | 'positive',
+  sentiment: TradeSentiment,
   confirmed: boolean
 }
 
 export interface TradeSide {
   player: string,
-  form: TradeForm
+  form: TradeForm,
+  hash?: string
 }
 
 export interface Trade {

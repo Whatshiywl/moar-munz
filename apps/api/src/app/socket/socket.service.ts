@@ -1,4 +1,4 @@
-import { Match, Message, Player } from '@moar-munz/api-interfaces';
+import { Match, Message, Player, TradeSide } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 import { Namespace, Server, Socket } from 'socket.io';
 import { AIService } from '../shared/services/ai.service';
@@ -68,10 +68,18 @@ export class SocketService {
         return namespace;
     }
 
-    emit(event: string, body: any, players: string[]) {
+    emit(event: string, body: any, players: string[], callback?: Function) {
         const namespace = this.getNamespaceFromIdList(players);
         if (!namespace) return;
-        namespace.emit(event, body);
+        namespace.emit(event, body, callback);
+    }
+
+    updateTradeSide(side: TradeSide, id: string) {
+        const client = this.getClient(id);
+        if (!client) return;
+        return new Promise<boolean>((resolve, reject) => {
+            client.emit('update trade', side, resolve);
+        });
     }
 
     broadcastMessage(message: Message) {

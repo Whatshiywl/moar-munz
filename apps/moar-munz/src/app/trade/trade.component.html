@@ -1,65 +1,77 @@
-<mat-card *ngIf="tradeService.activeTrade" class="header-colored-card main-trade-card">
-  <mat-card-header>
-    <mat-card-subtitle>Trade</mat-card-subtitle>
-  </mat-card-header>
-  <mat-card-content>
+<form *ngIf="tradeData" [formGroup]="tradeData.myForm">
+  <mat-card class="header-colored-card main-trade-card">
+    <mat-card-header>
+      <mat-card-subtitle>Trade</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
 
-    <mat-card class="header-colored-card trade-card trade-card-me">
-      <mat-card-header>
-        <mat-card-subtitle>You</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <mat-list dense>
-          <mat-list-item>Item 1</mat-list-item>
-          <mat-list-item>Item 2</mat-list-item>
-          <mat-list-item>Item 3</mat-list-item>
-         </mat-list>
-      </mat-card-content>
-    </mat-card>
+      <mat-card class="header-colored-card trade-card trade-card-me">
+        <mat-card-header>
+          <mat-card-subtitle>You</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list dense>
+            <mat-list-item *ngFor="let tile of tradeData.myForm.get('tiles').value">{{tile}}</mat-list-item>
+          </mat-list>
+        </mat-card-content>
+      </mat-card>
 
-    <mat-form-field class="trade-value trade-value-me" appearance="fill" floatLabel="always">
-      <mat-label>Amount</mat-label>
-      <input matInput type="number" class="example-right-align" placeholder="0">
-      <span matPrefix>Ƶ&nbsp;</span>
-    </mat-form-field>
+      <mat-form-field class="trade-value trade-value-me" appearance="fill" floatLabel="always">
+        <mat-label>Amount</mat-label>
+        <input matInput type="number" class="example-right-align" placeholder="0" formControlName="value">
+        <span matPrefix>Ƶ&nbsp;</span>
+      </mat-form-field>
 
-    <mat-card class="header-colored-card trade-card trade-card-them">
-      <mat-card-header>
-        <mat-card-subtitle>Them</mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-      </mat-card-content>
-    </mat-card>
+      <button class="trade-icons trade-icons-negative-me" mat-icon-button disableRipple
+        [ngClass]="isMySentiment('negative') ? 'trade-icons-active' : ''"
+        (click)="setSentiment('negative')">
+        <span class="material-icons-outlined">mood_bad</span>
+      </button>
+      <button class="trade-icons trade-icons-question-me" mat-icon-button disableRipple
+        [ngClass]="isMySentiment('question') ? 'trade-icons-active' : ''"
+        (click)="setSentiment('question')">
+        <span class="material-icons-outlined">sentiment_neutral</span>
+      </button>
+      <button class="trade-icons trade-icons-positive-me" mat-icon-button disableRipple
+        [ngClass]="isMySentiment('positive') ? 'trade-icons-active' : ''"
+        (click)="setSentiment('positive')">
+        <span class="material-icons-outlined">mood</span>
+      </button>
 
-    <mat-form-field class="trade-value trade-value-them" appearance="fill" floatLabel="always">
-      <mat-label>Amount</mat-label>
-      <input matInput type="number" class="example-right-align" placeholder="0" disabled>
-      <span matPrefix>Ƶ&nbsp;</span>
-    </mat-form-field>
+      <mat-card class="header-colored-card trade-card trade-card-them">
+        <mat-card-header>
+          <mat-card-subtitle>Them</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-list dense>
+            <mat-list-item *ngFor="let tile of tradeData.theirSide.form.tiles">{{tile}}</mat-list-item>
+          </mat-list>
+        </mat-card-content>
+      </mat-card>
 
-    <button class="trade-icons trade-icons-negative-me" mat-icon-button disableRipple>
-      <span class="material-icons-outlined">mood_bad</span>
-    </button>
-    <button class="trade-icons trade-icons-question-me" mat-icon-button disableRipple>
-      <span class="material-icons-outlined">sentiment_neutral</span>
-    </button>
-    <button class="trade-icons trade-icons-positive-me" mat-icon-button disableRipple>
-      <span class="material-icons-outlined">mood</span>
-    </button>
+      <mat-form-field class="trade-value trade-value-them" appearance="fill" floatLabel="always">
+        <mat-label>Amount</mat-label>
+        <input matInput type="number" class="example-right-align" placeholder="0" [value]="tradeData.theirSide.form.value" disabled>
+        <span matPrefix>Ƶ&nbsp;</span>
+      </mat-form-field>
 
-    <div class="trade-confirm-button">
-      <button color="primary" mat-flat-button>Confirm</button>
-    </div>
+      <button class="trade-icons trade-icons-positive-them" mat-icon-button disableRipple disabled
+        [ngClass]="isTheirSentiment('positive') ? 'trade-icons-active' : ''">
+        <span class="material-icons-outlined">mood</span>
+      </button>
+      <button class="trade-icons trade-icons-question-them" mat-icon-button disableRipple disabled
+        [ngClass]="isTheirSentiment('question') ? 'trade-icons-active' : ''">
+        <span class="material-icons-outlined">sentiment_neutral</span>
+      </button>
+      <button class="trade-icons trade-icons-negative-them" mat-icon-button disableRipple disabled
+        [ngClass]="isTheirSentiment('negative') ? 'trade-icons-active' : ''">
+        <span class="material-icons-outlined">mood_bad</span>
+      </button>
 
-    <button class="trade-icons trade-icons-positive-them" mat-icon-button disableRipple disabled>
-      <span class="material-icons-outlined">mood</span>
-    </button>
-    <button class="trade-icons trade-icons-question-them" mat-icon-button disableRipple disabled>
-      <span class="material-icons-outlined">sentiment_neutral</span>
-    </button>
-    <button class="trade-icons trade-icons-negative-them" mat-icon-button disableRipple disabled>
-      <span class="material-icons-outlined">mood_bad</span>
-    </button>
+      <div class="trade-confirm-button">
+        <button color="primary" (click)="confirm()" mat-flat-button>Confirm</button>
+      </div>
 
-  </mat-card-content>
-</mat-card>
+    </mat-card-content>
+  </mat-card>
+</form>
