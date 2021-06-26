@@ -44,9 +44,9 @@
         <span class="material-icons-outlined">mood</span>
       </button>
 
-      <mat-card class="header-colored-card trade-card trade-card-them">
+      <mat-card class="header-colored-card header-custom-color trade-card trade-card-them">
         <mat-card-header>
-          <mat-card-subtitle>Them</mat-card-subtitle>
+          <mat-card-subtitle [style.color]="tradeData.them.color">{{tradeData.them.name}}</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
           <mat-action-list class="tile-list left-align">

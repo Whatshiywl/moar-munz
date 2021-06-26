@@ -36,6 +36,14 @@ mat-card.header-colored-card {
     }
   }
 
+  &.header-custom-color mat-card-header {
+    background-color: white;
+
+    mat-card-title, mat-card-subtitle {
+      color: black;
+    }
+  }
+
   mat-card-content {
     overflow-y: auto;
     flex-grow: 1;

@@ -1,12 +1,13 @@
 import { Injectable } from "@angular/core";
-import { FormArray, FormBuilder, FormControl, FormGroup } from "@angular/forms";
-import { Trade, TradeForm, TradeSide } from "@moar-munz/api-interfaces";
+import { FormBuilder, FormGroup } from "@angular/forms";
+import { PlayerComplete, Trade, TradeForm, TradeSide } from "@moar-munz/api-interfaces";
 import { Subject } from "rxjs";
 import { SocketService } from "../socket/socket.service";
 import { MatchService } from "./match.service";
 import { PlayerService } from "./player.service";
 
 interface TradeData {
+  them: PlayerComplete,
   myForm: FormGroup,
   theirSide: TradeSide
 }
@@ -127,7 +128,9 @@ export class TradeService {
       confirmed: this.fb.control(form.confirmed)
     });
     side = side || this.newTradeSide(tradeId);
+    const them = this.playerService.players.find(p => p.id === tradeId);
     this._trades[tradeId] = {
+      them,
       theirSide: side,
       myForm: formGroup
     };
