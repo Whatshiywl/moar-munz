@@ -3,6 +3,7 @@ Changelog
 1.7
 Permitir configurar valor inicial
 Permitir configurar se parar na cadeia é prisão ou visita
+Permitir configurar se pode vender propriedades com casa
 Permitir escolher nome e cor no lobby
 Nomes coloridos em eventos do chat
 

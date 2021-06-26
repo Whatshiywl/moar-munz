@@ -225,14 +225,14 @@ export class MatchService implements OnApplicationBootstrap {
   addPlayerMoney(player: Player, amount: number) {
     const match = this.getMatch(player.lobby);
     const state = match.playerState[player.id];
-    state.money += amount;
+    state.money += +amount;
     this.saveAndBroadcastMatch(match);
   }
 
   setPlayerMoney(player: Player, amount: number) {
     const match = this.getMatch(player.lobby);
     const state = match.playerState[player.id];
-    state.money = amount;
+    state.money = +amount;
     this.saveAndBroadcastMatch(match);
   }
 

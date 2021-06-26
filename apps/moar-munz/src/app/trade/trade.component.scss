@@ -104,6 +104,20 @@ mat-card.main-trade-card {
       }
     }
 
+    .trade-block {
+      grid-row: 1 / span 10;
+      background-color: black;
+      opacity: 0.1;
+
+      &.trade-block-me {
+        grid-column: 1 / span 4;
+      }
+
+      &.trade-block-them {
+        grid-column: 5 / span 4;
+      }
+    }
+
     .trade-confirm-button {
       grid-row: 11 / span 2;
       grid-column: 4 / span 2;

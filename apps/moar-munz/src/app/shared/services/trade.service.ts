@@ -1,6 +1,6 @@
 import { Injectable } from "@angular/core";
 import { FormBuilder, FormGroup } from "@angular/forms";
-import { TradeForm, TradeSide } from "@moar-munz/api-interfaces";
+import { Trade, TradeForm, TradeSide } from "@moar-munz/api-interfaces";
 import { Subject } from "rxjs";
 import { SocketService } from "../socket/socket.service";
 import { PlayerService } from "./player.service";
@@ -26,12 +26,29 @@ export class TradeService {
     private fb: FormBuilder
   ) {
     this.tradeUpdated$ = new Subject<TradeSide>();
-    this.socket.on('update trade', (side: TradeSide, callback: (confirmed: boolean) => void) => {
+    this.socket.on('update trade', (side: TradeSide, callback: (confirmed: Trade | false) => void) => {
+      console.log(Date.now(), 'incoming trade', side.player, side.form, side.hash);
       const tradeId = side.player;
-      const confirmed = this.checkConfirmed(tradeId, side);
-      console.log('trade updated', this._trades[tradeId].theirSide);
-      this.tradeUpdated$.next(this._trades[tradeId].theirSide);
-      callback(confirmed);
+      const meConfirmed = this.checkConfirmed(tradeId, side);
+      const themConfirmed = side.form.confirmed;
+      const theirSide = this._trades[tradeId].theirSide;
+      this.tradeUpdated$.next(theirSide);
+      if (!meConfirmed || !themConfirmed) callback(false);
+      else {
+        const mySide: TradeSide = {
+          player: this.player.id,
+          form: this._trades[tradeId].myForm.value
+        };
+        const trade: Trade = { sides: [ mySide, theirSide ] };
+        callback(trade);
+      }
+    });
+
+    this.socket.on('end trade', (id: string) => {
+      const tradeData = this._trades[id];
+      console.log(Date.now(), 'end trade', id, tradeData.myForm.value, tradeData.theirSide.form);
+      this._trades[id].myForm.reset(this.newTradeForm(), { emitEvent: false });
+      this._trades[id].theirSide = this.newTradeSide(id);
     });
   }
 
@@ -59,14 +76,14 @@ export class TradeService {
     const tradeData = this._trades[tradeId];
     const form = tradeData.myForm.value as TradeForm;
     const side: TradeSide = { player: this.player.id, form };
-    console.log('updating side', side);
+    console.log(Date.now(), 'outgoing trade', side.player, side.form, side.hash);
     this.socket.emit('update trade', { side, player: tradeId });
   }
 
   private updateTrade(tradeId: string, side: TradeSide) {
-    const otherSide = this._trades[tradeId].theirSide;
+    const { hash } = this._trades[tradeId].theirSide;
     this._trades[tradeId].theirSide = side;
-    if (side.hash !== otherSide.hash) {
+    if (hash && side.hash !== hash) {
       this._trades[tradeId].myForm.get('confirmed').setValue(false);
       this.update(tradeId);
     }
@@ -85,7 +102,7 @@ export class TradeService {
       theirSide: side,
       myForm: formGroup
     };
-    formGroup.valueChanges.subscribe(value => {
+    formGroup.valueChanges.subscribe(_ => {
       this.update(tradeId);
     });
   }
@@ -100,7 +117,7 @@ export class TradeService {
   private newTradeForm() {
     return {
       tiles: [ ],
-      value: 0,
+      value: undefined,
       sentiment: 'question',
       confirmed: false
     } as TradeForm;

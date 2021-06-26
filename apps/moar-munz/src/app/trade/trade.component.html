@@ -51,7 +51,7 @@
 
       <mat-form-field class="trade-value trade-value-them" appearance="fill" floatLabel="always">
         <mat-label>Amount</mat-label>
-        <input matInput type="number" class="example-right-align" placeholder="0" [value]="tradeData.theirSide.form.value" disabled>
+        <input matInput type="number" class="example-right-align" placeholder="0" [value]="tradeData.theirSide.form.value || 0" disabled>
         <span matPrefix>Ƶ&nbsp;</span>
       </mat-form-field>
 
@@ -69,8 +69,11 @@
       </button>
 
       <div class="trade-confirm-button">
-        <button color="primary" (click)="confirm()" mat-flat-button>Confirm</button>
+        <button appDebounceClick color="primary" [debounceTime]="100" (debounceClick)="toggleConfirm()" mat-flat-button>Confirm</button>
       </div>
+
+      <div *ngIf="tradeData.myForm.get('confirmed').value" class="trade-block trade-block-me"></div>
+      <div *ngIf="tradeData.theirSide.form.confirmed" class="trade-block trade-block-them"></div>
 
     </mat-card-content>
   </mat-card>

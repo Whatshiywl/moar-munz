@@ -25,6 +25,7 @@ import { PromptComponent } from '../prompt/prompt.component';
 import { PromptService } from '../shared/services/prompt.service';
 import { TradeComponent } from '../trade/trade.component';
 import { TradeService } from '../shared/services/trade.service';
+import { DebounceClickDirective } from '../shared/directives/debounceclick.directive';
 
 const config: SocketIoConfig = { url: window.location.origin, options: { autoConnect: false } };
 
@@ -37,6 +38,7 @@ const config: SocketIoConfig = { url: window.location.origin, options: { autoCon
     PromptComponent,
     TradeComponent,
     LightenPipe,
+    DebounceClickDirective
   ],
   imports: [
     CommonModule,

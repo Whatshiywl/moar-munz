@@ -1,4 +1,4 @@
-import { Match, Message, Player, TradeSide } from '@moar-munz/api-interfaces';
+import { Match, Message, Player, Trade, TradeSide } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 import { Namespace, Server, Socket } from 'socket.io';
 import { AIService } from '../shared/services/ai.service';
@@ -77,9 +77,19 @@ export class SocketService {
     updateTradeSide(side: TradeSide, id: string) {
         const client = this.getClient(id);
         if (!client) return;
-        return new Promise<boolean>((resolve, reject) => {
+        return new Promise<Trade | false>((resolve, reject) => {
             client.emit('update trade', side, resolve);
         });
+    }
+
+    endTrade(trade: Trade) {
+        for (const side of trade.sides) {
+            const client = this.getClient(side.player);
+            const otherPlayerId = trade.sides.find(s => s.player !== side.player).player;
+            if (!client) return;
+            console.log('ending', side.player, 'trade for', otherPlayerId);
+            client.emit('end trade', otherPlayerId);
+        }
     }
 
     broadcastMessage(message: Message) {

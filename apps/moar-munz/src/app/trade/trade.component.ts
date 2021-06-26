@@ -15,8 +15,9 @@ export class TradeComponent {
 
   get tradeData() { return this.tradeService.tradeData }
 
-  confirm() {
-    this.tradeData.myForm.get('confirmed').setValue(true);
+  toggleConfirm() {
+    const confirmed = this.tradeData.myForm.get('confirmed').value;
+    this.tradeData.myForm.get('confirmed').setValue(!confirmed);
   }
 
   setSentiment(sentiment: TradeSentiment) {
