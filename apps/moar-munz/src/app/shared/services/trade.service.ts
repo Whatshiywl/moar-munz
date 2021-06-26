@@ -1,8 +1,9 @@
 import { Injectable } from "@angular/core";
-import { FormBuilder, FormGroup } from "@angular/forms";
+import { FormArray, FormBuilder, FormControl, FormGroup } from "@angular/forms";
 import { Trade, TradeForm, TradeSide } from "@moar-munz/api-interfaces";
 import { Subject } from "rxjs";
 import { SocketService } from "../socket/socket.service";
+import { MatchService } from "./match.service";
 import { PlayerService } from "./player.service";
 
 interface TradeData {
@@ -23,6 +24,7 @@ export class TradeService {
   constructor(
     private socket: SocketService,
     private playerService: PlayerService,
+    private matchService: MatchService,
     private fb: FormBuilder
   ) {
     this.tradeUpdated$ = new Subject<TradeSide>();
@@ -49,6 +51,17 @@ export class TradeService {
       console.log(Date.now(), 'end trade', id, tradeData.myForm.value, tradeData.theirSide.form);
       this._trades[id].myForm.reset(this.newTradeForm(), { emitEvent: false });
       this._trades[id].theirSide = this.newTradeSide(id);
+      const boardTiles = this.matchService.match.board.tiles;
+      for (const tradeId in this._trades) {
+        const tradeData = this._trades[tradeId];
+        const tradeTiles = tradeData.myForm.get('tiles').value as string[];
+        for (const tileName of tradeTiles) {
+          const tile = boardTiles.find(t => t.name === tileName);
+          if (!tile) continue;
+          if (tile.owner === this.player.id) continue;
+          this.toggleTile(tileName, tradeId);
+        }
+      }
     });
   }
 
@@ -80,6 +93,22 @@ export class TradeService {
     this.socket.emit('update trade', { side, player: tradeId });
   }
 
+  toggleTile(tileName: string, tradeId?: string) {
+    tradeId = tradeId || this.activeTrade;
+    const tradeData = this._trades[tradeId];
+    if (!tradeData) return;
+    const tilesForm = tradeData.myForm.get('tiles');
+    const tilesValue = tilesForm.value as string[];
+    const tileIndex = tilesValue.findIndex(value => value === tileName);
+    if (tileIndex < 0) {
+      tilesForm.setValue([ ...tilesValue, tileName ]);
+    } else {
+      const newTilesValue = [ ...tilesValue ];
+      newTilesValue.splice(tileIndex, 1);
+      tilesForm.setValue(newTilesValue);
+    }
+  }
+
   private updateTrade(tradeId: string, side: TradeSide) {
     const { hash } = this._trades[tradeId].theirSide;
     this._trades[tradeId].theirSide = side;
@@ -92,7 +121,7 @@ export class TradeService {
   private createNewTrade(tradeId: string, side?: TradeSide) {
     const form = this.newTradeForm();
     const formGroup = this.fb.group({
-      tiles: this.fb.array(form.tiles),
+      tiles: this.fb.control(form.tiles),
       value: this.fb.control(form.value || ''),
       sentiment: this.fb.control(form.sentiment),
       confirmed: this.fb.control(form.confirmed)

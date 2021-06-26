@@ -1,8 +1,9 @@
 import { Component, Input } from '@angular/core';
-import { CompanyTile, DeedTile, LobbyState, Match, Player, PlayerComplete, RailroadTile, Tile, VictoryState } from '@moar-munz/api-interfaces';
+import { CompanyTile, DeedTile, LobbyState, Match, Player, PlayerComplete, RailroadTile, Tile, TileType, VictoryState } from '@moar-munz/api-interfaces';
 import { LobbyService } from '../shared/services/lobby.service';
 import { MatchService } from '../shared/services/match.service';
 import { PlayerService } from '../shared/services/player.service';
+import { TradeService } from '../shared/services/trade.service';
 
 @Component({
   selector: 'moar-munz-tile',
@@ -26,10 +27,15 @@ export class TileComponent {
     indicators?: string[]
   } = { players: [ ] };
 
+  private readonly tradeAllowedTypes: TileType[] = [
+    'company', 'deed', 'railroad'
+  ];
+
   constructor(
     private lobbyService: LobbyService,
     private matchService: MatchService,
-    private playerService: PlayerService
+    private playerService: PlayerService,
+    private tradeService: TradeService
   ) {
     this.matchService.matchChange$.subscribe(this.onMatchChanged.bind(this));
   }
@@ -139,6 +145,21 @@ export class TileComponent {
 
   getCompanyIndicators(tile: Tile & CompanyTile) {
     return tile.owner ? [ 'work' ] : [ ];
+  }
+
+  canTrade() {
+    if (!this.tile) return false;
+    if (!this.tile.owner) return false;
+    const isTypeAllowed = this.tradeAllowedTypes.includes(this.tile.type);
+    if (!isTypeAllowed) return false;
+    const player = this.playerService.player;
+    return this.tile.owner === player.id;
+  }
+
+  toggleTrade(event: MouseEvent, tileName: string) {
+    event.stopPropagation();
+    if (!tileName) return;
+    this.tradeService.toggleTile(tileName);
   }
 
 }

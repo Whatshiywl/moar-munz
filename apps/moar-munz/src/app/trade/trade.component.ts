@@ -32,4 +32,8 @@ export class TradeComponent {
     return this.tradeData.theirSide.form.sentiment === sentiment;
   }
 
+  removeTile(tileName: string) {
+    this.tradeService.toggleTile(tileName);
+  }
+
 }

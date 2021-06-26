@@ -42,3 +42,37 @@ mat-card.header-colored-card {
     padding: 16px;
   }
 }
+
+mat-action-list.tile-list {
+  overflow: hidden auto;
+  height: 100%;
+  flex: 1 1 auto;
+  padding: 0;
+
+  >button {
+    height: 31px !important;
+
+    span {
+      width: 100% !important;
+    }
+
+    mat-icon {
+      position: absolute;
+      top: 5px;
+      right: 0;
+      font-size: 1.2em;
+    }
+  }
+
+  &.left-align > button span {
+    text-align: left;
+  }
+
+  &.center-align > button span {
+    text-align: center;
+  }
+
+  &.right-align > button span {
+    text-align: right;
+  }
+}

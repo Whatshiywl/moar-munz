@@ -16,4 +16,8 @@
   <div class="level-indicator">
     <mat-icon *ngFor="let icon of tileData.indicators">{{icon}}</mat-icon>
   </div>
+  <div *ngIf="canTrade()" class="trade-button"
+  (click)="toggleTrade($event, tile?.name)">
+    <mat-icon>paid</mat-icon>
+  </div>
 </div>

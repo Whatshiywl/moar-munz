@@ -1,3 +1,4 @@
+import { Clipboard } from '@angular/cdk/clipboard';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Player } from '@moar-munz/api-interfaces';
@@ -19,6 +20,7 @@ export class LobbyComponent implements OnInit {
     public playerService: PlayerService,
     private route: ActivatedRoute,
     private router: Router,
+    private clipboard: Clipboard
   ) { }
 
   async ngOnInit() {
@@ -26,6 +28,7 @@ export class LobbyComponent implements OnInit {
     const params = this.route.snapshot.params;
     console.log('lobby component params', params);
     const id = params.id;
+    this.clipboard.copy(location.href);
     this.socket.emit('enter lobby', { lobbyId: id }, (response: { token: string, uuid: string }) => {
       if (!response) {
         alert('This lobby has closed! :(');

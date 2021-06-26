@@ -10,9 +10,15 @@
           <mat-card-subtitle>You</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          <mat-list dense>
-            <mat-list-item *ngFor="let tile of tradeData.myForm.get('tiles').value">{{tile}}</mat-list-item>
-          </mat-list>
+          <mat-action-list class="tile-list left-align">
+            <mat-divider></mat-divider>
+            <button mat-list-item *ngFor="let option of tradeData.myForm.get('tiles').value"
+            (click)="removeTile(option)" disableRipple>
+              <span>{{option}}</span>
+              <mat-icon>close</mat-icon>
+              <mat-divider></mat-divider>
+            </button>
+          </mat-action-list>
         </mat-card-content>
       </mat-card>
 
@@ -43,9 +49,14 @@
           <mat-card-subtitle>Them</mat-card-subtitle>
         </mat-card-header>
         <mat-card-content>
-          <mat-list dense>
-            <mat-list-item *ngFor="let tile of tradeData.theirSide.form.tiles">{{tile}}</mat-list-item>
-          </mat-list>
+          <mat-action-list class="tile-list left-align">
+            <mat-divider></mat-divider>
+            <button mat-list-item *ngFor="let option of tradeData.theirSide.form.tiles"
+            disabled disableRipple>
+              <span>{{option}}</span>
+              <mat-divider></mat-divider>
+            </button>
+          </mat-action-list>
         </mat-card-content>
       </mat-card>
 

@@ -3,7 +3,7 @@
         <pre>{{prompt.message}}</pre>
     </mat-card-title>
 
-    <mat-action-list *ngIf="prompt.type === 'alert'">
+    <mat-action-list *ngIf="prompt.type === 'alert'" class="tile-list center-align">
         <mat-divider></mat-divider>
         <button mat-list-item *ngIf="!prompt.options"
         (click)="onQuestionAnswer()">
@@ -11,7 +11,7 @@
         </button>
     </mat-action-list>
 
-    <mat-action-list *ngIf="prompt.type === 'confirm'">
+    <mat-action-list *ngIf="prompt.type === 'confirm'" class="tile-list center-align">
         <mat-divider></mat-divider>
         <button mat-list-item
         (click)="onQuestionAnswer(false)">
@@ -24,7 +24,7 @@
         </button>
     </mat-action-list>
 
-    <mat-action-list *ngIf="prompt.type === 'select'">
+    <mat-action-list *ngIf="prompt.type === 'select'" class="tile-list center-align">
         <mat-divider></mat-divider>
         <button mat-list-item *ngFor="let option of prompt?.options; last as last"
         (click)="onQuestionAnswer(option)"

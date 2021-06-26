@@ -18,20 +18,4 @@
             margin: 0;
         }
     }
-
-    mat-action-list {
-        overflow: auto;
-        height: 100%;
-        flex: 1 1 auto;
-        padding: 0;
-
-        button {
-            height: 31px;
-
-            span {
-                width: 100%;
-                text-align: center;
-            }
-        }
-    }
 }

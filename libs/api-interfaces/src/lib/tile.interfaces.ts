@@ -1,6 +1,8 @@
+export type TileType = 'start' | 'deed' | 'chance' | 'company' | 'railroad' | 'prison' | 'worldcup' | 'worldtour' | 'tax';
+
 export interface BaseTile {
     name: string,
-    type: 'start' | 'deed' | 'chance' | 'company' | 'railroad' | 'prison' | 'worldcup' | 'worldtour' | 'tax',
+    type: TileType,
     color: string
 }
 
