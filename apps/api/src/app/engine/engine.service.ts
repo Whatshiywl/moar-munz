@@ -342,7 +342,6 @@ export class EngineService {
 
     private async givePlayer(player: Player, amount: number, origin?: string | boolean) {
       const { lobby: matchId } = player;
-      const startAmount = this.matchService.getPlayerMoney(player);
       this.matchService.addPlayerMoney(player, amount);
       while (this.matchService.getPlayerMoney(player) < 0) {
         const properties = this.matchService.getPlayerProperties(player);
@@ -408,7 +407,8 @@ export class EngineService {
           `${player.name} ${data}`
         );
       }
-      return this.matchService.getPlayerMoney(player) - startAmount;
+      const loss = Math.min(0, this.matchService.getPlayerMoney(player));
+      return amount - loss;
     }
 
     private async transferFromTo(from: Player, to: Player, amount: number) {
