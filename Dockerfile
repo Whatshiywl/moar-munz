@@ -2,11 +2,11 @@ FROM node:slim
 
 WORKDIR /app
 COPY package.json .
-RUN npm i --only=prod
+RUN npm i --only=prod --legacy-peer-deps
 
 WORKDIR /repo
 COPY package.json .
-RUN npm i
+RUN npm i --legacy-peer-deps
 
 COPY . .
 RUN echo build api && \
