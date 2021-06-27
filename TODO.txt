@@ -11,7 +11,7 @@ Nomes coloridos em eventos do chat
 [OK] Implementar janela de chat
 [OK] Fazer eventos do jogo aparecerem no chat
 [OK] Melhorar lista de jogadores (angular material)
-Implementar componente de negociação
+[OK] Implementar componente de negociação
 [OK] Implementar botões para iniciar conversa e negociação
 [OK] [BUG] Jogo continua com apenas AI
 [OK] [BUG] Pergunta de worldtour feita após jogada de dados

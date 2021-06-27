@@ -1,6 +1,6 @@
 {
   "name": "moar-munz",
-  "version": "1.5.2",
+  "version": "1.6",
   "license": "MIT",
   "scripts": {
     "ng": "ng",
