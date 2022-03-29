@@ -2,7 +2,7 @@
 
 set -e
 
-docker build -t moar-munz:latest .
+docker-compose build --no-cache
 sleep 5
 heroku container:push web -a moar-munz
 sleep 5
