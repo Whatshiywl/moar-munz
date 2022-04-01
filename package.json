@@ -1,6 +1,6 @@
 {
   "name": "moar-munz",
-  "version": "1.6.0",
+  "version": "2.0.0-dev",
   "license": "MIT",
   "scripts": {
     "ng": "ng",
@@ -46,8 +46,6 @@
     "@nestjs/platform-socket.io": "^7.0.8",
     "@nestjs/serve-static": "^2.1.0",
     "@nestjs/websockets": "^7.0.8",
-    "@ngrx/effects": "^11.0.1",
-    "@ngrx/store": "^11.0.1",
     "@nrwl/angular": "9.2.3",
     "color": "^3.1.2",
     "core-js": "^3.6.5",

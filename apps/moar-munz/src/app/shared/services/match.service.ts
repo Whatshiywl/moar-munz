@@ -1,9 +1,9 @@
 import { Injectable } from "@angular/core";
 import { Board, Match, Tile } from "@moar-munz/api-interfaces";
-import { Store } from "@ngrx/store";
 import copy from "fast-copy";
-import { Observable, pipe, Subject } from "rxjs";
+import { Observable, Subject } from "rxjs";
 import { filter, map } from "rxjs/operators";
+import { SocketService } from "../socket/socket.service";
 
 @Injectable()
 export class MatchService {
@@ -15,16 +15,15 @@ export class MatchService {
   private _tileClicked$: Subject<Tile>;
 
   constructor(
-    private store: Store<{
-      match: Match
-    }>
+    private socket: SocketService
   ) {
     this._matchChange$ = new Subject<Match>();
     this._tileClicked$ = new Subject<Tile>();
-    const filterCopy = <T>() => pipe<Observable<T>, Observable<T>, Observable<T>>(filter(el => Boolean(el)), map(el => copy(el)));
-    this._match$ = this.store.select('match').pipe(filterCopy());
+    this._match$ = this.socket.onMatch$.pipe(
+      filter(el => Boolean(el)),
+      map(({ payload: match }) => copy(match))
+    );
     this._match$.subscribe(match => {
-      // console.log('match', match);
       this.updateMatch(match);
       setTimeout(() => {
         this._matchChange$.next(match);

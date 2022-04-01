@@ -22,7 +22,7 @@ export class PromptService {
         this.answer(clickAnswer);
       }
     });
-    this.socket.on('new prompt', (prompt: Prompt) => {
+    this.socket.onPromptNew$.subscribe(({ payload: prompt }) => {
       console.log('prompt received');
       this._prompt = prompt;
       if (this.debug) {
@@ -31,7 +31,7 @@ export class PromptService {
         }, 100);
       }
     });
-    this.socket.on('update prompt', (prompt: Prompt) => {
+    this.socket.onPromptUpdate$.subscribe(({ payload: prompt }) => {
       this._prompt = prompt;
     });
   }

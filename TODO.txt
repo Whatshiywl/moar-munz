@@ -8,6 +8,7 @@ Permitir escolher nome e cor no lobby
 Nomes coloridos em eventos do chat
 
 2.0
+[OK] Remover ngrx (estado gerenciado server-side)
 Unificar estado da partida em um objeto
 Implementar motor de jogo baseado em eventos
 Separar backend e frontend

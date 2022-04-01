@@ -58,7 +58,7 @@ export class ChatComponent implements OnInit {
   ) { }
 
   ngOnInit() {
-    this.socket.on('message', (message: Message) => {
+    this.socket.onMessage$.subscribe(({ payload: message }) => {
       console.log(`Got message`, message);
       const me = this.playerService.player;
       const myId = me.id;

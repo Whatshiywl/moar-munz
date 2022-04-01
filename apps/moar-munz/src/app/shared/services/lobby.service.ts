@@ -1,9 +1,9 @@
 import { Injectable } from "@angular/core";
 import { Lobby } from "@moar-munz/api-interfaces";
-import { Store } from "@ngrx/store";
 import copy from "fast-copy";
-import { Observable, pipe } from "rxjs";
+import { Observable } from "rxjs";
 import { filter, map } from "rxjs/operators";
+import { SocketService } from "../socket/socket.service";
 
 @Injectable()
 export class LobbyService {
@@ -12,12 +12,12 @@ export class LobbyService {
   private _lobby: Lobby;
 
   constructor(
-    private store: Store<{
-      lobby: Lobby
-    }>
+    private socket: SocketService
   ) {
-    const filterCopy = <T>() => pipe<Observable<T>, Observable<T>, Observable<T>>(filter(el => Boolean(el)), map(el => copy(el)));
-    this._lobby$ = this.store.select('lobby').pipe(filterCopy());
+    this._lobby$ = this.socket.onLobby$.pipe(
+      filter(el => Boolean(el)),
+      map(({ payload: lobby }) => copy(lobby))
+    );
     this._lobby$.subscribe(lobby => {
       console.log('lobby', lobby);
       this._lobby = lobby;

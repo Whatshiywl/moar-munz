@@ -29,7 +29,7 @@ export class TradeService {
     private fb: FormBuilder
   ) {
     this.tradeUpdated$ = new Subject<TradeSide>();
-    this.socket.on('update trade', (side: TradeSide, callback: (confirmed: Trade | false) => void) => {
+    this.socket.onTradeUpdate$.subscribe(({ payload: side, callback }) => {
       console.log(Date.now(), 'incoming trade', side.player, side.form, side.hash);
       const tradeId = side.player;
       const meConfirmed = this.checkConfirmed(tradeId, side);
@@ -47,7 +47,7 @@ export class TradeService {
       }
     });
 
-    this.socket.on('end trade', (id: string) => {
+    this.socket.onTradeEnd$.subscribe(({ payload: id }) => {
       const tradeData = this._trades[id];
       console.log(Date.now(), 'end trade', id, tradeData.myForm.value, tradeData.theirSide.form);
       this._trades[id].myForm.reset(this.newTradeForm(), { emitEvent: false });

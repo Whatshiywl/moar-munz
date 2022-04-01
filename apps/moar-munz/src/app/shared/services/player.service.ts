@@ -1,9 +1,9 @@
 import { Injectable } from "@angular/core";
 import { Lobby, LobbyState, Match, Player, PlayerState, PlayerComplete } from "@moar-munz/api-interfaces";
-import { Store } from "@ngrx/store";
-import { Observable, pipe, Subject } from "rxjs";
+import { Observable, Subject } from "rxjs";
 import { filter, map } from 'rxjs/operators';
 import copy from 'fast-copy';
+import { SocketService } from "../socket/socket.service";
 
 @Injectable()
 export class PlayerService {
@@ -26,16 +26,18 @@ export class PlayerService {
   private _playerChange$: Subject<PlayerComplete[]>;
 
   constructor(
-    private store: Store<{
-      lobby: Lobby,
-      match: Match
-    }>
+    private socket: SocketService
   ) {
     this.uuid = sessionStorage.getItem('uuid');
     this._playerChange$ = new Subject<PlayerComplete[]>();
-    const filterCopy = <T>() => pipe<Observable<T>, Observable<T>, Observable<T>>(filter(el => Boolean(el)), map(el => copy(el)));
-    this.lobby$ = this.store.select('lobby').pipe(filterCopy());
-    this.match$ = this.store.select('match').pipe(filterCopy());
+    this.lobby$ = this.socket.onLobby$.pipe(
+      filter(el => Boolean(el)),
+      map(({ payload: lobby }) => copy(lobby))
+    );
+    this.match$ = this.socket.onMatch$.pipe(
+      filter(el => Boolean(el)),
+      map(({ payload: match }) => copy(match))
+    );
 
     this.lobby$.subscribe(lobby => {
       this._playerOrder = lobby.playerOrder;

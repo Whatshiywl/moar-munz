@@ -43,7 +43,8 @@ export class PlayComponent implements OnInit, OnDestroy {
     console.log('debug play component on init', this.debug);
     this.uuid = sessionStorage.getItem('uuid');
     this.socket.connect();
-    this.socket.on('dice roll', (dice: number[]) => {
+
+    this.socket.onDiceRoll$.subscribe(({ payload: dice }) => {
       this.currentRoll[0] = dice[0];
       this.currentRoll[1] = dice[1];
     });
