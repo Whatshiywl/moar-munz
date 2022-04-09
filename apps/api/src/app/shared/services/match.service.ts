@@ -91,7 +91,7 @@ export class MatchService implements OnApplicationBootstrap {
         if (tile.owner === player.id) tile.owner = aiId;
       });
     } else {
-      if (playerState.turn) this.setNextPlayer(player.matchId);
+      if (playerState.turn) this.computeNextPlayer(player.matchId);
       match.playerOrder[index] = undefined;
       match.board.tiles.forEach(tile => {
         if (tile.owner === player.id) {
@@ -108,7 +108,7 @@ export class MatchService implements OnApplicationBootstrap {
     return board.tiles.filter(title => title.owner === player.id) as OwnableTile[];
   }
 
-  private hasHumanPlayers(id: string) {
+  hasHumanPlayers(id: string) {
     const playerOrder = this.getPlayerOrder(id);
     for (const playerId of playerOrder) {
       const player = this.playerService.getPlayer(playerId);
@@ -125,7 +125,7 @@ export class MatchService implements OnApplicationBootstrap {
     return this.playerService.getPlayer(playerId);
   }
 
-  setNextPlayer(id: string) {
+  computeNextPlayer(id: string) {
     const playerOrder = this.getPlayerOrder(id);
     const currentPlayer = this.getCurrentPlayer(id);
     this.updatePlayerState(currentPlayer, { turn: false });
@@ -133,6 +133,7 @@ export class MatchService implements OnApplicationBootstrap {
     const nextPlayer = this.getNextPlayer(id, index);
     this.updatePlayerState(nextPlayer, { turn: true });
     console.log('next player', nextPlayer);
+    return nextPlayer;
     if (nextPlayer.ai) {
       if (this.hasHumanPlayers(id)) return nextPlayer;
       else console.log('Abord infinite AI match!');

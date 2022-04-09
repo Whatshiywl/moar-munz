@@ -318,10 +318,14 @@ export class EngineService {
         }
         else {
             console.log(`${player.name}'s turn ended`);
-            const nextPlayer = this.matchService.setNextPlayer(player.matchId);
-            if (nextPlayer) {
+            const { matchId } = player;
+            const nextPlayer = this.matchService.computeNextPlayer(matchId);
+            if (nextPlayer.ai) {
+              if (this.matchService.hasHumanPlayers(matchId)) {
                 await this.sleep(2000);
                 await this.play(nextPlayer.id);
+              }
+              else console.log('Abord infinite AI match!');
             }
         }
     }
