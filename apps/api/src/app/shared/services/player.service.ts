@@ -54,7 +54,7 @@ export class PlayerService {
         return this.db.updatePlayer(player);
     }
 
-    deletePlayer(id: string) {
+    delete(id: string) {
         return this.db.deletePlayer(id);
     }
 

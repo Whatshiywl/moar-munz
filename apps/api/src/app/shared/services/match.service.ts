@@ -61,6 +61,10 @@ export class MatchService implements OnApplicationBootstrap {
     this.saveAndBroadcastMatch(match);
   }
 
+  getAllMatches() {
+    return this.db.readAllMatches();
+  }
+
   getMatch(id: string) {
     return this.db.readMatch(id);
   }
@@ -103,6 +107,10 @@ export class MatchService implements OnApplicationBootstrap {
     this.saveAndBroadcastMatch(match);
   }
 
+  delete(id: string) {
+    return this.db.deleteMatch(id);
+  }
+
   getPlayerProperties(player: Player) {
     const board = this.getBoard(player.matchId);
     return board.tiles.filter(title => title.owner === player.id) as OwnableTile[];
@@ -134,10 +142,6 @@ export class MatchService implements OnApplicationBootstrap {
     this.updatePlayerState(nextPlayer, { turn: true });
     console.log('next player', nextPlayer);
     return nextPlayer;
-    if (nextPlayer.ai) {
-      if (this.hasHumanPlayers(id)) return nextPlayer;
-      else console.log('Abord infinite AI match!');
-    }
   }
 
   private getNextPlayer(id: string, index: number) {

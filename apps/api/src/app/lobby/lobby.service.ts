@@ -23,7 +23,7 @@ export class LobbyService {
             this.deletePlayer(match, player);
         }
         this.matchService.removePlayer(match.playerOrder, player);
-        this.playerService.deletePlayer(player.id);
+        this.playerService.delete(player.id);
         if (aiPlayer) await this.engineService.play(aiPlayer.id);
     }
 

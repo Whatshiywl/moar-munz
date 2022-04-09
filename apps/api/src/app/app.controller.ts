@@ -15,7 +15,6 @@ import { MatchService } from './shared/services/match.service';
 export class AppController {
   constructor(
     private appService: AppService,
-    private lobbyService: LobbyService,
     private jwtService: JWTService,
     private uuidService: UUIDService,
     private boardService: BoardService,
@@ -52,6 +51,11 @@ export class AppController {
   @Get('players')
   getPlayers(@Query('matchId') matchId: string) {
     return this.playersService.getPlayersByMatchId(matchId);
+  }
+
+  @Post('cleanup')
+  cleanupStale() {
+    this.appService.cleanupStale();
   }
 
   @Get('version')

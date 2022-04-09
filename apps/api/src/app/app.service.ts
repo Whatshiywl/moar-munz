@@ -1,9 +1,39 @@
+import { Match } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
-import { Message } from '@moar-munz/api-interfaces';
+import { MatchService } from './shared/services/match.service';
+import { PlayerService } from './shared/services/player.service';
 
 @Injectable()
 export class AppService {
+
+  private readonly cleanupTTL = 60 * 60 * 1000;
+
+  constructor(
+    private matchService: MatchService,
+    private playerService: PlayerService
+  ) { }
+
   getData() {
     return { message: 'Welcome to api!' };
+  }
+
+  cleanupStale() {
+    const now = Date.now();
+    const matches = this.matchService.getAllMatches();
+    for (const matchId in matches) {
+      const match = matches[matchId] as Match;
+      const age = now - (match as any).mtime;
+      if (age < this.cleanupTTL) return;
+
+      const activePlayers = this.playerService.getPlayersByMatchId(matchId);
+      const nonAiPlayers = activePlayers.filter(player => !player.ai);
+
+      if (match.over || !nonAiPlayers.length) {
+        for (const { id: playerId } of activePlayers) {
+          this.playerService.delete(playerId);
+        }
+        this.matchService.delete(matchId);
+      }
+    };
   }
 }

@@ -18,24 +18,6 @@ export class LowDbService implements MatchCRUD, PlayerCRUD {
             matches: { },
             players: { }
         }).write();
-        this.db.set('matches', { }).write();
-        this.db.set('players', { }).write();
-
-        setInterval(() => {
-            const now = Date.now();
-            const matches = this.db.get('matches').value();
-            Object.keys(matches).forEach(key => {
-                const match = matches[key] as Match;
-                const age = now - (match as any).mtime;
-                if (age < 120000) return;
-                if (!match.playerOrder.length || match.over) {
-                    for (const playerId of match.playerOrder) {
-                        this.deletePlayer(playerId);
-                    }
-                    this.deleteMatch(match.id);
-                }
-            });
-        }, 60000);
     }
 
     // MATCH
@@ -48,6 +30,10 @@ export class LowDbService implements MatchCRUD, PlayerCRUD {
 
     readMatch(id: string): Match {
         return this.db.get(`matches.${id}`).value();
+    }
+
+    readAllMatches(): Match[] {
+        return this.db.get('matches').value();
     }
 
     updateMatch(match: Match) {

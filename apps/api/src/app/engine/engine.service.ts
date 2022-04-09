@@ -321,11 +321,11 @@ export class EngineService {
             const { matchId } = player;
             const nextPlayer = this.matchService.computeNextPlayer(matchId);
             if (nextPlayer.ai) {
-              if (this.matchService.hasHumanPlayers(matchId)) {
-                await this.sleep(2000);
-                await this.play(nextPlayer.id);
-              }
-              else console.log('Abord infinite AI match!');
+                if (this.matchService.hasHumanPlayers(matchId)) {
+                    await this.sleep(2000);
+                    await this.play(nextPlayer.id);
+                }
+                else console.log('Abord infinite AI match!');
             }
         }
     }
