@@ -1,12 +1,12 @@
 import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { SocketService } from '../shared/socket/socket.service';
-import { Player, PlayerComplete, Tile } from '@moar-munz/api-interfaces';
+import { Match, Player, Tile } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
 import { PlayerService } from '../shared/services/player.service';
 import { MatchService } from '../shared/services/match.service';
 import { TradeService } from '../shared/services/trade.service';
 
-type PlayerCard = { player: PlayerComplete, properties: Tile[] }
+type PlayerCard = { player: Player, properties: Tile[] }
 
 @Component({
   selector: 'moar-munz-play',
@@ -72,14 +72,9 @@ export class PlayComponent implements OnInit, OnDestroy {
     if (!this.highlighted.tiles.length) {
       this.tiles.forEach(_ => this.highlighted.tiles.push(false));
     }
-    if (this.debug) {
-      setTimeout(() => {
-        if (this.playerService.isMyTurn) this.throwDice();
-      }, 100);
-    }
   }
 
-  private updatePlayerCards(players: PlayerComplete[]) {
+  private updatePlayerCards(players: Player[]) {
     if (!Object.keys(this.highlighted.players).length) {
       players.forEach(p => this.highlighted.players[p.id] = false);
     }
@@ -92,6 +87,11 @@ export class PlayComponent implements OnInit, OnDestroy {
         this.playerCards[cardIndex].properties = properties;
       }
     });
+    if (this.debug) {
+      setTimeout(() => {
+        if (this.playerService.isMyTurn) this.throwDice();
+      }, 100);
+    }
   }
 
   private getPlayerProperties(player: Player) {
@@ -104,7 +104,7 @@ export class PlayComponent implements OnInit, OnDestroy {
     this.socket.disconnect(true);
   }
 
-  openPlayerChat(player: PlayerComplete, event: MouseEvent) {
+  openPlayerChat(player: Player, event: MouseEvent) {
     event.stopPropagation();
     if (player.id === this.playerService.player.id) return;
     this.chatComponent.addTab(player, true, true);

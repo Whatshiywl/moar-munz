@@ -10,18 +10,6 @@ export interface MatchCRUD {
 
 }
 
-export interface LobbyCRUD {
-
-    createLobby: (lobby: any) => string;
-
-    readLobby: (id: string) => any;
-
-    updateLobby: (lobby: any) => void;
-
-    deleteLobby: (id: string) => any;
-
-}
-
 export interface PlayerCRUD {
 
     createPlayer: (player: any) => string;

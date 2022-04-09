@@ -10,7 +10,7 @@ export abstract class AbstractPromptFactory<T> implements PromptFactory<T> {
   }
 
   getHash(player: Player): string {
-    return `${player.lobby}|${player.id}`;
+    return `${player.matchId}|${player.id}`;
   }
 
   alert(player: Player, message: string): Prompt<void> {

@@ -1,4 +1,4 @@
-import { Lobby, Player } from '@moar-munz/api-interfaces';
+import { Match, Player, PlayerState, VictoryState } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 import { JWTService } from './jwt.service';
 import { LowDbService } from './lowdb.service';
@@ -14,25 +14,36 @@ export class PlayerService {
         private jwtService: JWTService
     ) { }
 
-    private generatePlayer(id: string, lobby: Lobby, ai: boolean) {
+    private generatePlayer(id: string, match: Match, ai: boolean) {
         const name = `${this.generateRandomName()}${ai ? ' (AI)' : ''}`;
         const player: Player = {
             id,
             name,
-            lobby: lobby.id,
-            ai
+            matchId: match.id,
+            ai,
+            color: 'black',
+            ready: false,
+            state: {
+                victory: VictoryState.UNDEFINED,
+                position: 0,
+                playAgain: false,
+                money: 2000,
+                prison: 0,
+                equalDie: 0,
+                turn: false
+            }
         };
         this.db.createPlayer(player);
         return player;
     }
 
-    getOrGenPlayerByToken(token: string, lobby: Lobby, ai: boolean) {
+    getOrGenPlayerByToken(token: string, match: Match, ai: boolean) {
         if (!token) {
             const uuid = this.uuidService.generateUUID(2);
             token = this.jwtService.genToken({ uuid });
         }
         const payload = this.jwtService.getPayload(token);
-        return { token, player: this.generatePlayer(payload.uuid, lobby, ai) };
+        return { token, player: this.generatePlayer(payload.uuid, match, ai) };
     }
 
     getPlayer(id: string): Player {
@@ -45,6 +56,29 @@ export class PlayerService {
 
     deletePlayer(id: string) {
         return this.db.deletePlayer(id);
+    }
+
+    getPlayersByMatchId(matchId: string) {
+        return this.db.readPlayersByMatchId(matchId);
+    }
+
+    getState(id: string) {
+        const player = this.getPlayer(id);
+        return player?.state;
+    }
+
+    setState(id: string, state: PlayerState) {
+        const player = this.getPlayer(id);
+        if (!player) return;
+        player.state = { ...state };
+        return this.savePlayer(player);
+    }
+
+    setTurn(id: string, turn: boolean) {
+        const player = this.getPlayer(id);
+        if (!player) return;
+        player.state.turn = turn;
+        return this.savePlayer(player);
     }
 
     private generateRandomName() {

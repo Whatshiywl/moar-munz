@@ -1,15 +1,23 @@
-import { LobbyState } from './lobby.interfaces';
-import { PlayerState } from './match.interfaces';
+export enum VictoryState {
+  UNDEFINED, LOST, WON
+}
+
+export interface PlayerState {
+  victory: VictoryState,
+  position: number,
+  playAgain: boolean,
+  money: number,
+  prison: number,
+  equalDie: number,
+  turn: boolean
+}
 
 export interface Player {
-    id: string,
-    name: string,
-    lobby: string,
-    ai: boolean
+  id: string,
+  name: string,
+  matchId: string,
+  ai: boolean,
+  color: string,
+  ready: boolean,
+  state: PlayerState
 }
-
-export enum VictoryState {
-    UNDEFINED, LOST, WON
-}
-
-export type PlayerComplete = Player & PlayerState & LobbyState;

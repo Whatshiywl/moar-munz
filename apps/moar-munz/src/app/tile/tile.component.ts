@@ -1,6 +1,5 @@
 import { Component, Input } from '@angular/core';
-import { CompanyTile, DeedTile, LobbyState, Match, Player, PlayerComplete, RailroadTile, Tile, TileType, VictoryState } from '@moar-munz/api-interfaces';
-import { LobbyService } from '../shared/services/lobby.service';
+import { CompanyTile, DeedTile, Match, Player, RailroadTile, Tile, TileType, VictoryState } from '@moar-munz/api-interfaces';
 import { MatchService } from '../shared/services/match.service';
 import { PlayerService } from '../shared/services/player.service';
 import { TradeService } from '../shared/services/trade.service';
@@ -17,8 +16,8 @@ export class TileComponent {
 
   tile: Tile;
   tileData: {
-    players: (PlayerComplete)[],
-    owner?: Player & LobbyState,
+    players: (Player)[],
+    owner?: Player,
     level?: number,
     levelString?: string,
     value?: string,
@@ -32,12 +31,12 @@ export class TileComponent {
   ];
 
   constructor(
-    private lobbyService: LobbyService,
     private matchService: MatchService,
     private playerService: PlayerService,
     private tradeService: TradeService
   ) {
     this.matchService.matchChange$.subscribe(this.onMatchChanged.bind(this));
+    this.playerService.playerChange$.subscribe(this.onPlayersChanged.bind(this));
   }
 
   private onMatchChanged(match: Match) {
@@ -47,18 +46,21 @@ export class TileComponent {
     this.tileData.value = this.getTilePrice(this.tile);
     this.tileData.info = this.getTileInfo(this.tile);
     this.tileData.indicators = this.getTileIndicators(this.tile);
-    this.tileData.players = this.getPlayersInTile(this.index);
-    this.tileData.owner = this.lobbyService.lobby.players[this.tile.owner];
+    this.tileData.owner = this.getTileOwner(this.tile);
+  }
+
+  private onPlayersChanged(players: Player[]) {
+    this.tileData.players = this.getPlayersInTile(players);
   }
 
   getTileOwner(tile: Tile) {
-    return this.lobbyService.lobby?.players[tile.owner];
+    return this.playerService.getPlayer(tile.owner);
   }
 
-  getPlayersInTile(t: number) {
-    return this.playerService.players?.filter(player => {
-      return player.victory !== VictoryState.LOST && player.position === t;
-    });
+  getPlayersInTile(players: Player[]) {
+    return players?.filter(player => {
+      return player.state.victory !== VictoryState.LOST && player.state.position === this.index;
+    }) || [ ];
   }
 
   getTileLevel(tile: Tile) {

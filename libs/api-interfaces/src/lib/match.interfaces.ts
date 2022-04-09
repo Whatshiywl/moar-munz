@@ -1,25 +1,19 @@
 import { Board } from './board.interfaces';
-import { LobbyOptions } from './lobby.interfaces';
-import { VictoryState } from './player.interfaces';
 
-export interface Match {
-    id: string,
-    turn: 0,
-    lastDice: [ number, number ],
-    playerOrder: string[],
-    playerState: { [id: string]: PlayerState },
-    options: LobbyOptions,
-    board: Board,
-    locked: boolean,
-    over: boolean
+export interface MatchOptions {
+  board: string,
+  ai: boolean
 }
 
-export interface PlayerState {
-    victory: VictoryState,
-    position: number,
-    playAgain: boolean,
-    money: number,
-    prison: number,
-    equalDie: number,
-    turn: boolean
+export interface Match {
+  id: string,
+  playerOrder: string[],
+  open: boolean,
+  turn: number,
+  lastDice: [number, number],
+  options: MatchOptions,
+  board: Board,
+  locked: boolean,
+  over: boolean,
+  started: boolean
 }

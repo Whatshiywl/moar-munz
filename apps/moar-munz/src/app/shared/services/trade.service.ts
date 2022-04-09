@@ -1,13 +1,13 @@
 import { Injectable } from "@angular/core";
 import { FormBuilder, FormGroup } from "@angular/forms";
-import { PlayerComplete, Trade, TradeForm, TradeSide } from "@moar-munz/api-interfaces";
+import { Player, Trade, TradeForm, TradeSide } from "@moar-munz/api-interfaces";
 import { Subject } from "rxjs";
 import { SocketService } from "../socket/socket.service";
 import { MatchService } from "./match.service";
 import { PlayerService } from "./player.service";
 
 interface TradeData {
-  them: PlayerComplete,
+  them: Player,
   myForm: FormGroup,
   theirSide: TradeSide
 }

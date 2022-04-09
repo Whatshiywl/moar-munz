@@ -15,7 +15,7 @@ export class WorldcupPromptFactory extends AbstractPromptFactory<string> {
   }
 
   async build(player: Player) {
-    const board = this.matchService.getBoard(player.lobby);
+    const board = this.matchService.getBoard(player.matchId);
     const tile = this.matchService.getTileWithPlayer(player) as WorldcupTile;
     const deeds = board.tiles.filter(t => t.type === 'deed') as RentableTile[];
     const options = deeds.filter(t => {

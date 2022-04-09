@@ -30,7 +30,7 @@ export class EngineService {
         const dice = canMove ?
             this.rollDice() :
             [ undefined, undefined ] as [ number, number ];
-        const playerOrder = this.matchService.getPlayerOrder(player.lobby);
+        const playerOrder = this.matchService.getPlayerOrder(player.matchId);
         if (canMove) {
             for (let i = 0; i < 20; i++) {
                 const tempDice = this.rollDice();
@@ -38,28 +38,28 @@ export class EngineService {
                 await this.sleep(100);
             }
         }
-        this.matchService.setLastDice(player.lobby, dice);
+        this.matchService.setLastDice(player.matchId, dice);
         return canMove ? this.sumDice(dice) : 0;
     }
 
     async play(playerId: string) {
         const player = this.playerService.getPlayer(playerId);
         if (!player) return;
-        if (!this.matchService.isPlayable(player.lobby)) return;
+        if (!this.matchService.isPlayable(player.matchId)) return;
         const playerState = this.matchService.getPlayerState(player);
         if (!playerState.turn) return;
         if (playerState.victory === VictoryState.LOST) return;
-        this.matchService.setLocked(player.lobby, true);
+        this.matchService.setLocked(player.matchId, true);
         const canMove = await this.onStart(player);
         const diceResult = await this.determineDice(player, canMove);
         const canPlay = canMove && this.onPlay(player);
         if (canPlay) await this.walkNTiles(player, diceResult);
-        this.matchService.setLocked(player.lobby, false);
+        this.matchService.setLocked(player.matchId, false);
         this.onEnd(player);
     }
 
     private async walkNTiles(player: Player, n: number) {
-        const boardSize = this.matchService.getBoardSize(player.lobby);
+        const boardSize = this.matchService.getBoardSize(player.matchId);
         const start = this.matchService.getPlayerPosition(player);
         for (let i = 1; i <= n; i++) {
             const position = (start + i) % boardSize;
@@ -78,14 +78,14 @@ export class EngineService {
     private async onStart(player: Player) {
         console.log(`${player.name}'s turn started`);
         const playerState = this.matchService.getPlayerState(player);
-        let board = this.matchService.getBoard(player.lobby);
+        let board = this.matchService.getBoard(player.matchId);
         const tile = board.tiles[playerState.position];
         switch (tile.type) {
             case 'worldtour':
                 if (this.matchService.getPlayerMoney(player) < tile.cost) return;
                 const prompt = await this.promptService.process(player, this.promptService.worldtourPromptFactory);
                 if (!prompt) return;
-                board = this.matchService.getBoard(player.lobby);
+                board = this.matchService.getBoard(player.matchId);
                 const answer = prompt.answer;
                 if (answer !== prompt.options[0]) {
                     this.givePlayer(player, -tile.cost, false);
@@ -93,7 +93,7 @@ export class EngineService {
                     if (goToIndex < playerState.position) goToIndex += board.tiles.length;
                     const walkDistance = goToIndex - this.matchService.getPlayerPosition(player);
                     const canPlay = this.onPlay(player);
-                    this.matchService.setLastDice(player.lobby, [ undefined, undefined ]);
+                    this.matchService.setLastDice(player.matchId, [ undefined, undefined ]);
                     if (canPlay) await this.walkNTiles(player, walkDistance);
                     return false;
                 }
@@ -103,7 +103,7 @@ export class EngineService {
     }
 
     private onPlay(player: Player) {
-        const dice = this.matchService.getLastDice(player.lobby);
+        const dice = this.matchService.getLastDice(player.matchId);
         const playerState = this.matchService.getPlayerState(player);
         const tile = this.matchService.getTileWithPlayer(player);
         switch (tile.type) {
@@ -143,7 +143,7 @@ export class EngineService {
 
     private async onPass(player: Player) {
         const position = this.matchService.getPlayerPosition(player);
-        const tile = this.matchService.getTileAtPosition(player.lobby, position);
+        const tile = this.matchService.getTileAtPosition(player.matchId, position);
         switch (tile.type) {
             case 'start':
                 await this.givePlayer(player, 300, true);
@@ -152,7 +152,7 @@ export class EngineService {
     }
 
     private async onLand(player: Player) {
-        const board = this.matchService.getBoard(player.lobby);
+        const board = this.matchService.getBoard(player.matchId);
         let tile = this.matchService.getTileWithPlayer(player);
         console.log(player.id, player.name, 'landed on', tile);
         switch (tile.type) {
@@ -164,7 +164,7 @@ export class EngineService {
                 if (!wcPrompt) return;
                 const wcAnswer = wcPrompt.answer;
                 const wcAnswerValue = wcAnswer.match(/^([^\(]+)/)[1].trim();
-                this.matchService.setWorldcup(player.lobby, wcAnswerValue);
+                this.matchService.setWorldcup(player.matchId, wcAnswerValue);
                 break;
             case 'deed':
                 if (!tile.owner) {
@@ -179,7 +179,7 @@ export class EngineService {
                         const cost = tile.building * levelDifference;
                         const amount = tile.price + cost;
                         await this.givePlayer(player, -amount, false);
-                        this.matchService.setTileLevel(player.lobby, tile.name, answerValue + 1);
+                        this.matchService.setTileLevel(player.matchId, tile.name, answerValue + 1);
                         const monopolies = this.getPlayerMonopolies(player);
                         if (monopolies >= 4) this.win(player);
                     }
@@ -195,7 +195,7 @@ export class EngineService {
                             const levelDifference = answerValue + 1 - tile.level;
                             const cost = tile.building * levelDifference;
                             await this.givePlayer(player, -cost, false);
-                            this.matchService.setTileLevel(player.lobby, tile.name, answerValue + 1);
+                            this.matchService.setTileLevel(player.matchId, tile.name, answerValue + 1);
                         }
                     } else {
                         const owner = this.playerService.getPlayer(tile.owner);
@@ -230,7 +230,7 @@ export class EngineService {
                 } else {
                     if (tile.owner !== player.id) {
                         const owner = this.playerService.getPlayer(tile.owner);
-                        const dice = this.matchService.getLastDice(player.lobby);
+                        const dice = this.matchService.getLastDice(player.matchId);
                         const cost = this.sumDice(dice) * tile.multiplier;
                         await this.transferFromTo(player, owner, cost);
                     }
@@ -247,7 +247,7 @@ export class EngineService {
                         await this.givePlayer(player, -tile.price, false);
                         const ownedRails = board.tiles.filter(t => t.type === 'railroad' && t.owner === player.id) as RentableTile[];
                         ownedRails.forEach(t => {
-                          this.matchService.setTileLevel(player.lobby, t.name, ownedRails.length);
+                          this.matchService.setTileLevel(player.matchId, t.name, ownedRails.length);
                         });
                     }
                 } else {
@@ -318,7 +318,7 @@ export class EngineService {
         }
         else {
             console.log(`${player.name}'s turn ended`);
-            const nextPlayer = this.matchService.setNextPlayer(player.lobby);
+            const nextPlayer = this.matchService.setNextPlayer(player.matchId);
             if (nextPlayer) {
                 await this.sleep(2000);
                 await this.play(nextPlayer.id);
@@ -327,7 +327,7 @@ export class EngineService {
     }
 
     private getPlayerMonopolies(player: Player) {
-        const board = this.matchService.getBoard(player.lobby);
+        const board = this.matchService.getBoard(player.matchId);
         const colorGroups = groupBy(board.tiles, 'color');
         let monopolies = 0;
         Object.keys(colorGroups)
@@ -341,7 +341,7 @@ export class EngineService {
     }
 
     private async givePlayer(player: Player, amount: number, origin?: string | boolean) {
-      const { lobby: matchId } = player;
+      const { matchId } = player;
       this.matchService.addPlayerMoney(player, amount);
       while (this.matchService.getPlayerMoney(player) < 0) {
         const properties = this.matchService.getPlayerProperties(player);
@@ -426,7 +426,7 @@ export class EngineService {
         prison: 2, equalDie: 0
       });
       this.socketService.broadcastGlobalMessage(
-        this.matchService.getPlayerOrder(player.lobby),
+        this.matchService.getPlayerOrder(player.matchId),
         id => id === player.id ?
         `You have gone to jail!` :
         `${player.name} has gone to jail.`
@@ -435,7 +435,7 @@ export class EngineService {
 
     private win(winner: Player) {
       console.log(`${winner.name} WINS`);
-      const playerOrder = this.matchService.getPlayerOrder(winner.lobby);
+      const playerOrder = this.matchService.getPlayerOrder(winner.matchId);
       this.socketService.broadcastGlobalMessage(
         playerOrder,
         id => id === winner.id ?
@@ -448,7 +448,7 @@ export class EngineService {
         this.matchService.setPlayerVictory(player, VictoryState.LOST);
       });
       this.matchService.setPlayerVictory(winner, VictoryState.WON);
-      this.matchService.setMatchOver(winner.lobby);
+      this.matchService.setMatchOver(winner.matchId);
     }
 
     private sleep(n: number) {

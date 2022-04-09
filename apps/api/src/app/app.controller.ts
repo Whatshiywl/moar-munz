@@ -1,6 +1,6 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 
-import { LobbyOptions, Message } from '@moar-munz/api-interfaces';
+import { MatchOptions } from '@moar-munz/api-interfaces';
 
 import { AppService } from './app.service';
 import { UUIDService } from './shared/services/uuid.service';
@@ -8,6 +8,8 @@ import { LobbyService } from './lobby/lobby.service';
 import { JWTService } from './shared/services/jwt.service';
 import { BoardService } from './shared/services/board.service';
 import { pick } from 'lodash';
+import { PlayerService } from './shared/services/player.service';
+import { MatchService } from './shared/services/match.service';
 
 @Controller()
 export class AppController {
@@ -16,7 +18,9 @@ export class AppController {
     private lobbyService: LobbyService,
     private jwtService: JWTService,
     private uuidService: UUIDService,
-    private boardService: BoardService
+    private boardService: BoardService,
+    private playersService: PlayerService,
+    private matchService: MatchService
     ) {}
 
   @Get('hello')
@@ -32,17 +36,22 @@ export class AppController {
   }
 
   @Post('lobby')
-  postLobby(@Body() options: LobbyOptions) {
-    const lobby = this.lobbyService.generateLobby({
+  postLobby(@Body() options: MatchOptions) {
+    const match = this.matchService.generateMatch({
       ...{ board: 'classic', ai: false },
       ...options
     });
-    return lobby;
+    return match;
   }
 
   @Get('boards')
   getBoards() {
     return this.boardService.getBoards();
+  }
+
+  @Get('players')
+  getPlayers(@Query('matchId') matchId: string) {
+    return this.playersService.getPlayersByMatchId(matchId);
   }
 
   @Get('version')

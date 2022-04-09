@@ -13,7 +13,7 @@ export class WorldtourPromptFactory extends AbstractPromptFactory<string> {
   }
 
   async build(player: Player) {
-    const board = this.matchService.getBoard(player.lobby);
+    const board = this.matchService.getBoard(player.matchId);
     const tile = this.matchService.getTileWithPlayer(player) as WorldtourTile;
     const options = [ 'No', ...board.tiles.filter(t => {
         if (t.type !== 'deed') return false;

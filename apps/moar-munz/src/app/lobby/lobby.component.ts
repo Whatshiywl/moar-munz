@@ -1,8 +1,8 @@
 import { Clipboard } from '@angular/cdk/clipboard';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { Player } from '@moar-munz/api-interfaces';
-import { LobbyService } from '../shared/services/lobby.service';
+import { Match, Player } from '@moar-munz/api-interfaces';
+import { MatchService } from '../shared/services/match.service';
 import { PlayerService } from '../shared/services/player.service';
 import { SocketService } from '../shared/socket/socket.service';
 
@@ -13,11 +13,12 @@ import { SocketService } from '../shared/socket/socket.service';
 })
 export class LobbyComponent implements OnInit {
   uuid: string;
+  match: Match;
 
   constructor(
     private socket: SocketService,
-    private lobbyService: LobbyService,
-    public playerService: PlayerService,
+    private matchService: MatchService,
+    private playerService: PlayerService,
     private route: ActivatedRoute,
     private router: Router,
     private clipboard: Clipboard
@@ -35,13 +36,23 @@ export class LobbyComponent implements OnInit {
         this.router.navigate([ '/' ]);
       }
     });
+    this.matchService.matchChange$.subscribe(match => this.match = match);
   }
 
-  get lobby() { return this.lobbyService.lobby; }
+  getPlayer(id: string) {
+    return this.playerService.getPlayer(id);
+  }
 
+  get isFirst() {
+    return this.playerService?.first;
+  }
+
+  get isReady() {
+    return this.playerService?.player?.ready;
+  }
 
   onLobbyPlayerClick(player: Player) {
-    this.socket.emit('remove player', { id: player.id });
+    this.socket.emit('remove player', { id: player?.id });
   }
 
   onLobbyAddAI() {

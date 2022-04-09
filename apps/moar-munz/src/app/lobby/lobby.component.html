@@ -3,24 +3,24 @@
       <mat-card-title>Lobby</mat-card-title>
       <mat-divider></mat-divider>
       <mat-list class="player-list">
-          <mat-list-item *ngFor="let id of lobby?.playerOrder; last as last"
+          <mat-list-item *ngFor="let id of match?.playerOrder; last as last"
           class="player-list-item"
           [style.backgroundColor]="id === uuid ? 'none' : '#eee'">
-              <div *ngIf="lobby.players[id]" class="player-item">
-                  <span [style.color]="lobby.players[id].color">{{lobby.players[id].name}}</span>
+              <div *ngIf="getPlayer(id)" class="player-item">
+                  <span [style.color]="getPlayer(id)?.color">{{getPlayer(id)?.name}}</span>
 
-                  <mat-icon *ngIf="!lobby.players[id].ready" [style.color]="lobby.players[id].color">hourglass_empty</mat-icon>
-                  <mat-icon *ngIf="lobby.players[id].ready" [style.color]="lobby.players[id].color">check_circle</mat-icon>
+                  <mat-icon *ngIf="!getPlayer(id)?.ready" [style.color]="getPlayer(id)?.color">hourglass_empty</mat-icon>
+                  <mat-icon *ngIf="getPlayer(id)?.ready" [style.color]="getPlayer(id)?.color">check_circle</mat-icon>
 
               </div>
-              <div *ngIf="playerService.first && lobby.players[id]?.ai"
+              <div *ngIf="isFirst && getPlayer(id)?.ai"
                   class="player-list-button-hoverable"
-                  (click)="onLobbyPlayerClick(lobby.players[id])">
+                  (click)="onLobbyPlayerClick(getPlayer(id))">
                   <span>Remove A.I.</span>
               </div>
-              <mat-divider *ngIf="!last || (playerService.first && lobby?.options.ai)"></mat-divider>
+              <mat-divider *ngIf="!last || (isFirst && match?.options.ai)"></mat-divider>
           </mat-list-item>
-          <mat-list-item *ngIf="playerService.first && lobby?.options.ai"
+          <mat-list-item *ngIf="isFirst && match?.options.ai"
           class="player-list-item">
               <div class="player-list-button"
                   (click)="onLobbyAddAI()">
@@ -29,6 +29,6 @@
           </mat-list-item>
       </mat-list>
   </mat-card>
-  <button *ngIf="playerService.player?.ready" class="ready-button" mat-flat-button color="warn" (click)="onReady(false)">Not ready!</button>
-  <button *ngIf="!playerService.player?.ready" class="ready-button" mat-flat-button color="primary" (click)="onReady(true)">I'm ready!</button>
+  <button *ngIf="isReady" class="ready-button" mat-flat-button color="warn" (click)="onReady(false)">Not ready!</button>
+  <button *ngIf="!isReady" class="ready-button" mat-flat-button color="primary" (click)="onReady(true)">I'm ready!</button>
 </div>

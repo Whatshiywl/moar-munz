@@ -113,7 +113,7 @@ export class PromptService {
   }
 
   private getHash(player: Player) {
-    return `${player.lobby}|${player.id}`;
+    return `${player.matchId}|${player.id}`;
   }
 
 }

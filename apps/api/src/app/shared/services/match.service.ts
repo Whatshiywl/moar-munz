@@ -1,4 +1,4 @@
-import { Lobby, PlayerState, VictoryState, Match, Player, OwnableTile, RentableTile } from "@moar-munz/api-interfaces";
+import { PlayerState, VictoryState, Match, Player, OwnableTile, RentableTile, MatchOptions } from "@moar-munz/api-interfaces";
 import { Injectable, OnApplicationBootstrap } from "@nestjs/common";
 import { SocketService } from "../../socket/socket.service";
 import { BoardService } from "./board.service";
@@ -6,6 +6,7 @@ import { LowDbService } from "./lowdb.service";
 import { PlayerService } from "./player.service";
 import { Subject } from "rxjs";
 import { debounceTime } from 'rxjs/operators';
+import { UUIDService } from "./uuid.service";
 
 @Injectable()
 export class MatchService implements OnApplicationBootstrap {
@@ -14,6 +15,7 @@ export class MatchService implements OnApplicationBootstrap {
 
   constructor(
     private db: LowDbService,
+    private uuidService: UUIDService,
     private playerService: PlayerService,
     private socketService: SocketService,
     private boardService: BoardService,
@@ -30,37 +32,32 @@ export class MatchService implements OnApplicationBootstrap {
     });
   }
 
-  generateMatch(lobby: Lobby) {
-    const id = lobby.id;
-    const playerOrder = [ ...lobby.playerOrder ];
-    const options = { ...lobby.options };
-    const playerState: {
-      [id: string]: PlayerState;
-    } = { };
-    playerOrder.filter(Boolean).forEach((playerId, i) => {
-      playerState[playerId] = {
-        position: 0,
-        money: 2000,
-        victory: VictoryState.UNDEFINED,
-        playAgain: false,
-        prison: 0,
-        equalDie: 0,
-        turn: i === 0
-      };
-    });
-    const board = this.boardService.getBoard(lobby.options.board);
+  generateMatch(options: MatchOptions) {
+    const id = this.uuidService.generateUUID();
+    const board = this.boardService.getBoard(options.board);
     const match: Match = {
       id,
+      playerOrder: [ ],
+      open: true,
       turn: 0,
       lastDice: [ 1, 1 ],
-      playerOrder,
-      playerState,
       options,
       board,
       locked: false,
-      over: false
+      over: false,
+      started: false
     };
     this.db.createMatch(match);
+    this.saveAndBroadcastMatch(match);
+    return match;
+  }
+
+  initMatch(match: Match) {
+    const firstPlayerId = match.playerOrder[0];
+    if (!firstPlayerId) return;
+    this.playerService.setTurn(firstPlayerId, true);
+    match.open = false;
+    match.started = true;
     this.saveAndBroadcastMatch(match);
   }
 
@@ -77,24 +74,24 @@ export class MatchService implements OnApplicationBootstrap {
     this.broadcastMatchState(match);
   }
 
-  private broadcastMatchState(match: Match) {
+  broadcastMatchState(match: Match) {
     this.matchBroadcastSubject.next(match);
   }
 
   removePlayer(lobbyOrder: string[], player: Player) {
-    const match = this.getMatch(player.lobby);
+    const match = this.getMatch(player.matchId);
     const index = match.playerOrder.findIndex(s => s === player.id);
     if (index < 0) return;
-    const playerState = match.playerState[player.id];
+    const playerState = player.state;
     if (match.options.ai) {
       const aiId = lobbyOrder[index];
       match.playerOrder[index] = aiId;
-      match.playerState[aiId] = { ...playerState };
+      this.playerService.setState(aiId, playerState);
       match.board.tiles.forEach(tile => {
         if (tile.owner === player.id) tile.owner = aiId;
       });
     } else {
-      if (playerState.turn) this.setNextPlayer(player.lobby);
+      if (playerState.turn) this.setNextPlayer(player.matchId);
       match.playerOrder[index] = undefined;
       match.board.tiles.forEach(tile => {
         if (tile.owner === player.id) {
@@ -103,12 +100,11 @@ export class MatchService implements OnApplicationBootstrap {
         }
       });
     }
-    delete match.playerState[player.id];
     this.saveAndBroadcastMatch(match);
   }
 
   getPlayerProperties(player: Player) {
-    const board = this.getBoard(player.lobby);
+    const board = this.getBoard(player.matchId);
     return board.tiles.filter(title => title.owner === player.id) as OwnableTile[];
   }
 
@@ -124,7 +120,7 @@ export class MatchService implements OnApplicationBootstrap {
   private getCurrentPlayer(id: string) {
     const match = this.getMatch(id);
     const playerId = match.playerOrder.find(id => {
-      return match.playerState[id].turn;
+      return this.playerService.getState(id).turn;
     });
     return this.playerService.getPlayer(playerId);
   }
@@ -149,7 +145,7 @@ export class MatchService implements OnApplicationBootstrap {
       index = (index + 1) % match.playerOrder.length;
       const nextPlayerId = match.playerOrder[index];
       if (!nextPlayerId) continue;
-      const nextPlayerState = match.playerState[nextPlayerId];
+      const nextPlayerState = this.playerService.getState(nextPlayerId);
       if (!nextPlayerState || nextPlayerState.victory === VictoryState.LOST) continue;
       return this.playerService.getPlayer(nextPlayerId);
     }
@@ -189,13 +185,12 @@ export class MatchService implements OnApplicationBootstrap {
   }
 
   getPlayerState(player: Player) {
-    const match = this.getMatch(player.lobby);
-    return match.playerState[player.id];
+    return player.state;
   }
 
   move(player: Player, to: number) {
-    const match = this.getMatch(player.lobby);
-    const playerState = match.playerState[player.id];
+    const match = this.getMatch(player.matchId);
+    const playerState = player.state;
     playerState.position = to;
     this.saveAndBroadcastMatch(match);
   }
@@ -223,15 +218,15 @@ export class MatchService implements OnApplicationBootstrap {
   }
 
   addPlayerMoney(player: Player, amount: number) {
-    const match = this.getMatch(player.lobby);
-    const state = match.playerState[player.id];
+    const match = this.getMatch(player.matchId);
+    const state = player.state;
     state.money += +amount;
     this.saveAndBroadcastMatch(match);
   }
 
   setPlayerMoney(player: Player, amount: number) {
-    const match = this.getMatch(player.lobby);
-    const state = match.playerState[player.id];
+    const match = this.getMatch(player.matchId);
+    const state = player.state;
     state.money = +amount;
     this.saveAndBroadcastMatch(match);
   }
@@ -253,7 +248,7 @@ export class MatchService implements OnApplicationBootstrap {
   }
 
   setTileOwner(tileName: string, player: Player) {
-    const match = this.getMatch(player.lobby);
+    const match = this.getMatch(player.matchId);
     const tile = match.board.tiles.find(t => t.name === tileName) as RentableTile;
     tile.owner = player.id;
     this.saveAndBroadcastMatch(match);
@@ -270,8 +265,8 @@ export class MatchService implements OnApplicationBootstrap {
   }
 
   setPlayerVictory(player: Player, victory: VictoryState) {
-    const match = this.getMatch(player.lobby);
-    const state = match.playerState[player.id];
+    const match = this.getMatch(player.matchId);
+    const state = player.state;
     state.victory = victory;
     this.saveAndBroadcastMatch(match);
   }
@@ -283,14 +278,14 @@ export class MatchService implements OnApplicationBootstrap {
 
   getTileWithPlayer(player: Player) {
     const position = this.getPlayerPosition(player);
-    const board = this.getBoard(player.lobby);
+    const board = this.getBoard(player.matchId);
     return board.tiles[position];
   }
 
   updatePlayerState(player: Player, updated: Partial<PlayerState>) {
-    const match = this.getMatch(player.lobby);
-    const state = match.playerState[player.id];
-    match.playerState[player.id] = { ...state, ...updated };
+    const match = this.getMatch(player.matchId);
+    const state = player.state;
+    player.state = { ...state, ...updated };
     this.saveAndBroadcastMatch(match);
   }
 

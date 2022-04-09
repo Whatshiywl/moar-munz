@@ -24,7 +24,7 @@ export class BodyMatchPipe implements PipeTransform<InBody, OutBody> {
 
     private getMatchIdFromPlayer(body: InBody) {
         const player = body.player || this.getPlayerFromToken(body.token);
-        return player.lobby;
+        return player.matchId;
     }
 
     private getPlayerFromToken(token: string) {

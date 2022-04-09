@@ -12,7 +12,6 @@ import { LightenPipe } from '../shared/pipes/lighten.pipe';
 import { MaterialModule } from '../material.module';
 import { PlayerService } from '../shared/services/player.service';
 import { LobbyComponent } from '../lobby/lobby.component';
-import { LobbyService } from '../shared/services/lobby.service';
 import { MatchService } from '../shared/services/match.service';
 import { PromptComponent } from '../prompt/prompt.component';
 import { PromptService } from '../shared/services/prompt.service';
@@ -42,7 +41,6 @@ import { DebounceClickDirective } from '../shared/directives/debounceclick.direc
   providers: [
     SocketService,
     PlayerService,
-    LobbyService,
     MatchService,
     PromptService,
     TradeService

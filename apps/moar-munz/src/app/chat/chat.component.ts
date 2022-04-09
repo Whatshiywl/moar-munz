@@ -1,7 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl, FormGroup } from '@angular/forms';
-import { Message, PlayerComplete, Player } from '@moar-munz/api-interfaces';
-import { LobbyService } from '../shared/services/lobby.service';
+import { Message, Player } from '@moar-munz/api-interfaces';
 import { MatchService } from '../shared/services/match.service';
 import { PlayerService } from '../shared/services/player.service';
 import { TradeService } from '../shared/services/trade.service';
@@ -19,7 +18,7 @@ interface Tab {
   chat: ClientMessage[],
   input: FormControl,
   visible: boolean,
-  player?: PlayerComplete,
+  player?: Player,
   tradeRead: boolean
 }
 
@@ -51,7 +50,6 @@ export class ChatComponent implements OnInit {
 
   constructor(
     private socket: SocketService,
-    private lobbyService: LobbyService,
     private matchService: MatchService,
     private playerService: PlayerService,
     private tradeService: TradeService
@@ -65,7 +63,7 @@ export class ChatComponent implements OnInit {
       const idNotMine = message.recipients.find(id => id !== myId);
       let tab = message.type === 'global' ? this.globalTab : this.tabs.find(tab => tab.player?.id === idNotMine);
       if (!tab) {
-        const player = this.lobbyService.lobby.players[idNotMine];
+        const player = this.playerService.playerMap[idNotMine];
         tab = this.addTab(player, false, false);
       }
       this.pushMessageToTab(tab, message);
@@ -78,7 +76,7 @@ export class ChatComponent implements OnInit {
       const playerId = trade.player;
       let tab = this.tabs.find(tab => tab.player?.id === playerId);
       if (!tab) {
-        const player = this.lobbyService.lobby.players[playerId];
+        const player = this.playerService.playerMap[playerId];
         tab = this.addTab(player, false, false);
       }
       tab.tradeRead = this.selectedTab === tab;
@@ -147,7 +145,7 @@ export class ChatComponent implements OnInit {
   pushMessageToTab(tab: Tab, ...messages: Message[]) {
     const read = this.selectedTab === tab;
     tab.chat.push(...messages.map(({from, data}) => {
-      const fromPlayer = this.lobbyService.lobby.players[from];
+      const fromPlayer = this.playerService.playerMap[from];
       return {
         from: fromPlayer?.id,
         data, type: tab.type,

@@ -1,30 +1,30 @@
 import { PipeTransform, Injectable } from '@nestjs/common';
-import { DataBody, LobbyBody, PlayerBody, SocketBody } from '../../socket/socket.interfaces';
-import { LobbyService } from '../../lobby/lobby.service';
+import { DataBody, MatchBody, PlayerBody, SocketBody } from '../../socket/socket.interfaces';
 import { PlayerService } from '../services/player.service';
 import { JWTService } from '../services/jwt.service';
+import { MatchService } from '../services/match.service';
 
 type InBody = SocketBody & DataBody<{ lobbyId: string }> & PlayerBody
-type OutBody = SocketBody & DataBody<{ lobbyId: string }> & LobbyBody;
+type OutBody = SocketBody & DataBody<{ lobbyId: string }> & MatchBody;
 
 @Injectable()
 export class BodyLobbyPipe implements PipeTransform<InBody, OutBody> {
 
     constructor(
         private jwtService: JWTService,
-        private lobbyService: LobbyService,
+        private matchService: MatchService,
         private playerService: PlayerService
     ) { }
 
     transform(body: InBody) {
-        const lobbyId = body.data?.lobbyId || this.getLobbyIdFromPlayer(body);
-        const lobby = this.lobbyService.getLobby(lobbyId);
-        return { ...body, lobby };
+        const matchId = body.data?.lobbyId || this.getMatchIdFromPlayer(body);
+        const match = this.matchService.getMatch(matchId);
+        return { ...body, match };
     }
 
-    private getLobbyIdFromPlayer(body: InBody) {
+    private getMatchIdFromPlayer(body: InBody) {
         const player = body.player || this.getPlayerFromToken(body.token);
-        return player.lobby;
+        return player.matchId;
     }
 
     private getPlayerFromToken(token: string) {

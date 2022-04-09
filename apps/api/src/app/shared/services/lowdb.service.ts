@@ -1,13 +1,13 @@
-import { Lobby, Match, Player } from '@moar-munz/api-interfaces';
+import { Match, Player } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 
 import * as lowdb from 'lowdb';
 import * as FileSync from 'lowdb/adapters/FileSync';
 import { join } from 'path';
-import { MatchCRUD, LobbyCRUD, PlayerCRUD } from '../interfaces/db.interface';
+import { MatchCRUD, PlayerCRUD } from '../interfaces/db.interface';
 
 @Injectable()
-export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
+export class LowDbService implements MatchCRUD, PlayerCRUD {
 
     private db: lowdb.LowdbSync<any>;
 
@@ -16,22 +16,23 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
         this.db = lowdb(adapter);
         this.db.defaults({
             matches: { },
-            lobbys: { },
             players: { }
         }).write();
         this.db.set('matches', { }).write();
-        this.db.set('lobbys', { }).write();
         this.db.set('players', { }).write();
 
         setInterval(() => {
             const now = Date.now();
-            const lobbys = this.db.get('lobbys').value();
-            Object.keys(lobbys).forEach(key => {
-                const lobby = lobbys[key];
-                const age = now - lobby.mtime;
+            const matches = this.db.get('matches').value();
+            Object.keys(matches).forEach(key => {
+                const match = matches[key] as Match;
+                const age = now - (match as any).mtime;
                 if (age < 120000) return;
-                if (!lobby.players.length) {
-                    this.deleteMatch(lobby);
+                if (!match.playerOrder.length || match.over) {
+                    for (const playerId of match.playerOrder) {
+                        this.deletePlayer(playerId);
+                    }
+                    this.deleteMatch(match.id);
                 }
             });
         }, 60000);
@@ -57,26 +58,6 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
         return this.db.unset(`matches.${id}`).write();
     }
 
-    // LOBBY
-
-    createLobby(lobby: Lobby) {
-        const id = lobby.id;
-        this.db.set(`lobbys.${id}`, { ...lobby, mtime: Date.now()}).write();
-        return id;
-    }
-
-    readLobby(id: string) {
-        return this.db.get(`lobbys.${id}`).value();
-    }
-
-    updateLobby(lobby: Lobby) {
-        return this.db.set(`lobbys.${lobby.id}`, { ...lobby, mtime: Date.now()}).write();
-    }
-
-    deleteLobby(id: string) {
-        return this.db.unset(`lobbys.${id}`).write();
-    }
-
     // Player
 
     createPlayer(player: Player) {
@@ -87,6 +68,11 @@ export class LowDbService implements MatchCRUD, LobbyCRUD, PlayerCRUD {
 
     readPlayer(id: string) {
         return this.db.get(`players.${id}`).value();
+    }
+
+    readPlayersByMatchId(matchId: string) {
+        const players = this.db.get('players').value() as { [id: string]: Player };
+        return Object.values(players).filter(p => p.matchId === matchId);
     }
 
     updatePlayer(player: Player) {

@@ -1,9 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { LowDbService } from '../shared/services/lowdb.service';
-import { UUIDService } from '../shared/services/uuid.service';
 import { PlayerService } from '../shared/services/player.service';
-import { SocketService } from '../socket/socket.service';
-import { Lobby, LobbyOptions, LobbyState, Player } from '@moar-munz/api-interfaces';
+import { Match, Player } from '@moar-munz/api-interfaces';
 import { MatchService } from '../shared/services/match.service';
 import { EngineService } from '../engine/engine.service';
 
@@ -11,151 +8,110 @@ import { EngineService } from '../engine/engine.service';
 export class LobbyService {
 
     constructor(
-        private db: LowDbService,
-        private uuidService: UUIDService,
-        private socketService: SocketService,
         private playerService: PlayerService,
         private matchService: MatchService,
         private engineService: EngineService
     ) { }
 
-    generateLobby(options: LobbyOptions) {
-        const lobby: Lobby = {
-            id: this.uuidService.generateUUID(),
-            options,
-            open: true,
-            players: { },
-            playerOrder: [ ]
-        };
-        this.db.createLobby(lobby);
-        return lobby;
-    }
-
-    getLobby(id: string) {
-        return this.db.readLobby(id);
-    }
-
-    saveLobby(lobby: Lobby) {
-        return this.db.updateLobby(lobby);
-    }
-
-    deleteLobby(id: string) {
-        return this.db.deleteLobby(id);
-    }
-
-    async removePlayer(lobby: Lobby, player: Player, replace: boolean) {
-        if (!lobby.players[player.id]) return;
-        replace = replace && lobby.options.ai;
+    async removePlayer(match: Match, player: Player, replace: boolean) {
+        if (!match.playerOrder.find(id => id === player.id)) return;
+        replace = replace && match.options.ai;
         let aiPlayer: Player;
         if (replace) {
-            aiPlayer = this.addAI(lobby, player);
+            aiPlayer = this.addAI(match, player);
         } else {
-            this.deletePlayer(lobby, player);
+            this.deletePlayer(match, player);
         }
-        const match = this.matchService.getMatch(lobby.id);
-        if (match) this.matchService.removePlayer(lobby.playerOrder, player);
+        this.matchService.removePlayer(match.playerOrder, player);
         this.playerService.deletePlayer(player.id);
         if (aiPlayer) await this.engineService.play(aiPlayer.id);
     }
 
-    private deletePlayer(lobby: Lobby, player: Player) {
-        const order = lobby.playerOrder.findIndex(s => s === player.id);
-        lobby.playerOrder[order] = undefined;
-        delete lobby.players[player.id];
-        this.saveAndBroadcastLobby(lobby);
+    private deletePlayer(match: Match, player: Player) {
+        const order = match.playerOrder.findIndex(id => id === player.id);
+        match.playerOrder[order] = undefined;
+        this.saveAndBroadcastLobby(match);
     }
 
-    addAI(lobby: Lobby, replace?: Player) {
-        const ai = this.playerService.getOrGenPlayerByToken(undefined, lobby, true);
+    addAI(match: Match, replace?: Player) {
+        const ai = this.playerService.getOrGenPlayerByToken(undefined, match, true);
         if (replace) {
             ai.player.name = `${replace.name} (AI)`;
             this.playerService.savePlayer(ai.player);
-            this.replacePlayer(lobby, replace, ai.player);
-            delete lobby.players[replace.id];
+            this.replacePlayer(match, replace, ai.player);
         } else {
-            this.addPlayerAtFirstFreeSpot(lobby, ai.player);
+            this.addPlayerAtFirstFreeSpot(match, ai.player);
         }
-        this.saveAndBroadcastLobby(lobby);
+        this.saveAndBroadcastLobby(match);
         if (!replace) {
-            const order = lobby.playerOrder.findIndex(s => s === ai.player.id);
-            this.onPlayerReady(lobby, lobby.playerOrder[order], true);
+            const order = match.playerOrder.findIndex(id => id === ai.player.id);
+            this.onPlayerReady(match, match.playerOrder[order], true);
         }
         return ai.player;
     }
 
-    onEnterLobby(lobby: Lobby, token: string) {
-        if (!lobby.open) return false;
-        const playerData = this.playerService.getOrGenPlayerByToken(token, lobby, false);
+    onEnterLobby(match: Match, token: string) {
+        if (!match.open) return false;
+        const playerData = this.playerService.getOrGenPlayerByToken(token, match, false);
         const player = playerData.player;
         token = playerData.token;
         if (!player) return false;
-        this.addPlayerAtFirstFreeSpot(lobby, player);
-        this.saveAndBroadcastLobby(lobby);
+        this.addPlayerAtFirstFreeSpot(match, player);
+        this.saveAndBroadcastLobby(match);
         return playerData;
     }
 
-    private replacePlayer(lobby: Lobby, from: Player, to: Player) {
-        const order = lobby.playerOrder.findIndex(s => s === from.id);
-        lobby.playerOrder[order] = to.id;
-        const fromState = this.getPlayer(lobby, from);
-        const toState: LobbyState = { ready: false, color: fromState.color };
-        lobby.players[to.id] = { ...to, ...toState };
+    private replacePlayer(match: Match, from: Player, to: Player) {
+        const order = match.playerOrder.findIndex(id => id === from.id);
+        match.playerOrder[order] = to.id;
+
     }
 
-    private addPlayerAtFirstFreeSpot(lobby: Lobby, player: Player) {
-        if (!lobby.playerOrder.includes(player.id)) {
-            const order = this.getFirstFreeSpot(lobby);
-            lobby.playerOrder[order] = player.id;
+    private addPlayerAtFirstFreeSpot(match: Match, player: Player) {
+        if (!match.playerOrder.includes(player.id)) {
+            const order = this.getFirstFreeSpot(match);
+            match.playerOrder[order] = player.id;
             const color = this.getPlayerColor(order);
-            lobby.players[player.id] = {
-                ...player,
-                ...{ ready: false, color }
-            };
+            player.color = color;
+            this.playerService.savePlayer(player);
         }
     }
 
-    private getFirstFreeSpot(lobby: Lobby) {
-        for (let i = 0; i <= lobby.playerOrder.length; i++) {
-            if (!lobby.playerOrder[i]) {
+    private getFirstFreeSpot(match: Match) {
+        for (let i = 0; i <= match.playerOrder.length; i++) {
+            if (!match.playerOrder[i]) {
                 return i;
             }
         }
     }
 
-    onPlayerReady(lobby: Lobby, player: string | Player, ready: boolean) {
-        this.getPlayer(lobby, player).ready = ready;
-        const everyoneReady = this.isEveryoneReady(lobby);
+    onPlayerReady(match: Match, player: string | Player, ready: boolean) {
+        if (typeof player === 'string') player = this.playerService.getPlayer(player);
+        player.ready = ready;
+        this.playerService.savePlayer(player);
+        const everyoneReady = this.isEveryoneReady(match);
         console.log(`Everyone ready? ${everyoneReady}`);
         if (everyoneReady) {
-            lobby.open = false;
-            this.saveAndBroadcastLobby(lobby);
-            this.matchService.generateMatch(lobby);
+            this.matchService.initMatch(match);
         } else {
-            this.notifyLobbyChanges(lobby);
+            this.notifyLobbyChanges(match);
         }
     }
 
-    private isEveryoneReady(lobby: Lobby) {
-        for (const playerId of lobby.playerOrder.filter(Boolean)) {
-            const player = this.getPlayer(lobby, playerId);
+    private isEveryoneReady(match: Match) {
+        for (const playerId of match.playerOrder.filter(Boolean)) {
+            const player = this.playerService.getPlayer(playerId);
             if (!player.ready) return false;
         }
         return true;
     }
 
-    private getPlayer(lobby: Lobby, player: string | Player) {
-        const playerId = typeof player === 'string' ? player : player.id;
-        return lobby.players[playerId];
+    private saveAndBroadcastLobby(match: Match) {
+        this.matchService.saveAndBroadcastMatch(match);
     }
 
-    private saveAndBroadcastLobby(lobby: Lobby) {
-        this.saveLobby(lobby);
-        this.notifyLobbyChanges(lobby);
-    }
-
-    private notifyLobbyChanges(lobby: Lobby) {
-        const players = lobby.playerOrder;
-        this.socketService.emit('update lobby', lobby, players);
+    private notifyLobbyChanges(match: Match) {
+        this.matchService.broadcastMatchState(match);
     }
 
     private getPlayerColor(i: number) {

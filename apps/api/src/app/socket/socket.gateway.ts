@@ -5,11 +5,13 @@ import { PlayerService } from '../shared/services/player.service';
 import { SocketService } from './socket.service';
 import { JWTService } from '../shared/services/jwt.service';
 import { BoardService } from '../shared/services/board.service';
+import { MatchService } from '../shared/services/match.service';
 
 @WebSocketGateway()
 export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
 
     constructor(
+        private matchService: MatchService,
         private lobbyService: LobbyService,
         private playerService: PlayerService,
         private boardService: BoardService,
@@ -35,11 +37,11 @@ export class SocketGateway implements OnGatewayInit, OnGatewayConnection, OnGate
         const payload = this.jwtService.getPayload(token);
         const player = this.playerService.getPlayer(payload.uuid);
         if (!player) return;
-        const lobby = this.lobbyService.getLobby(player.lobby);
-        if (!lobby) return;
-        await this.lobbyService.removePlayer(lobby, player, true);
+        const match = this.matchService.getMatch(player.matchId);
+        if (!match) return;
+        await this.lobbyService.removePlayer(match, player, true);
         this.socketService.disconnect(client);
-        return lobby;
+        return match;
     }
 
 }

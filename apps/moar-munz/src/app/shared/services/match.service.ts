@@ -24,6 +24,7 @@ export class MatchService {
       map(({ payload: match }) => copy(match))
     );
     this._match$.subscribe(match => {
+      console.log('match', match);
       this.updateMatch(match);
       setTimeout(() => {
         this._matchChange$.next(match);
@@ -43,7 +44,7 @@ export class MatchService {
     if (!this._match) return this._match = match;
     else this.updateBoard(match.board);
     const keys: (keyof Match)[] = [
-      'turn', 'lastDice', 'playerState', 'locked', 'over'
+      'open', 'turn', 'lastDice', 'locked', 'over', 'started'
     ];
     keys.forEach(key => (this._match[key] as any) = match[key]);
   }
