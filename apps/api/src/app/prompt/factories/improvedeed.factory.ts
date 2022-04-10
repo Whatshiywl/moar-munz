@@ -23,7 +23,7 @@ export class ImproveDeedPromptFactory extends AbstractPromptFactory<string> {
     }
     if (options.length === 1) return;
     const message = `Would you like to improve your property?\nIf so, to how many houses (${tile.building} each extra)?`;
-    return this.select(player, message, options);
+    return this.select(message, options);
   }
 
 }

@@ -21,7 +21,7 @@ export class AquireDeedPromptFactory extends AbstractPromptFactory<boolean> {
     const value = 2 * this.boardService.getTileValue(tile);
     const owner = this.playerService.getPlayer(tile.owner);
     const message = `Would you like to buy ${tile.name} from ${owner.name} for ${value}?`;
-    return this.confirm(player, message);
+    return this.confirm(message);
   }
 
 }

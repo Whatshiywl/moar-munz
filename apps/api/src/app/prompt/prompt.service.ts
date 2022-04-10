@@ -18,9 +18,7 @@ import { SellTilesPromptFactory } from "./factories/selltiles.factory";
 @Injectable()
 export class PromptService {
 
-  private readonly prompts: { [id: string]: Prompt };
-
-  private answerSubject: Subject<Prompt>;
+  private answerSubject: Subject<{ playerId: string, prompt: Prompt }>;
 
   constructor(
     private socket: SocketService,
@@ -34,20 +32,23 @@ export class PromptService {
     public readonly buyTilePromptFactory: BuyTilePromptFactory,
     public readonly sellTilesPromptFactory: SellTilesPromptFactory
   ) {
-    this.prompts = { };
-    this.answerSubject = new Subject<Prompt>();
+    this.answerSubject = new Subject<{ playerId: string, prompt: Prompt }>();
+  }
+
+  typeGuard<T extends void | boolean | string>(prompt: Prompt<any>, ...factories: AbstractPromptFactory<T>[]): prompt is Prompt<T> {
+    return factories.reduce((acc, factory) => acc || prompt.factoryName === factory.name, false);
   }
 
   async process<T extends void | boolean | string>(player: Player, factory: AbstractPromptFactory<T>): Promise<Prompt<T>> {
     const prompt = await factory.build(player);
     if (!prompt) return;
-    if (!this.prompts[prompt.id]) {
-      this.prompts[prompt.id] = prompt;
-      return this.promptPlayer<T>(player, prompt)
-    } else return this.updatePrompt<T>(player, prompt);
+    if (player.prompt) return this.updatePrompt<T>(player, prompt);
+    else return this.promptPlayer<T>(player, prompt);
   }
 
   private promptPlayer<T>(player: Player, prompt: Prompt<T>) {
+    player.prompt = prompt;
+    this.playerService.savePlayer(player);
     const client = player.ai ? undefined : this.socket.getClient(player.id);
     if (!player.ai && !client) return;
     return this.submitPrompt<T>(player, prompt, client);
@@ -63,8 +64,7 @@ export class PromptService {
   }
 
   async update<T = any>(player: Player) {
-    const hash = this.getHash(player);
-    const prompt = this.prompts[hash];
+    const prompt = player.prompt;
     if (!prompt) return;
     const factory = this[prompt.factoryName] as AbstractPromptFactory<T>;
     if (!factory) return;
@@ -81,23 +81,22 @@ export class PromptService {
     if (player.ai) return;
     const client = this.socket.getClient(player.id);
     if (!client || !prompt) return undefined;
-    const hash = prompt.id;
-    this.prompts[hash] = prompt;
+    player.prompt = prompt;
+    this.playerService.savePlayer(player);
     client.emit('update prompt', prompt);
     return this.onAnswer$<T>(player);
   }
 
   onAnswer$<T>(player: Player) {
-    const hash = this.getHash(player);
     return new Promise<Prompt<T>>((resolve, reject) => {
       let latest: Prompt;
       this.answerSubject.pipe(
-        filter(prompt => {
-          return prompt.id === hash;
+        filter(({ playerId }) => {
+          return playerId === player.id;
         }),
         first()
       ).subscribe(
-        (value: Prompt) => latest = value,
+        ({ prompt }) => latest = prompt,
         (err: any) => reject(err),
         () => resolve(latest)
       );
@@ -107,13 +106,8 @@ export class PromptService {
   answer(playerId: string, prompt: Prompt) {
     console.log(`Answer: ${prompt.answer}`);
     const player = this.playerService.getPlayer(playerId);
-    const hash = this.getHash(player);
-    delete this.prompts[hash];
-    this.answerSubject.next(prompt);
-  }
-
-  private getHash(player: Player) {
-    return `${player.matchId}|${player.id}`;
+    delete player.prompt;
+    this.answerSubject.next({ playerId, prompt });
   }
 
 }

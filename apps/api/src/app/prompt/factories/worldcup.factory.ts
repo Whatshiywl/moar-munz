@@ -28,7 +28,7 @@ export class WorldcupPromptFactory extends AbstractPromptFactory<string> {
     if (!options.length) return;
     const tileName = tile.name.toLocaleLowerCase();
     const message = `Set the location to host the next ${tileName}!`;
-    return this.select(player, message, options);
+    return this.select(message, options);
   }
 
 }

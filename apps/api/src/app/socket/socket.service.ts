@@ -1,7 +1,6 @@
-import { Match, Message, Player, Trade, TradeSide } from '@moar-munz/api-interfaces';
+import { Message, Trade, TradeSide } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 import { Namespace, Server, Socket } from 'socket.io';
-import { AIService } from '../shared/services/ai.service';
 import { JWTService } from '../shared/services/jwt.service';
 
 @Injectable()
@@ -19,8 +18,7 @@ export class SocketService {
     };
 
     constructor(
-        private jwtService: JWTService,
-        private aiService: AIService
+        private jwtService: JWTService
     ) { }
 
     initServer(server: Server) {

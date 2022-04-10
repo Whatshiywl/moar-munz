@@ -1,3 +1,5 @@
+import { Prompt } from "./prompt.interfaces"
+
 export enum VictoryState {
   UNDEFINED, LOST, WON
 }
@@ -19,5 +21,6 @@ export interface Player {
   ai: boolean,
   color: string,
   ready: boolean,
-  state: PlayerState
+  state: PlayerState,
+  prompt?: Prompt
 }

@@ -22,7 +22,7 @@ export class WorldtourPromptFactory extends AbstractPromptFactory<string> {
     }).map(t => t.name) ];
     if (!options.length) return;
     const message = `Would you like to travel for ${tile.cost}?\nIf so, where to?`;
-    return this.select(player, message, options);
+    return this.select(message, options);
   }
 
 }

@@ -1,30 +1,22 @@
 import { Player, Prompt } from "@moar-munz/api-interfaces";
-import { PromptFactory } from "./prompt.factory";
 
-export abstract class AbstractPromptFactory<T> implements PromptFactory<T> {
+export abstract class AbstractPromptFactory<T> {
 
   constructor(public readonly name: string) { }
 
-  build(player: Player): Promise<Prompt<T>> {
-    throw new Error("Method not implemented.");
+  build(_: Player): Promise<Prompt<T>> {
+    throw new Error(`Method not implemented for ${this.name}`);
   }
 
-  getHash(player: Player): string {
-    return `${player.matchId}|${player.id}`;
+  alert(message: string): Prompt<void> {
+    return { factoryName: this.name, type: 'alert', message };
   }
 
-  alert(player: Player, message: string): Prompt<void> {
-    const id = this.getHash(player);
-    return { id, factoryName: this.name, type: 'alert', message };
+  confirm(message: string): Prompt<boolean> {
+    return { factoryName: this.name, type: 'confirm', message };
   }
 
-  confirm(player: Player, message: string): Prompt<boolean> {
-    const id = this.getHash(player);
-    return { id, factoryName: this.name, type: 'confirm', message };
-  }
-
-  select(player: Player, message: string, options: T[]): Prompt<T> {
-    const id = this.getHash(player);
-    return { id, factoryName: this.name, type: 'select', message, options };
+  select(message: string, options: T[]): Prompt<T> {
+    return { factoryName: this.name, type: 'select', message, options };
   }
 }

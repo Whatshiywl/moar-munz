@@ -15,7 +15,7 @@ export class BuyTilePromptFactory extends AbstractPromptFactory<boolean> {
   async build(player: Player) {
     const tile = this.matchService.getTileWithPlayer(player) as RentableTile;
     const message = `Would you like to buy ${tile.name} for ${tile.price}?`;
-    return this.confirm(player, message);
+    return this.confirm(message);
   }
 
 }

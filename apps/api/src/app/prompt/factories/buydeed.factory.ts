@@ -23,7 +23,7 @@ export class BuyDeedPromptFactory extends AbstractPromptFactory<string> {
     }
     if (options.length === 1) return;
     const message = `Would you like to buy ${tile.name} for ${tile.price}?\nIf so, how many houses do you want (${tile.building} each)?`;
-    return this.select(player, message, options);
+    return this.select(message, options);
   }
 
 }

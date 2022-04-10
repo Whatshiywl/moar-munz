@@ -4,7 +4,6 @@ import { MatchOptions } from '@moar-munz/api-interfaces';
 
 import { AppService } from './app.service';
 import { UUIDService } from './shared/services/uuid.service';
-import { LobbyService } from './lobby/lobby.service';
 import { JWTService } from './shared/services/jwt.service';
 import { BoardService } from './shared/services/board.service';
 import { pick } from 'lodash';

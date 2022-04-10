@@ -22,7 +22,7 @@ export class SellTilesPromptFactory extends AbstractPromptFactory<string> {
     }) ];
     const remainingAmount = Math.abs(this.matchService.getPlayerMoney(player));
     const message = `You must sell some properties.\nAmount remaining: ${remainingAmount}`;
-    return this.select(player, message, options);
+    return this.select(message, options);
   }
 
 }
