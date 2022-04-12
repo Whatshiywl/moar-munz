@@ -1,5 +1,5 @@
-<moar-munz-lobby *ngIf="!match?.started"></moar-munz-lobby>
-<div *ngIf="match?.started" class="game-wrapper">
+<moar-munz-lobby *ngIf="!match || match.state === MatchState.LOBBY"></moar-munz-lobby>
+<div *ngIf="match?.state > MatchState.LOBBY" class="game-wrapper">
     <div class="board">
         <div class="board-center">
             <mat-card class="info-column header-colored-card">

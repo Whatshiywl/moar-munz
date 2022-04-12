@@ -32,7 +32,10 @@ export class SocketService extends Socket {
             subject.next({ payload, callback });
         });
 
-        super.on('match', next(this.onMatch$));
+        super.on('match', match => {
+            console.log('socket match state', match?.state);
+            next(this.onMatch$)(match);
+        });
         super.on('message', next(this.onMessage$));
         super.on('dice roll', next(this.onDiceRoll$));
         super.on('new prompt', next(this.onPromptNew$));

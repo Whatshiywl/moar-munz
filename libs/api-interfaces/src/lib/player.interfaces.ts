@@ -11,7 +11,10 @@ export interface PlayerState {
   money: number,
   prison: number,
   equalDie: number,
-  turn: boolean
+  turn: boolean,
+  canMove: boolean,
+  canWalk: boolean,
+  walkDistance: number
 }
 
 export interface Player {

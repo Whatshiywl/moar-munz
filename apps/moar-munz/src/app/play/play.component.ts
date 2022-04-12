@@ -1,6 +1,6 @@
 import { Component, OnInit, OnDestroy, ViewChild, ChangeDetectorRef } from '@angular/core';
 import { SocketService } from '../shared/socket/socket.service';
-import { Match, Player, Tile } from '@moar-munz/api-interfaces';
+import { MatchState, Player, Tile } from '@moar-munz/api-interfaces';
 import { ChatComponent } from '../chat/chat.component';
 import { PlayerService } from '../shared/services/player.service';
 import { MatchService } from '../shared/services/match.service';
@@ -14,6 +14,8 @@ type PlayerCard = { player: Player, properties: Tile[] }
   styleUrls: ['./play.component.scss']
 })
 export class PlayComponent implements OnInit, OnDestroy {
+  MatchState = MatchState;
+
   debug = false;
   @ViewChild(ChatComponent) chatComponent: ChatComponent;
 

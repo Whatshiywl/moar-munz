@@ -30,7 +30,10 @@ export class PlayerService {
                 money: 2000,
                 prison: 0,
                 equalDie: 0,
-                turn: false
+                turn: false,
+                canMove: false,
+                canWalk: false,
+                walkDistance: 0
             }
         };
         this.db.createPlayer(player);
@@ -78,6 +81,45 @@ export class PlayerService {
         const player = this.getPlayer(id);
         if (!player) return;
         player.state.turn = turn;
+        return this.savePlayer(player);
+    }
+
+    getCanMove(id: string) {
+        const state = this.getState(id);
+        if (!state) return false;
+        return state.canMove;
+    }
+
+    setCanMove(id: string, canMove: boolean) {
+        const player = this.getPlayer(id);
+        if (!player) return;
+        player.state.canMove = canMove;
+        return this.savePlayer(player);
+    }
+
+    getCanWalk(id: string) {
+        const state = this.getState(id);
+        if (!state) return false;
+        return state.canWalk;
+    }
+
+    setCanWalk(id: string, canWalk: boolean) {
+        const player = this.getPlayer(id);
+        if (!player) return;
+        player.state.canWalk = canWalk;
+        return this.savePlayer(player);
+    }
+
+    getWalkDistance(id: string) {
+        const state = this.getState(id);
+        if (!state) return 0;
+        return state.walkDistance;
+    }
+
+    setWalkDistance(id: string, walkDistance: number) {
+        const player = this.getPlayer(id);
+        if (!player) return;
+        player.state.walkDistance = walkDistance;
         return this.savePlayer(player);
     }
 

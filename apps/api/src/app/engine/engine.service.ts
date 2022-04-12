@@ -3,20 +3,35 @@ import { sample, groupBy } from 'lodash';
 import { PlayerService } from '../shared/services/player.service';
 import { BoardService } from '../shared/services/board.service';
 import { SocketService } from '../socket/socket.service';
-import { DeedTile, DynamicTile, Player, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
+import { DeedTile, DynamicTile, MatchState, Player, RentableTile, VictoryState } from '@moar-munz/api-interfaces';
 import { PromptService } from '../prompt/prompt.service';
 import { MatchService } from '../shared/services/match.service';
+import { PubSubService } from '../shared/services/pubsub.service';
 
 @Injectable()
 export class EngineService {
+
+    private readonly diceRollInterval = 100;
+    private readonly diceRollAccel = 1.2;
+    private readonly diceRollTimeout = 2000;
+    private readonly diceRollN = Math.round(Math.log((this.diceRollAccel - 1) * (this.diceRollTimeout / this.diceRollInterval) + 1) / Math.log(this.diceRollAccel));
 
     constructor(
         private matchService: MatchService,
         private playerService: PlayerService,
         private socketService: SocketService,
         private boardService: BoardService,
-        private promptService: PromptService
-    ) { }
+        private promptService: PromptService,
+        private pubsubService: PubSubService
+    ) {
+        this.pubsubService.onPlayMessage$
+        .subscribe(async message => {
+            const { payload } = message;
+            console.log('engine got play message', payload);
+            await this.play(payload.playerId);
+            message.ack();
+        });
+    }
 
     private rollDice(): [ number, number ] {
         return [ Math.ceil(Math.random() * 6), Math.ceil(Math.random() * 6) ];
@@ -26,39 +41,108 @@ export class EngineService {
         return dice.reduce((acc, n) => acc + n, 0);
     }
 
-    private async determineDice(player: Player, canMove: boolean) {
+    private async determineDice(playerId: string, canMove: boolean) {
+        const { matchId } = this.playerService.getPlayer(playerId) || { };
+        if (!matchId) return;
         const dice = canMove ?
             this.rollDice() :
             [ undefined, undefined ] as [ number, number ];
-        const playerOrder = this.matchService.getPlayerOrder(player.matchId);
+        const playerOrder = this.matchService.getPlayerOrder(matchId);
         if (canMove) {
-            for (let i = 0; i < 20; i++) {
+            for (let i = 0; i < this.diceRollN; i++) {
                 const tempDice = this.rollDice();
                 this.socketService.emit('dice roll', tempDice, playerOrder);
-                await this.sleep(100);
+                await this.sleep(Math.round(this.diceRollInterval * Math.pow(this.diceRollAccel, i)));
             }
         }
-        this.matchService.setLastDice(player.matchId, dice);
-        return canMove ? this.sumDice(dice) : 0;
+        this.matchService.setLastDice(matchId, dice);
     }
 
     async play(playerId: string) {
-        const player = this.playerService.getPlayer(playerId);
-        if (!player) return;
-        if (!this.matchService.isPlayable(player.matchId)) return;
-        const playerState = this.matchService.getPlayerState(player);
-        if (!playerState.turn) return;
-        if (playerState.victory === VictoryState.LOST) return;
-        this.matchService.setLocked(player.matchId, true);
-        const canMove = await this.onStart(player);
-        const diceResult = await this.determineDice(player, canMove);
-        const canPlay = canMove && this.onPlay(player);
-        if (canPlay) await this.walkNTiles(player, diceResult);
-        this.matchService.setLocked(player.matchId, false);
-        this.onEnd(player);
+        if (!this.canPlay(playerId)) return;
+        const { matchId } = this.playerService.getPlayer(playerId);
+        const matchState = this.matchService.getState(matchId);
+
+        switch (matchState) {
+            case MatchState.IDLE:
+                this.matchService.setLocked(matchId, true);
+                this.matchService.setState(matchId, MatchState.START_TURN);
+                await this.startTurn(playerId);
+                this.matchService.setLocked(matchId, false);
+                await this.pubsubService.publishPlay(playerId);
+                break;
+            case MatchState.START_TURN:
+                this.matchService.setLocked(matchId, true);
+                this.matchService.setState(matchId, MatchState.ROLLING_DICE);
+                await this.rollingDice(playerId);
+                this.matchService.setLocked(matchId, false);
+                await this.pubsubService.publishPlay(playerId);
+                break;
+            case MatchState.ROLLING_DICE:
+                this.matchService.setLocked(matchId, true);
+                this.matchService.setState(matchId, MatchState.PLAYING);
+                await this.playing(playerId);
+                this.matchService.setLocked(matchId, false);
+                await this.pubsubService.publishPlay(playerId);
+                break;
+            case MatchState.PLAYING:
+                this.matchService.setLocked(matchId, true);
+                this.matchService.setState(matchId, MatchState.MOVING);
+                await this.moving(playerId);
+                this.matchService.setLocked(matchId, false);
+                await this.pubsubService.publishPlay(playerId);
+                break;
+            case MatchState.MOVING:
+                this.matchService.setLocked(matchId, true);
+                this.matchService.setState(matchId, MatchState.IDLE);
+                await this.idle(playerId);
+                this.matchService.setLocked(matchId, false);
+                break;
+        }
     }
 
-    private async walkNTiles(player: Player, n: number) {
+    private async startTurn(playerId: string) {
+        const canMove = await this.onStart(playerId);
+        this.playerService.setCanMove(playerId, canMove);
+    }
+
+    private async rollingDice(playerId: string) {
+        const canMove = this.playerService.getCanMove(playerId);
+        await this.determineDice(playerId, canMove);
+    }
+
+    private async playing(playerId: string) {
+        const canMove = this.playerService.getCanMove(playerId);
+        const canWalk = canMove && this.onPlay(playerId);
+        this.playerService.setCanWalk(playerId, canWalk);
+
+        const { matchId } = this.playerService.getPlayer(playerId) || { };
+        const lastDice = this.matchService.getLastDice(matchId);
+        const walkDistance = canMove ? this.sumDice(lastDice) : 0;
+        this.playerService.setWalkDistance(playerId, walkDistance);
+    }
+
+    private async moving(playerId: string) {
+        const canWalk = this.playerService.getCanWalk(playerId);
+        const walkDistance = this.playerService.getWalkDistance(playerId);
+        if (canWalk) await this.walkNTiles(playerId, walkDistance);
+    }
+
+    private async idle(playerId: string) {
+        await this.onEnd(playerId);
+    }
+
+    private canPlay(playerId: string) {
+        const player = this.playerService.getPlayer(playerId);
+        if (!this.matchService.isPlayable(player.matchId)) return false;
+        if (!player.state.turn) return false;
+        if (player.state.victory !== VictoryState.UNDEFINED) return false;
+        return true;
+    }
+
+    private async walkNTiles(playerId: string, n: number) {
+        const player = this.playerService.getPlayer(playerId);
+        if (!player) return;
         const boardSize = this.matchService.getBoardSize(player.matchId);
         const start = this.matchService.getPlayerPosition(player);
         for (let i = 1; i <= n; i++) {
@@ -75,16 +159,17 @@ export class EngineService {
         if (land) await this.onLand(player);
     }
 
-    private async onStart(player: Player) {
+    private async onStart(playerId: string) {
+        const player = this.playerService.getPlayer(playerId);
         console.log(`${player.name}'s turn started`);
         const playerState = this.matchService.getPlayerState(player);
         let board = this.matchService.getBoard(player.matchId);
         const tile = board.tiles[playerState.position];
         switch (tile.type) {
             case 'worldtour':
-                if (this.matchService.getPlayerMoney(player) < tile.cost) return;
+                if (this.matchService.getPlayerMoney(player) < tile.cost) return false;
                 const prompt = await this.promptService.process(player, this.promptService.worldtourPromptFactory);
-                if (!prompt) return;
+                if (!prompt) return false;
                 board = this.matchService.getBoard(player.matchId);
                 const answer = prompt.answer;
                 if (answer !== prompt.options[0]) {
@@ -92,9 +177,28 @@ export class EngineService {
                     let goToIndex = board.tiles.findIndex(t => t.name === answer);
                     if (goToIndex < playerState.position) goToIndex += board.tiles.length;
                     const walkDistance = goToIndex - this.matchService.getPlayerPosition(player);
-                    const canPlay = this.onPlay(player);
+                    /**
+                     * TODO:
+                     * this.matchService.setState(matchId, MatchState.PLAYING);
+                     *      // This will skip ROLLING_DICE and PLAYING, going straight to WALKING
+                     * DON'T compute players' playAgain and equalDie to know if can play
+                     *      // We don't need to know if the player has rolled equal dice in this case
+                     * DON't this.onPlay()
+                     *      // We are skipping this step
+                     * DON't this.walkNTiles()
+                     *      // This will be done automatically on the next play() run
+                     * this.playerService.setCanWalk(playerId, true)
+                     *      // Allow movement
+                     * this.playerService.setWalkDistance(playerId, walkDistance)
+                     *      // Persist walk distance for moving step
+                     * this.pubsubService.publish()
+                     *      // Set off next play() run
+                     * Figure our return statements
+                     *      // Maybe returning undefined should signal the normal event chain to break?
+                     */
+                    // const canPlay = this.onPlay(playerId);
                     this.matchService.setLastDice(player.matchId, [ undefined, undefined ]);
-                    if (canPlay) await this.walkNTiles(player, walkDistance);
+                    await this.walkNTiles(playerId, walkDistance);
                     return false;
                 }
                 break;
@@ -102,7 +206,9 @@ export class EngineService {
         return true;
     }
 
-    private onPlay(player: Player) {
+    private onPlay(playerId: string) {
+        const player = this.playerService.getPlayer(playerId);
+        if (!player) return;
         const dice = this.matchService.getLastDice(player.matchId);
         const playerState = this.matchService.getPlayerState(player);
         const tile = this.matchService.getTileWithPlayer(player);
@@ -123,6 +229,7 @@ export class EngineService {
                 }
                 break;
             default:
+                // TODO: move this logic to rollingDice()
                 if (dice[0] !== undefined && dice[0] === dice[1]) {
                     const equalDie = (playerState.equalDie || 0) + 1;
                     this.matchService.updatePlayerState(player, { equalDie });
@@ -305,15 +412,16 @@ export class EngineService {
         }
     }
 
-    private async onEnd(player: Player) {
+    private async onEnd(playerId: string) {
+        const player = this.playerService.getPlayer(playerId);
+        if (!player) return;
         const playerState = this.matchService.getPlayerState(player);
         const hasLost = playerState.victory === VictoryState.LOST;
         if (playerState.playAgain && !hasLost) {
             this.matchService.updatePlayerState(player, { playAgain: false });
             console.log(`${player.name}'s turn continues`);
             if (player.ai) {
-                await this.sleep(2000);
-                await this.play(player.id);
+                this.sleep(2000).then(() => this.pubsubService.publishPlay(player.id));
             }
         }
         else {
@@ -322,8 +430,7 @@ export class EngineService {
             const nextPlayer = this.matchService.computeNextPlayer(matchId);
             if (nextPlayer.ai) {
                 if (this.matchService.hasHumanPlayers(matchId)) {
-                    await this.sleep(2000);
-                    await this.play(nextPlayer.id);
+                    this.sleep(2000).then(() => this.pubsubService.publishPlay(nextPlayer.id));
                 }
                 else console.log('Abord infinite AI match!');
             }

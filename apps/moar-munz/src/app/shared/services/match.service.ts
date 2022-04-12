@@ -44,7 +44,7 @@ export class MatchService {
     if (!this._match) return this._match = match;
     else this.updateBoard(match.board);
     const keys: (keyof Match)[] = [
-      'open', 'turn', 'lastDice', 'locked', 'over', 'started'
+      'open', 'turn', 'lastDice', 'locked', 'state'
     ];
     keys.forEach(key => (this._match[key] as any) = match[key]);
   }

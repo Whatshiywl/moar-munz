@@ -5,6 +5,16 @@ export interface MatchOptions {
   ai: boolean
 }
 
+export enum MatchState {
+  LOBBY,
+  IDLE,
+  START_TURN,
+  ROLLING_DICE,
+  PLAYING,
+  MOVING,
+  OVER
+}
+
 export interface Match {
   id: string,
   playerOrder: string[],
@@ -14,6 +24,5 @@ export interface Match {
   options: MatchOptions,
   board: Board,
   locked: boolean,
-  over: boolean,
-  started: boolean
+  state: MatchState
 }

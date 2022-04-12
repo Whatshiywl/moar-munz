@@ -1,4 +1,4 @@
-import { PlayerState, VictoryState, Match, Player, OwnableTile, RentableTile, MatchOptions } from "@moar-munz/api-interfaces";
+import { PlayerState, VictoryState, Match, Player, OwnableTile, RentableTile, MatchOptions, MatchState } from "@moar-munz/api-interfaces";
 import { Injectable, OnApplicationBootstrap } from "@nestjs/common";
 import { SocketService } from "../../socket/socket.service";
 import { BoardService } from "./board.service";
@@ -44,8 +44,7 @@ export class MatchService implements OnApplicationBootstrap {
       options,
       board,
       locked: false,
-      over: false,
-      started: false
+      state: MatchState.LOBBY
     };
     this.db.createMatch(match);
     this.saveAndBroadcastMatch(match);
@@ -57,7 +56,7 @@ export class MatchService implements OnApplicationBootstrap {
     if (!firstPlayerId) return;
     this.playerService.setTurn(firstPlayerId, true);
     match.open = false;
-    match.started = true;
+    match.state = MatchState.IDLE;
     this.saveAndBroadcastMatch(match);
   }
 
@@ -171,7 +170,7 @@ export class MatchService implements OnApplicationBootstrap {
 
   isPlayable(id: string) {
     const match = this.getMatch(id);
-    return match && !match.locked && !match.over;
+    return match && !match.locked && ![ MatchState.LOBBY, MatchState.OVER ].includes(match.state);
   }
 
   getLastDice(id: string) {
@@ -191,6 +190,18 @@ export class MatchService implements OnApplicationBootstrap {
 
   getPlayerState(player: Player) {
     return player.state;
+  }
+
+  getState(matchId: string) {
+    const match = this.getMatch(matchId);
+    if (!match) return;
+    return match.state;
+  }
+
+  setState(matchId: string, state: MatchState) {
+    const match = this.getMatch(matchId);
+    match.state = state;
+    this.saveAndBroadcastMatch(match);
   }
 
   move(player: Player, to: number) {
@@ -296,7 +307,7 @@ export class MatchService implements OnApplicationBootstrap {
 
   setMatchOver(id: string) {
     const match = this.getMatch(id);
-    match.over = true;
+    match.state = MatchState.OVER;
     this.saveAndBroadcastMatch(match);
   }
 

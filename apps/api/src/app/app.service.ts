@@ -1,4 +1,4 @@
-import { Match } from '@moar-munz/api-interfaces';
+import { Match, MatchState } from '@moar-munz/api-interfaces';
 import { Injectable } from '@nestjs/common';
 import { MatchService } from './shared/services/match.service';
 import { PlayerService } from './shared/services/player.service';
@@ -6,7 +6,7 @@ import { PlayerService } from './shared/services/player.service';
 @Injectable()
 export class AppService {
 
-  private readonly cleanupTTL = 60 * 60 * 1000;
+  private readonly cleanupTTL = 1 * 60 * 1000;
 
   constructor(
     private matchService: MatchService,
@@ -28,7 +28,7 @@ export class AppService {
       const activePlayers = this.playerService.getPlayersByMatchId(matchId);
       const nonAiPlayers = activePlayers.filter(player => !player.ai);
 
-      if (match.over || !nonAiPlayers.length) {
+      if (match.state === MatchState.OVER || !nonAiPlayers.length) {
         for (const { id: playerId } of activePlayers) {
           this.playerService.delete(playerId);
         }

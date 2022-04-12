@@ -35,6 +35,7 @@ import { AquireDeedPromptFactory } from './prompt/factories/aquiredeed.factory';
 import { BuyTilePromptFactory } from './prompt/factories/buytile.factory';
 import { SellTilesPromptFactory } from './prompt/factories/selltiles.factory';
 import { TradeGateway } from './trade/trade.gateway';
+import { PubSubService } from './shared/services/pubsub.service';
 
 @Module({
   imports: [
@@ -65,6 +66,7 @@ import { TradeGateway } from './trade/trade.gateway';
     BodyMessagePipe,
     AIService,
     MatchService,
+    PubSubService,
 
     // TODO: Create PromptModule
     PromptGateway,
