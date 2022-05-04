@@ -7,7 +7,7 @@ import { Prompt } from "@moar-munz/api-interfaces";
 @Injectable()
 export class PromptService {
   // TODO: move debug state to store
-  private debug: boolean;
+  private debug: boolean = false;
 
   private _prompt: Prompt;
 

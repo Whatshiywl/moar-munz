@@ -47,7 +47,7 @@ export class MatchService implements OnApplicationBootstrap {
       state: MatchState.LOBBY
     };
     this.db.createMatch(match);
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
     return match;
   }
 
@@ -57,7 +57,7 @@ export class MatchService implements OnApplicationBootstrap {
     this.playerService.setTurn(firstPlayerId, true);
     match.open = false;
     match.state = MatchState.IDLE;
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   getAllMatches() {
@@ -72,7 +72,7 @@ export class MatchService implements OnApplicationBootstrap {
     this.db.updateMatch(match);
   }
 
-  saveAndBroadcastMatch(match: Match) {
+  saveAndBroadcast(match: Match) {
     this.saveMatch(match);
     this.broadcastMatchState(match);
   }
@@ -103,7 +103,7 @@ export class MatchService implements OnApplicationBootstrap {
         }
       });
     }
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   delete(id: string) {
@@ -135,10 +135,10 @@ export class MatchService implements OnApplicationBootstrap {
   computeNextPlayer(id: string) {
     const playerOrder = this.getPlayerOrder(id);
     const currentPlayer = this.getCurrentPlayer(id);
-    this.updatePlayerState(currentPlayer, { turn: false });
+    this.playerService.updateState(currentPlayer.id, { turn: false });
     const index = playerOrder.findIndex(id => id === currentPlayer.id);
     const nextPlayer = this.getNextPlayer(id, index);
-    this.updatePlayerState(nextPlayer, { turn: true });
+    this.playerService.updateState(nextPlayer.id, { turn: true });
     console.log('next player', nextPlayer);
     return nextPlayer;
   }
@@ -155,17 +155,25 @@ export class MatchService implements OnApplicationBootstrap {
     }
   }
 
-  setLocked(id: string, locked: boolean) {
+  lock(id: string) {
+    this.setLocked(id, true);
+  }
+
+  unlock(id: string) {
+    this.setLocked(id, false);
+  }
+
+  private setLocked(id: string, locked: boolean) {
     const match = this.getMatch(id);
     match.locked = locked;
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   setLastDice(id: string, dice: [ number, number ]) {
     const match = this.getMatch(id);
     match.lastDice = dice;
     this.socketService.emit('dice roll', dice, match.playerOrder);
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   isPlayable(id: string) {
@@ -188,10 +196,6 @@ export class MatchService implements OnApplicationBootstrap {
     return board.tiles.length;
   }
 
-  getPlayerState(player: Player) {
-    return player.state;
-  }
-
   getState(matchId: string) {
     const match = this.getMatch(matchId);
     if (!match) return;
@@ -201,14 +205,14 @@ export class MatchService implements OnApplicationBootstrap {
   setState(matchId: string, state: MatchState) {
     const match = this.getMatch(matchId);
     match.state = state;
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   move(player: Player, to: number) {
     const match = this.getMatch(player.matchId);
     const playerState = player.state;
     playerState.position = to;
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   removeOwnerFromTile(id: string, tileName: string) {
@@ -219,7 +223,7 @@ export class MatchService implements OnApplicationBootstrap {
       tile.level = 0;
       delete tile.currentRent;
     }
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   getTileValue(id: string, tileName: string) {
@@ -228,30 +232,18 @@ export class MatchService implements OnApplicationBootstrap {
     return this.boardService.getTileValue(tile);
   }
 
-  getPlayerMoney(player: Player) {
-    const playerState = this.getPlayerState(player);
-    return playerState.money;
-  }
-
   addPlayerMoney(player: Player, amount: number) {
     const match = this.getMatch(player.matchId);
     const state = player.state;
     state.money += +amount;
-    this.saveAndBroadcastMatch(match);
-  }
-
-  setPlayerMoney(player: Player, amount: number) {
-    const match = this.getMatch(player.matchId);
-    const state = player.state;
-    state.money = +amount;
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   setTileLevel(id: string, tileName: string, level: number) {
     const match = this.getMatch(id);
     const tile = match.board.tiles.find(t => t.name === tileName) as RentableTile;
     tile.level = level;
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   setWorldcup(id: string, tileName: string) {
@@ -260,14 +252,14 @@ export class MatchService implements OnApplicationBootstrap {
     tiles.forEach(t => {
       t.worldcup = t.name === tileName;
     });
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   setTileOwner(tileName: string, player: Player) {
     const match = this.getMatch(player.matchId);
     const tile = match.board.tiles.find(t => t.name === tileName) as RentableTile;
     tile.owner = player.id;
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
   getTileAtPosition(id: string, position: number) {
@@ -284,31 +276,19 @@ export class MatchService implements OnApplicationBootstrap {
     const match = this.getMatch(player.matchId);
     const state = player.state;
     state.victory = victory;
-    this.saveAndBroadcastMatch(match);
-  }
-
-  getPlayerPosition(player: Player) {
-    const state = this.getPlayerState(player);
-    return state.position;
+    this.saveAndBroadcast(match);
   }
 
   getTileWithPlayer(player: Player) {
-    const position = this.getPlayerPosition(player);
+    const position = player.state.position;
     const board = this.getBoard(player.matchId);
     return board.tiles[position];
-  }
-
-  updatePlayerState(player: Player, updated: Partial<PlayerState>) {
-    const match = this.getMatch(player.matchId);
-    const state = player.state;
-    player.state = { ...state, ...updated };
-    this.saveAndBroadcastMatch(match);
   }
 
   setMatchOver(id: string) {
     const match = this.getMatch(id);
     match.state = MatchState.OVER;
-    this.saveAndBroadcastMatch(match);
+    this.saveAndBroadcast(match);
   }
 
 }

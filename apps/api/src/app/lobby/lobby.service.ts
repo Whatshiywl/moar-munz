@@ -37,7 +37,7 @@ export class LobbyService {
         const ai = this.playerService.getOrGenPlayerByToken(undefined, match, true);
         if (replace) {
             ai.player.name = `${replace.name} (AI)`;
-            this.playerService.savePlayer(ai.player);
+            this.playerService.saveAndBroadcast(ai.player);
             this.replacePlayer(match, replace, ai.player);
         } else {
             this.addPlayerAtFirstFreeSpot(match, ai.player);
@@ -73,7 +73,7 @@ export class LobbyService {
             match.playerOrder[order] = player.id;
             const color = this.getPlayerColor(order);
             player.color = color;
-            this.playerService.savePlayer(player);
+            this.playerService.saveAndBroadcast(player);
         }
     }
 
@@ -88,7 +88,7 @@ export class LobbyService {
     onPlayerReady(match: Match, player: string | Player, ready: boolean) {
         if (typeof player === 'string') player = this.playerService.getPlayer(player);
         player.ready = ready;
-        this.playerService.savePlayer(player);
+        this.playerService.saveAndBroadcast(player);
         const everyoneReady = this.isEveryoneReady(match);
         console.log(`Everyone ready? ${everyoneReady}`);
         if (everyoneReady) {
@@ -107,7 +107,7 @@ export class LobbyService {
     }
 
     private saveAndBroadcastLobby(match: Match) {
-        this.matchService.saveAndBroadcastMatch(match);
+        this.matchService.saveAndBroadcast(match);
     }
 
     private notifyLobbyChanges(match: Match) {

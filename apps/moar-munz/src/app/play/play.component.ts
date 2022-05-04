@@ -16,7 +16,7 @@ type PlayerCard = { player: Player, properties: Tile[] }
 export class PlayComponent implements OnInit, OnDestroy {
   MatchState = MatchState;
 
-  debug = false;
+  debug: boolean = false;
   @ViewChild(ChatComponent) chatComponent: ChatComponent;
 
   uuid: string;

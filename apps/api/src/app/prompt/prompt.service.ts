@@ -1,12 +1,11 @@
-import { Player, Prompt, PromptType } from "@moar-munz/api-interfaces";
+import { Player, Prompt, PromptAnswerObj, PromptAnswerPayload, PromptMessage, PromptObj, PromptPayload, PubSubActionObj, PubSubPayload } from "@moar-munz/api-interfaces";
 import { Injectable } from "@nestjs/common";
 import * as SocketIO from "socket.io";
 import { SocketService } from "../socket/socket.service";
 import { AIService } from "../shared/services/ai.service";
 import { PlayerService } from "../shared/services/player.service";
-import { Subject } from "rxjs";
-import { filter, first } from "rxjs/operators";
 import { AbstractPromptFactory } from "./factories/abstract.factory";
+import { PubSubService } from "../shared/services/pubsub.service";
 import { WorldtourPromptFactory } from "./factories/worldtour.factory";
 import { WorldcupPromptFactory } from "./factories/worldcup.factory";
 import { BuyDeedPromptFactory } from "./factories/buydeed.factory";
@@ -18,12 +17,13 @@ import { SellTilesPromptFactory } from "./factories/selltiles.factory";
 @Injectable()
 export class PromptService {
 
-  private answerSubject: Subject<{ playerId: string, prompt: Prompt }>;
+  private factories: AbstractPromptFactory<any>[];
 
   constructor(
     private socket: SocketService,
     private aiService: AIService,
     private playerService: PlayerService,
+    private pubsubService: PubSubService,
     public readonly worldtourPromptFactory: WorldtourPromptFactory,
     public readonly worldcupPromptFactory: WorldcupPromptFactory,
     public readonly buyDeedPromptFactory: BuyDeedPromptFactory,
@@ -32,82 +32,114 @@ export class PromptService {
     public readonly buyTilePromptFactory: BuyTilePromptFactory,
     public readonly sellTilesPromptFactory: SellTilesPromptFactory
   ) {
-    this.answerSubject = new Subject<{ playerId: string, prompt: Prompt }>();
+    this.pubsubService.on<PromptMessage<any>>('prompt')
+    .subscribe(async ({ payload, ack }) => {
+      await this.onPrompt(payload);
+      ack();
+    });
+
+    // In theory, this is not needed, as answers come through client websocket or AI logic
+    // this.pubsubService.on<PromptAnswerMessage<any>>('prompt-answer')
+    // .subscribe(async ({ payload, ack }) => {
+    //   await this.onAnswer(payload);
+    //   ack();
+    // });
+
+    this.factories = [
+      this.worldtourPromptFactory,
+      this.worldcupPromptFactory,
+      this.buyDeedPromptFactory,
+      this.improveDeedPromptFactory,
+      this.aquireDeedPromptFactory,
+      this.buyTilePromptFactory,
+      this.sellTilesPromptFactory
+    ];
   }
 
-  typeGuard<T extends void | boolean | string>(prompt: Prompt<any>, ...factories: AbstractPromptFactory<T>[]): prompt is Prompt<T> {
-    return factories.reduce((acc, factory) => acc || prompt.factoryName === factory.name, false);
-  }
-
-  async process<T extends void | boolean | string>(player: Player, factory: AbstractPromptFactory<T>): Promise<Prompt<T>> {
+  async publish<T extends void | boolean | string>(player: Player, factory: AbstractPromptFactory<T>, callback: string, actions: PubSubActionObj<any> = { }): Promise<boolean> {
     const prompt = await factory.build(player);
-    if (!prompt) return;
-    if (player.prompt) return this.updatePrompt<T>(player, prompt);
-    else return this.promptPlayer<T>(player, prompt);
+    if (prompt) {
+      const payload = this.promptToPayload(player.id, prompt, callback, actions);
+      this.pubsubService.publish(payload);
+      return false;
+    } else {
+      this.pubsubService.publish({
+        action: callback,
+        actions
+      });
+      return true;
+    }
   }
 
-  private promptPlayer<T>(player: Player, prompt: Prompt<T>) {
-    player.prompt = prompt;
-    this.playerService.savePlayer(player);
+  private promptToPayload<T>(playerId: string, prompt: Prompt<T>, callback?: string, actions: PubSubActionObj<any> = { }) {
+    const payload: PubSubPayload<PromptObj<T> | PromptAnswerObj<T>, 'prompt'> = {
+      action: 'prompt',
+      actions: {
+        ...actions,
+        prompt: {
+          body: { playerId: playerId, prompt }
+        },
+        'prompt-answer': {
+          body: { playerId: playerId, prompt },
+          callback
+        }
+      }
+    };
+    return payload;
+  }
+
+  private async onPrompt<T>(payload: PromptPayload<T>) {
+    const { playerId } = payload.actions.prompt.body;
+    const player = this.playerService.getPlayer(playerId);
+    if (player.prompt) await this.updatePayload<T>(payload);
+    else await this.promptPayload<T>(payload);
+  }
+
+  private async onAnswer<T>(payload: PromptAnswerPayload<T>) {
+    const action = payload.actions["prompt-answer"];
+    const factory = this.factories.find(f => f.name === action.body.prompt.factoryName);
+    await factory.onAnswer(payload);
+  }
+
+  private async promptPayload<T>(payload: PromptPayload<T>) {
+    const { playerId, prompt } = payload.actions.prompt.body;
+    const player = this.playerService.getPlayer(playerId);
+    player.prompt = payload;
+    this.playerService.saveAndBroadcast(player);
     const client = player.ai ? undefined : this.socket.getClient(player.id);
     if (!player.ai && !client) return;
-    return this.submitPrompt<T>(player, prompt, client);
+    this.submitPrompt(player, prompt, client);
   }
 
-  private submitPrompt<T>(player: Player, prompt: Prompt, client?: SocketIO.Socket) {
+  private submitPrompt(player: Player, prompt: Prompt, client?: SocketIO.Socket) {
     console.log(`Question: ${prompt.message}`);
     if (client) client.emit('new prompt', prompt);
     else this.aiService.answer(prompt).then(p => {
       this.answer(player.id, p);
     });
-    return this.onAnswer$<T>(player);
   }
 
-  async update<T = any>(player: Player) {
-    const prompt = player.prompt;
-    if (!prompt) return;
-    const factory = this[prompt.factoryName] as AbstractPromptFactory<T>;
-    if (!factory) return;
-    if (!factory.build) return;
-    if (factory.name !== prompt.factoryName) {
-      console.error(`Factory name not matching! Expected ${prompt.factoryName}, got ${factory.name}`);
-      return;
-    }
-    const newPrompt = await factory.build(player);
-    return this.updatePrompt<T>(player, newPrompt);
-  }
-
-  private updatePrompt<T>(player: Player, prompt: Prompt) {
-    if (player.ai) return;
+  private updatePayload<T>(payload: PromptPayload<T>) {
+    const { playerId, prompt } = payload.actions.prompt.body;
+    const player = this.playerService.getPlayer(playerId);
+    if (player.ai) return; // AIs are supposed to respond to prompts immediately, so no time/need for updates
     const client = this.socket.getClient(player.id);
     if (!client || !prompt) return undefined;
-    player.prompt = prompt;
-    this.playerService.savePlayer(player);
+    player.prompt = payload;
+    this.playerService.saveAndBroadcast(player);
     client.emit('update prompt', prompt);
-    return this.onAnswer$<T>(player);
-  }
-
-  onAnswer$<T>(player: Player) {
-    return new Promise<Prompt<T>>((resolve, reject) => {
-      let latest: Prompt;
-      this.answerSubject.pipe(
-        filter(({ playerId }) => {
-          return playerId === player.id;
-        }),
-        first()
-      ).subscribe(
-        ({ prompt }) => latest = prompt,
-        (err: any) => reject(err),
-        () => resolve(latest)
-      );
-    });
   }
 
   answer(playerId: string, prompt: Prompt) {
     console.log(`Answer: ${prompt.answer}`);
     const player = this.playerService.getPlayer(playerId);
+    const payload = player.prompt;
     delete player.prompt;
-    this.answerSubject.next({ playerId, prompt });
+    this.playerService.saveAndBroadcast(player);
+    const answerPayload = this.pubsubService.changeAction<PromptAnswerPayload<any>>(payload, 'prompt-answer');
+    answerPayload.actions["prompt-answer"].body.prompt = prompt;
+    this.onAnswer(answerPayload)
+    .catch(err => console.error(err));
   }
 
 }

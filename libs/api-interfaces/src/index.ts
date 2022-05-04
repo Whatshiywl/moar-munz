@@ -5,3 +5,4 @@ export * from './lib/tile.interfaces';
 export * from './lib/chat.interfaces';
 export * from './lib/prompt.interfaces';
 export * from './lib/trade.interfaces';
+export * from './lib/pubsub.interfaces';

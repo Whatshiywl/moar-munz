@@ -11,8 +11,9 @@ export class PlayerService {
   readonly uuid: string;
 
   private match$: Observable<Match>;
+  private players$: Observable<Player[]>;
 
-  private _playerOrder: string[];
+  private _playerOrder: string[] = [ ];
   private _playerState: { [id: string]: PlayerState };
   private _playerMap: { [id: string]: Player; };
 
@@ -36,27 +37,19 @@ export class PlayerService {
       map(({ payload: match }) => copy(match))
     );
 
+    this.players$ = this.socket.onPlayers$.pipe(
+      filter(el => Boolean(el)),
+      map(({ payload: players }) => copy(players))
+    );
+
     this.match$.pipe(
       tap(match => {
         this._playerOrder = match.playerOrder;
       }),
       mergeMap(match => this.fetchPlayers(match.id)),
-    ).subscribe(players => {
-      const playerState: { [id: string]: PlayerState } = { };
-      const playerMap: { [id: string]: Player } = { };
-      players.forEach(player => {
-        playerMap[player.id] = player;
-        const { state } = player;
-        playerState[player.id] = state;
-        if (state.turn) {
-          this._playerTurnId = player.id;
-          this._isMyTurn = player.id === this.uuid;
-        }
-      });
-      this._playerState = playerState;
-      this._playerMap = playerMap;
-      this.updatePlayers();
-    });
+    ).subscribe(this.onPlayersUpdated.bind(this));
+
+    this.players$.subscribe(this.onPlayersUpdated.bind(this));
   }
 
   get playerOrder() { return this._playerOrder }
@@ -72,6 +65,23 @@ export class PlayerService {
   get isMyTurn() { return this._isMyTurn }
 
   get playerChange$() { return this._playerChange$ };
+
+  private onPlayersUpdated(players: Player[]) {
+    const playerState: { [id: string]: PlayerState } = { };
+    const playerMap: { [id: string]: Player } = { };
+    players.forEach(player => {
+      playerMap[player.id] = player;
+      const { state } = player;
+      playerState[player.id] = state;
+      if (state.turn) {
+        this._playerTurnId = player.id;
+        this._isMyTurn = player.id === this.uuid;
+      }
+    });
+    this._playerState = playerState;
+    this._playerMap = playerMap;
+    this.updatePlayers();
+  }
 
   private updatePlayers() {
     this._players = this.getPlayers();

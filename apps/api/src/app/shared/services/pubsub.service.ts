@@ -1,21 +1,12 @@
-import { OnModuleInit } from "@nestjs/common";
+import { Injectable, OnModuleInit } from "@nestjs/common";
 import { PubSub, Topic } from '@google-cloud/pubsub';
 import { Subject } from "rxjs";
+import { CheckBalanceObj, DeductObj, PlayPayload, PubSubAction, PubSubActionBody, PubSubActionObj, PubSubMessage, PubSubPayload, TransferCompleteObj, TransferCompletePayload, TransferMessage, TransferObj, TransferPayload, WinPayload } from "@moar-munz/api-interfaces";
+import { filter, map } from "rxjs/operators";
 
-type Actions = 'play' | 'prompt';
-
-interface PubSubPayload<T extends Actions> {
-  action: T,
-  playerId: string
-}
-
-export interface PubSubMessage<T extends Actions> {
-  payload: PubSubPayload<T>,
-  ack: () => void
-}
-
+@Injectable()
 export class PubSubService implements OnModuleInit {
-  readonly onPlayMessage$: Subject<PubSubMessage<'play'>>;
+  readonly on$: Subject<PubSubMessage>;
 
   private readonly projectId = 'bubaxi';
   private readonly topicNameOrId = 'moar-munz';
@@ -29,7 +20,7 @@ export class PubSubService implements OnModuleInit {
       apiEndpoint: 'localhost:8085',
       projectId: this.projectId
     });
-    this.onPlayMessage$ = new Subject<PubSubMessage<'play'>>();
+    this.on$ = new Subject<PubSubMessage>();
   }
 
   async onModuleInit() {
@@ -37,16 +28,10 @@ export class PubSubService implements OnModuleInit {
 
     const subscription = await this.getSubscription(this.subscriptionName);
 
-    subscription.on('message', message => {
-      const payload = JSON.parse(message.data.toString());
-      if (!payload || !payload.action || !payload.playerId) {
-        console.warn('Discarding invalid payload', message.payload);
-      }
-      switch (payload.action) {
-        case 'play':
-          this.onPlayMessage$.next({ payload, ack: message.ack.bind(message) });
-          break;
-      }
+    subscription.on('message', (message: { data: Buffer, ack: () => void }) => {
+      const payload = JSON.parse(message.data.toString()) as PubSubPayload;
+      if (!payload || !payload.action) return console.warn('Discarding invalid payload', payload);
+      this.on$.next({ payload, ack: message.ack.bind(message) });
     });
 
     subscription.on('error', error => {
@@ -54,8 +39,91 @@ export class PubSubService implements OnModuleInit {
     });
   }
 
-  publishPlay(playerId: string) {
-    return this.publish({ action: 'play', playerId });
+  changeAction<T extends PubSubPayload>(
+    payload: PubSubPayload,
+    action: T['action']
+  ): T {
+    return { ...payload, ...{ action } as T };
+  }
+
+  addActions(payload: PubSubPayload, actions: PubSubActionObj) {
+    const newActions = { ...payload.actions, ...actions };
+    return { action: payload.action, actions: newActions };
+  }
+
+  publishPlay(playerId: string, forceUnlock: boolean = false) {
+    const payload = this.getPlayPayload(playerId, forceUnlock);
+    return this.publish(payload);
+  }
+
+  getPlayPayload(playerId: string, forceUnlock: boolean = false) {
+    const payload: PlayPayload = {
+      action: 'play',
+      actions: {
+        play: {
+          body: { playerId, forceUnlock }
+        }
+      }
+    };
+    return payload;
+  }
+
+  publishTransfer(from: string, to: string, amount: number, callback: string, actions: PubSubActionObj = { }) {
+    const payload: PubSubPayload<TransferObj | TransferCompleteObj, 'transfer'> = {
+      action: 'transfer',
+      actions: {
+        ...actions,
+        transfer: {
+          body: { from, to, amount }
+        },
+        'transfer-complete': {
+          body: { from, to, amount },
+          callback
+        }
+      }
+    };
+    return this.publish(payload);
+  }
+
+  publishDeduct(playerId: string, amount: number, callback: string, actions: PubSubActionObj = { }, origin?: string) {
+    const payload: PubSubPayload<DeductObj | CheckBalanceObj, 'deduct'> = {
+      action: 'deduct',
+      actions: {
+        ...actions,
+        deduct: {
+          body: { playerId, amount }
+        },
+        'check-balance': {
+          body: { playerId, amount, origin },
+          callback
+        }
+      }
+    };
+    return this.publish(payload);
+  }
+
+  publishWin(playerId: string) {
+    const payload: WinPayload = {
+      action: 'win',
+      actions: {
+        win: {
+          body: { playerId }
+        }
+      }
+    }
+    return this.publish(payload);
+  }
+
+  on<T extends PubSubMessage>(action: string) {
+    return this.on$.pipe(
+      filter(message => message.payload.action === action),
+      map(message => message as T)
+    );
+  }
+
+  publish<A extends string, B extends PubSubActionBody, C extends string, P = PubSubPayload<PubSubActionObj<PubSubAction<B, C>, A>>>(payload: P) {
+    const data = Buffer.from(JSON.stringify({ id: Math.random().toString(16).substring(2), ...payload }));
+    return this.topic.publishMessage({ data });
   }
 
   private async getTopic(name: string) {
@@ -92,11 +160,6 @@ export class PubSubService implements OnModuleInit {
         console.log(error);
       }
     }
-  }
-
-  private publish<T extends Actions>(payload: PubSubPayload<T>) {
-    const data = Buffer.from(JSON.stringify(payload));
-    return this.topic.publishMessage({ data });
   }
 
 }

@@ -12,6 +12,7 @@ export enum MatchState {
   ROLLING_DICE,
   PLAYING,
   MOVING,
+  LANDING,
   OVER
 }
 

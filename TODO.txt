@@ -10,7 +10,7 @@ Nomes coloridos em eventos do chat
 2.0
 [OK] Remover ngrx (estado gerenciado server-side)
 [OK] Unificar estado da partida em um objeto
-Implementar motor de jogo baseado em eventos
+[OK] Implementar motor de jogo baseado em eventos
 Separar backend e frontend
 Integrar com MongoDB
 Padronizar com Bubaxi

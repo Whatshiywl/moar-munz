@@ -1,18 +1,34 @@
 import { Match, Player, PlayerState, VictoryState } from '@moar-munz/api-interfaces';
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { JWTService } from './jwt.service';
 import { LowDbService } from './lowdb.service';
 import { UUIDService } from './uuid.service';
 import { sample } from 'lodash';
+import { Subject } from 'rxjs';
+import { SocketService } from '../../socket/socket.service';
+import { debounceTime, map } from 'rxjs/operators';
 
 @Injectable()
-export class PlayerService {
+export class PlayerService implements OnApplicationBootstrap {
+
+    playerBroadcastSubject: Subject<Player>;
 
     constructor(
         private db: LowDbService,
         private uuidService: UUIDService,
-        private jwtService: JWTService
+        private jwtService: JWTService,
+        private socketService: SocketService
     ) { }
+
+    onApplicationBootstrap() {
+      this.playerBroadcastSubject = new Subject<Player>();
+      this.playerBroadcastSubject.pipe(
+        debounceTime(100),
+        map(player => this.getPlayersByMatchId(player.matchId))
+      ).subscribe(players => {
+        this.socketService.emit('players', players, players.map(p => p.id));
+      });
+    }
 
     private generatePlayer(id: string, match: Match, ai: boolean) {
         const name = `${this.generateRandomName()}${ai ? ' (AI)' : ''}`;
@@ -31,8 +47,6 @@ export class PlayerService {
                 prison: 0,
                 equalDie: 0,
                 turn: false,
-                canMove: false,
-                canWalk: false,
                 walkDistance: 0
             }
         };
@@ -61,6 +75,15 @@ export class PlayerService {
         return this.db.deletePlayer(id);
     }
 
+    saveAndBroadcast(player: Player) {
+      this.savePlayer(player);
+      this.broadcastPlayer(player);
+    }
+
+    broadcastPlayer(player: Player) {
+      this.playerBroadcastSubject.next(player);
+    }
+
     getPlayersByMatchId(matchId: string) {
         return this.db.readPlayersByMatchId(matchId);
     }
@@ -74,40 +97,28 @@ export class PlayerService {
         const player = this.getPlayer(id);
         if (!player) return;
         player.state = { ...state };
-        return this.savePlayer(player);
+        return this.saveAndBroadcast(player);
+    }
+
+    updateState(id: string, state: Partial<PlayerState>) {
+        const player = this.getPlayer(id);
+        if (!player) return;
+        player.state = { ...player.state, ...state };
+        this.saveAndBroadcast(player);
+    }
+
+    addMoney(id: string, amount: number) {
+        const player = this.getPlayer(id);
+        if (!player) return;
+        player.state.money += +amount;
+        this.saveAndBroadcast(player);
     }
 
     setTurn(id: string, turn: boolean) {
         const player = this.getPlayer(id);
         if (!player) return;
         player.state.turn = turn;
-        return this.savePlayer(player);
-    }
-
-    getCanMove(id: string) {
-        const state = this.getState(id);
-        if (!state) return false;
-        return state.canMove;
-    }
-
-    setCanMove(id: string, canMove: boolean) {
-        const player = this.getPlayer(id);
-        if (!player) return;
-        player.state.canMove = canMove;
-        return this.savePlayer(player);
-    }
-
-    getCanWalk(id: string) {
-        const state = this.getState(id);
-        if (!state) return false;
-        return state.canWalk;
-    }
-
-    setCanWalk(id: string, canWalk: boolean) {
-        const player = this.getPlayer(id);
-        if (!player) return;
-        player.state.canWalk = canWalk;
-        return this.savePlayer(player);
+        return this.saveAndBroadcast(player);
     }
 
     getWalkDistance(id: string) {
@@ -120,7 +131,7 @@ export class PlayerService {
         const player = this.getPlayer(id);
         if (!player) return;
         player.state.walkDistance = walkDistance;
-        return this.savePlayer(player);
+        return this.saveAndBroadcast(player);
     }
 
     private generateRandomName() {

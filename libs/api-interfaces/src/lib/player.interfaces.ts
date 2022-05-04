@@ -1,4 +1,5 @@
-import { Prompt } from "./prompt.interfaces"
+import { PromptAnswerObj, PromptObj } from "./prompt.interfaces";
+import { PubSubPayload } from "./pubsub.interfaces";
 
 export enum VictoryState {
   UNDEFINED, LOST, WON
@@ -12,8 +13,6 @@ export interface PlayerState {
   prison: number,
   equalDie: number,
   turn: boolean,
-  canMove: boolean,
-  canWalk: boolean,
   walkDistance: number
 }
 
@@ -25,5 +24,5 @@ export interface Player {
   color: string,
   ready: boolean,
   state: PlayerState,
-  prompt?: Prompt
+  prompt?: PubSubPayload<PromptObj<any> | PromptAnswerObj<any>, 'prompt'>
 }

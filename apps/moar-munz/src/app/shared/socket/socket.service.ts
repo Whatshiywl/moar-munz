@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Match, Message, Prompt, Trade, TradeSide } from '@moar-munz/api-interfaces';
+import { Match, Message, Player, Prompt, Trade, TradeSide } from '@moar-munz/api-interfaces';
 import { Socket } from 'ngx-socket-io';
 import { Subject } from 'rxjs';
 
@@ -9,6 +9,7 @@ type SocketType<P, C = undefined> = { payload: P, callback?: C };
 export class SocketService extends Socket {
 
     onMatch$: Subject<SocketType<Match>> = new Subject<SocketType<Match>>();
+    onPlayers$: Subject<SocketType<Player[]>> = new Subject<SocketType<Player[]>>();
     onMessage$: Subject<SocketType<Message>> = new Subject<SocketType<Message>>();
     onDiceRoll$: Subject<SocketType<number[]>> = new Subject<SocketType<number[]>>();
     onPromptNew$: Subject<SocketType<Prompt>> = new Subject<SocketType<Prompt>>();
@@ -32,11 +33,9 @@ export class SocketService extends Socket {
             subject.next({ payload, callback });
         });
 
-        super.on('match', match => {
-            console.log('socket match state', match?.state);
-            next(this.onMatch$)(match);
-        });
+        super.on('match', next(this.onMatch$));
         super.on('message', next(this.onMessage$));
+        super.on('players', next(this.onPlayers$));
         super.on('dice roll', next(this.onDiceRoll$));
         super.on('new prompt', next(this.onPromptNew$));
         super.on('update prompt', next(this.onPromptUpdate$));
