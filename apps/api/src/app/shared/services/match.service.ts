@@ -2,7 +2,7 @@ import { PlayerState, VictoryState, Match, Player, OwnableTile, RentableTile, Ma
 import { Injectable, OnApplicationBootstrap } from "@nestjs/common";
 import { SocketService } from "../../socket/socket.service";
 import { BoardService } from "./board.service";
-import { LowDbService } from "./lowdb.service";
+import { LowDbService } from "../../lowdb/lowdb.service";
 import { PlayerService } from "./player.service";
 import { Subject } from "rxjs";
 import { debounceTime } from 'rxjs/operators';

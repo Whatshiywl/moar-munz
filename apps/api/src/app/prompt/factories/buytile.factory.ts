@@ -2,7 +2,7 @@ import { CompanyTile, Player, PromptAnswerPayload, RailroadTile, RentableTile } 
 import { Injectable } from "@nestjs/common";
 import { MatchService } from "../../shared/services/match.service";
 import { PlayerService } from "../../shared/services/player.service";
-import { PubSubService } from "../../shared/services/pubsub.service";
+import { PubSubService } from "../../pubsub/pubsub.service";
 import { AbstractPromptFactory } from "./abstract.factory";
 
 @Injectable()

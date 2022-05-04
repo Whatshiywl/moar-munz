@@ -1,5 +1,5 @@
 import { PipeTransform, Injectable } from '@nestjs/common';
-import { DataBody, SocketBody, SocketMessageBody } from '../../socket/socket.interfaces';
+import { DataBody, SocketBody, SocketMessageBody } from '../socket.interfaces';
 import { Message } from '@moar-munz/api-interfaces';
 
 type InBody = SocketBody & DataBody<{ message: Message }>

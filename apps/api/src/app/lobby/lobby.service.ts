@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PlayerService } from '../shared/services/player.service';
 import { Match, Player } from '@moar-munz/api-interfaces';
 import { MatchService } from '../shared/services/match.service';
-import { EngineService } from '../engine/engine.service';
+import { PubSubService } from '../pubsub/pubsub.service';
 
 @Injectable()
 export class LobbyService {
@@ -10,7 +10,7 @@ export class LobbyService {
     constructor(
         private playerService: PlayerService,
         private matchService: MatchService,
-        private engineService: EngineService
+        private pubsubService: PubSubService
     ) { }
 
     async removePlayer(match: Match, player: Player, replace: boolean) {
@@ -24,7 +24,8 @@ export class LobbyService {
         }
         this.matchService.removePlayer(match.playerOrder, player);
         this.playerService.delete(player.id);
-        if (aiPlayer) await this.engineService.play(aiPlayer.id);
+        // TODO: publish play event instead
+        if (aiPlayer) this.pubsubService.publishPlay(aiPlayer.id);
     }
 
     private deletePlayer(match: Match, player: Player) {

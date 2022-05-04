@@ -1,11 +1,8 @@
-import { Player, Prompt, PromptAnswerObj, PromptAnswerPayload, PromptMessage, PromptObj, PromptPayload, PubSubActionObj, PubSubPayload } from "@moar-munz/api-interfaces";
+import { Player, Prompt, PromptAnswerObj, PromptAnswerPayload, PromptObj, PubSubActionObj, PubSubPayload } from "@moar-munz/api-interfaces";
 import { Injectable } from "@nestjs/common";
-import * as SocketIO from "socket.io";
-import { SocketService } from "../socket/socket.service";
-import { AIService } from "../shared/services/ai.service";
 import { PlayerService } from "../shared/services/player.service";
 import { AbstractPromptFactory } from "./factories/abstract.factory";
-import { PubSubService } from "../shared/services/pubsub.service";
+import { PubSubService } from "../pubsub/pubsub.service";
 import { WorldtourPromptFactory } from "./factories/worldtour.factory";
 import { WorldcupPromptFactory } from "./factories/worldcup.factory";
 import { BuyDeedPromptFactory } from "./factories/buydeed.factory";
@@ -20,30 +17,16 @@ export class PromptService {
   private factories: AbstractPromptFactory<any>[];
 
   constructor(
-    private socket: SocketService,
-    private aiService: AIService,
     private playerService: PlayerService,
     private pubsubService: PubSubService,
-    public readonly worldtourPromptFactory: WorldtourPromptFactory,
-    public readonly worldcupPromptFactory: WorldcupPromptFactory,
-    public readonly buyDeedPromptFactory: BuyDeedPromptFactory,
-    public readonly improveDeedPromptFactory: ImproveDeedPromptFactory,
-    public readonly aquireDeedPromptFactory: AquireDeedPromptFactory,
-    public readonly buyTilePromptFactory: BuyTilePromptFactory,
-    public readonly sellTilesPromptFactory: SellTilesPromptFactory
+    private worldtourPromptFactory: WorldtourPromptFactory,
+    private worldcupPromptFactory: WorldcupPromptFactory,
+    private buyDeedPromptFactory: BuyDeedPromptFactory,
+    private improveDeedPromptFactory: ImproveDeedPromptFactory,
+    private aquireDeedPromptFactory: AquireDeedPromptFactory,
+    private buyTilePromptFactory: BuyTilePromptFactory,
+    private sellTilesPromptFactory: SellTilesPromptFactory
   ) {
-    this.pubsubService.on<PromptMessage<any>>('prompt')
-    .subscribe(async ({ payload, ack }) => {
-      await this.onPrompt(payload);
-      ack();
-    });
-
-    // In theory, this is not needed, as answers come through client websocket or AI logic
-    // this.pubsubService.on<PromptAnswerMessage<any>>('prompt-answer')
-    // .subscribe(async ({ payload, ack }) => {
-    //   await this.onAnswer(payload);
-    //   ack();
-    // });
 
     this.factories = [
       this.worldtourPromptFactory,
@@ -88,46 +71,10 @@ export class PromptService {
     return payload;
   }
 
-  private async onPrompt<T>(payload: PromptPayload<T>) {
-    const { playerId } = payload.actions.prompt.body;
-    const player = this.playerService.getPlayer(playerId);
-    if (player.prompt) await this.updatePayload<T>(payload);
-    else await this.promptPayload<T>(payload);
-  }
-
   private async onAnswer<T>(payload: PromptAnswerPayload<T>) {
     const action = payload.actions["prompt-answer"];
     const factory = this.factories.find(f => f.name === action.body.prompt.factoryName);
     await factory.onAnswer(payload);
-  }
-
-  private async promptPayload<T>(payload: PromptPayload<T>) {
-    const { playerId, prompt } = payload.actions.prompt.body;
-    const player = this.playerService.getPlayer(playerId);
-    player.prompt = payload;
-    this.playerService.saveAndBroadcast(player);
-    const client = player.ai ? undefined : this.socket.getClient(player.id);
-    if (!player.ai && !client) return;
-    this.submitPrompt(player, prompt, client);
-  }
-
-  private submitPrompt(player: Player, prompt: Prompt, client?: SocketIO.Socket) {
-    console.log(`Question: ${prompt.message}`);
-    if (client) client.emit('new prompt', prompt);
-    else this.aiService.answer(prompt).then(p => {
-      this.answer(player.id, p);
-    });
-  }
-
-  private updatePayload<T>(payload: PromptPayload<T>) {
-    const { playerId, prompt } = payload.actions.prompt.body;
-    const player = this.playerService.getPlayer(playerId);
-    if (player.ai) return; // AIs are supposed to respond to prompts immediately, so no time/need for updates
-    const client = this.socket.getClient(player.id);
-    if (!client || !prompt) return undefined;
-    player.prompt = payload;
-    this.playerService.saveAndBroadcast(player);
-    client.emit('update prompt', prompt);
   }
 
   answer(playerId: string, prompt: Prompt) {

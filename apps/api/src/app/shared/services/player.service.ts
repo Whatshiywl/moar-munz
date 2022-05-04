@@ -1,7 +1,7 @@
 import { Match, Player, PlayerState, VictoryState } from '@moar-munz/api-interfaces';
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { JWTService } from './jwt.service';
-import { LowDbService } from './lowdb.service';
+import { LowDbService } from '../../lowdb/lowdb.service';
 import { UUIDService } from './uuid.service';
 import { sample } from 'lodash';
 import { Subject } from 'rxjs';

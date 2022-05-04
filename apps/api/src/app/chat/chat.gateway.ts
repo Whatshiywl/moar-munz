@@ -2,7 +2,7 @@ import { WebSocketGateway, SubscribeMessage, MessageBody } from '@nestjs/websock
 import { UsePipes } from '@nestjs/common';
 import { SocketMessageBody } from '../socket/socket.interfaces';
 import { SocketService } from '../socket/socket.service';
-import { BodyMessagePipe } from '../shared/pipes/body-message.pipe';
+import { BodyMessagePipe } from '../socket/pipes/body-message.pipe';
 
 @WebSocketGateway()
 export class ChatGateway {

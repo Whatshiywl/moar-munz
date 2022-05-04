@@ -1,22 +1,22 @@
 import { Injectable } from '@nestjs/common';
-import { sample, groupBy } from 'lodash';
+import { sample } from 'lodash';
 import { PlayerService } from '../shared/services/player.service';
 import { BoardService } from '../shared/services/board.service';
 import { SocketService } from '../socket/socket.service';
-import { DeedTile, DynamicTile, MatchState, Player, VictoryState, PlayMessage, TransferMessage, TransferPayload, TransferCompleteMessage, TransferCompletePayload, DeductMessage, CheckBalanceMessage, DeductPayload, CheckBalancePayload, WinMessage, WinPayload, AfterRentPaymentMessage, DeedAquireConfirmedMessage, AfterRentPaymentPayload, DeedAquireConfirmedPayload } from '@moar-munz/api-interfaces';
+import { MatchState, Player, VictoryState, PlayMessage, PlayAction } from '@moar-munz/api-interfaces';
 import { PromptService } from '../prompt/prompt.service';
 import { MatchService } from '../shared/services/match.service';
-import { PubSubService } from '../shared/services/pubsub.service';
+import { PubSubService } from '../pubsub/pubsub.service';
 import { WorldtourPromptFactory } from '../prompt/factories/worldtour.factory';
 import { WorldcupPromptFactory } from '../prompt/factories/worldcup.factory';
 import { BuyDeedPromptFactory } from '../prompt/factories/buydeed.factory';
 import { ImproveDeedPromptFactory } from '../prompt/factories/improvedeed.factory';
-import { AquireDeedPromptFactory } from '../prompt/factories/aquiredeed.factory';
 import { BuyTilePromptFactory } from '../prompt/factories/buytile.factory';
-import { SellTilesPromptFactory } from '../prompt/factories/selltiles.factory';
+import { Engine, Gear } from './engine.decorators';
 
+@Engine()
 @Injectable()
-export class EngineService {
+export class PlayEngine {
 
   private readonly diceRollInterval = 100;
   private readonly diceRollAccel = 1.2;
@@ -34,58 +34,8 @@ export class EngineService {
     private worldcupPromptFactory: WorldcupPromptFactory,
     private buyDeedPromptFactory: BuyDeedPromptFactory,
     private improveDeedPromptFactory: ImproveDeedPromptFactory,
-    private aquireDeedPromptFactory: AquireDeedPromptFactory,
-    private buyTilePromptFactory: BuyTilePromptFactory,
-    private sellTilesPromptFactory: SellTilesPromptFactory
+    private buyTilePromptFactory: BuyTilePromptFactory
   ) {
-    this.pubsubService.on<PlayMessage>('play')
-    .subscribe(async ({ payload, ack }) => {
-      await this.play(payload.actions[payload.action].body.playerId, payload.actions[payload.action].body.forceUnlock);
-      ack();
-    });
-
-    this.pubsubService.on<TransferMessage>('transfer')
-    .subscribe(async ({ payload, ack }) => {
-      await this.onTransfer(payload);
-      ack();
-    });
-
-    this.pubsubService.on<AfterRentPaymentMessage>('after-rent-payment')
-    .subscribe(async ({ payload, ack }) => {
-      await this.onAfterRentPayment(payload);
-      ack();
-    });
-
-    this.pubsubService.on<DeedAquireConfirmedMessage>('deed-aquire-confirmed')
-    .subscribe(async ({ payload, ack }) => {
-      await this.onDeedAquireConfirmed(payload);
-      ack();
-    });
-
-    this.pubsubService.on<TransferCompleteMessage>('transfer-complete')
-    .subscribe(async ({ payload, ack }) => {
-      await this.onCompleteTransfer(payload);
-      ack();
-    });
-
-    this.pubsubService.on<DeductMessage>('deduct')
-    .subscribe(async ({ payload, ack }) => {
-      await this.onDeduct(payload);
-      ack();
-    });
-
-    this.pubsubService.on<CheckBalanceMessage>('check-balance')
-    .subscribe(async ({ payload, ack }) => {
-      await this.onCheckBalance(payload);
-      ack();
-    });
-
-    this.pubsubService.on<WinMessage>('win')
-    .subscribe(({ payload, ack }) => {
-      this.win(payload);
-      ack();
-    });
-
   }
 
   private rollDice(): [number, number] {
@@ -110,7 +60,9 @@ export class EngineService {
     return true;
   }
 
-  async play(playerId: string, forceUnlock: boolean = false) {
+  @Gear('play')
+  async onPlay(action: PlayAction) {
+    const { playerId, forceUnlock } = action.body;
     if (!this.canPlay(playerId, forceUnlock)) return;
     const { matchId } = this.playerService.getPlayer(playerId);
     const matchState = this.matchService.getState(matchId);
@@ -160,7 +112,7 @@ export class EngineService {
 
   private playing(playerId: string, matchId: string) {
     this.matchService.lock(matchId);
-    const publish = this.onPlay(playerId);
+    const publish = this.processPlay(playerId);
     this.matchService.unlock(matchId);
     if (publish) this.pubsubService.publishPlay(playerId);
   }
@@ -233,7 +185,7 @@ export class EngineService {
     }
   }
 
-  private onPlay(playerId: string) {
+  private processPlay(playerId: string) {
     const player = this.playerService.getPlayer(playerId);
     if (!player) return false;
     const playerState = player.state;
@@ -315,7 +267,13 @@ export class EngineService {
             const payload = this.pubsubService.getPlayPayload(playerId, true);
             this.promptService.publish(player, this.improveDeedPromptFactory, 'play', payload.actions);
           } else {
-            await this.onLandOthersProp(playerId);
+            const board = this.matchService.getBoard(player.matchId);
+            const cost = this.boardService.getFullRent(board, tile);
+            this.pubsubService.publishTransfer(playerId, tile.owner, cost, 'after-rent-payment', {
+              'after-rent-payment': {
+                body: { playerId }
+              }
+            });
           }
         }
         return ret(false, false);
@@ -403,45 +361,6 @@ export class EngineService {
     return ret(true);
   }
 
-  // LandOnOthersPropGear start
-  private async onLandOthersProp(playerId: string) {
-    const player = this.playerService.getPlayer(playerId);
-    const board = this.matchService.getBoard(player.matchId);
-    const tile = this.matchService.getTileWithPlayer(player) as DeedTile & DynamicTile;
-    const cost = this.boardService.getFullRent(board, tile);
-    this.pubsubService.publishTransfer(playerId, tile.owner, cost, 'after-rent-payment', {
-      'after-rent-payment': {
-        body: { playerId }
-      }
-    });
-  }
-
-  private async onAfterRentPayment(payload: AfterRentPaymentPayload) {
-    const { playerId } = payload.actions['after-rent-payment'].body;
-    const player = this.playerService.getPlayer(playerId);
-    const tile = this.matchService.getTileWithPlayer(player) as DeedTile & DynamicTile;
-    const value = 2 * this.boardService.getTileValue(tile);
-    if (player.state.money < value) return this.pubsubService.publishPlay(playerId, true);
-    const playPayload = this.pubsubService.getPlayPayload(playerId, true);
-    const deedAquirePayload = this.pubsubService.addActions(payload, {
-      'deed-aquire-confirmed': {
-        body: { playerId }
-      }
-    });
-    const promptPayload = this.pubsubService.addActions(deedAquirePayload, playPayload.actions);
-    this.promptService.publish(player, this.aquireDeedPromptFactory, 'deed-aquire-confirmed', promptPayload.actions);
-  }
-
-  private async onDeedAquireConfirmed(payload: DeedAquireConfirmedPayload) {
-    const { playerId } = payload.actions['deed-aquire-confirmed'].body;
-    const player = this.playerService.getPlayer(playerId);
-    const tile = this.matchService.getTileWithPlayer(player) as DeedTile & DynamicTile;
-    this.matchService.setTileOwner(tile.name, player);
-    this.matchService.setState(player.matchId, MatchState.MOVING);
-    this.pubsubService.publishPlay(playerId, true);
-  }
-  // LandOnOthersPropGear end
-
   private async onEnd(playerId: string) {
     const player = this.playerService.getPlayer(playerId);
     if (!player) return;
@@ -467,38 +386,6 @@ export class EngineService {
     }
   }
 
-  // DeductGear start
-  private async onDeduct(payload: DeductPayload) {
-    const { playerId, amount } = payload.actions.deduct.body;
-    this.playerService.addMoney(playerId, -amount);
-    const checkBalancePayload = this.pubsubService.changeAction<CheckBalancePayload>(payload, 'check-balance');
-    this.pubsubService.publish(checkBalancePayload);
-  }
-
-  private async onCheckBalance(payload: CheckBalancePayload) {
-    const { body, callback } = payload.actions['check-balance'];
-    const { playerId, amount, origin } = body;
-    const player = this.playerService.getPlayer(playerId);
-    const balance = player.state.money;
-    if (balance < 0 && this.matchService.getPlayerProperties(player).length) {
-      this.promptService.publish(player, this.sellTilesPromptFactory, 'check-balance', payload.actions);
-    } else {
-      const debt = Math.min(0, player.state.money);
-      const actualAmount = amount + debt;
-      this.checkPlayerLost(player);
-      if (origin) {
-        const hasLost = this.playerService.getState(player.id).victory === VictoryState.LOST;
-        if (!hasLost) this.broadcastTransaction(player, -amount, origin);
-      }
-      const checkBalancePayload = this.pubsubService.changeAction(payload, callback);
-      if (checkBalancePayload.actions[callback]) {
-        checkBalancePayload.actions[callback].body.amount = actualAmount;
-      }
-      this.pubsubService.publish(checkBalancePayload);
-    }
-  }
-  // DeductGear end
-
   private giveThenPlay(player: Player, amount: number, origin?: string) {
     const payload = this.pubsubService.getPlayPayload(player.id, true);
     if (amount > 0) {
@@ -511,37 +398,7 @@ export class EngineService {
     }
   }
 
-  private checkPlayerLost(player: Player) {
-    const playerOrder = this.matchService.getPlayerOrder(player.matchId);
-    if (this.playerService.getState(player.id)?.money >= 0) return;
-    console.log(`${player.name} LOSES`);
-    this.playerService.updateState(player.id, {
-      money: 0, victory: VictoryState.LOST
-    });
-    const lost = [];
-    const notLost = playerOrder.filter(Boolean).filter(id => {
-      if (id === player.id) return false;
-      const otherPlayer = this.playerService.getPlayer(id);
-      const otherPlayerState = otherPlayer.state;
-      if (otherPlayerState.victory === VictoryState.LOST) {
-        lost.push(id);
-        return false;
-      } else return true;
-    });
-    if (notLost.length === 1) {
-      const winner = this.playerService.getPlayer(notLost[0]);
-      this.pubsubService.publishWin(winner.id);
-    } else {
-      this.socketService.broadcastGlobalMessage(
-        playerOrder,
-        id => id === player.id ?
-          `You have lost. Git gud!` :
-          `${player.name} has lost`
-      );
-    }
-    return;
-  }
-
+  // TODO: create common service for this
   private broadcastTransaction(player: Player, amount: number, origin: string) {
     const playerOrder = this.matchService.getPlayerOrder(player.matchId);
     const got = amount > 0;
@@ -558,31 +415,6 @@ export class EngineService {
     );
   }
 
-  // TransferGear start
-  private async onTransfer(payload: TransferPayload) {
-    const { from: fromId, to: toId, amount } = payload.actions.transfer.body;
-    if (amount < 0) {
-      return this.pubsubService.publishTransfer(toId, fromId, -amount, payload.actions['transfer-complete'].callback, payload.actions);
-    }
-    const from = this.playerService.getPlayer(fromId);
-    const to = this.playerService.getPlayer(toId);
-    console.log(`Transfering ${amount} from ${from.name} to ${to.name}`);
-    this.pubsubService.publishDeduct(fromId, amount, 'transfer-complete', payload.actions);
-  }
-
-  private async onCompleteTransfer(payload: TransferCompletePayload) {
-    const { body, callback } = payload.actions['transfer-complete'];
-    const { from: fromId, to: toId, amount: actualAmount } = body;
-    const from = this.playerService.getPlayer(fromId);
-    const to = this.playerService.getPlayer(toId);
-    console.log(`${to.name} will receive ${actualAmount}`);
-    this.playerService.addMoney(to.id, actualAmount);
-    this.broadcastTransaction(to, actualAmount, from.name);
-    const callbackPayload = this.pubsubService.changeAction(payload, callback);
-    this.pubsubService.publish(callbackPayload);
-  }
-  // TransferGear end
-
   private sendToJail(player: Player) {
     this.matchService.move(player, 10);
     this.playerService.updateState(player.id, {
@@ -595,28 +427,6 @@ export class EngineService {
         : `${player.name} has gone to jail.`
     );
   }
-
-  // WinGear start
-  private win(payload: WinPayload) {
-    const { playerId } = payload.actions.win.body;
-    const winner = this.playerService.getPlayer(playerId);
-    console.log(`${winner.name} WINS`);
-    const playerOrder = this.matchService.getPlayerOrder(winner.matchId);
-    this.socketService.broadcastGlobalMessage(
-      playerOrder,
-      id => id === winner.id
-        ? `You have won!`
-        : `${winner.name} has won`
-    );
-    const lost = playerOrder.filter(Boolean).filter(p => p !== winner.id);
-    lost.forEach(id => {
-      const player = this.playerService.getPlayer(id);
-      this.matchService.setPlayerVictory(player, VictoryState.LOST);
-    });
-    this.matchService.setPlayerVictory(winner, VictoryState.WON);
-    this.matchService.setMatchOver(winner.matchId);
-  }
-  // WinGear end
 
   private sleep(n: number) {
     return new Promise<void>(r => {

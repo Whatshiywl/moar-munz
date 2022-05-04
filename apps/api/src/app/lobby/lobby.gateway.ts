@@ -1,9 +1,9 @@
 import { WebSocketGateway, SubscribeMessage, MessageBody } from '@nestjs/websockets';
 import { LobbyService } from './lobby.service';
-import { BodyLobbyPipe } from '../shared/pipes/body-lobby.pipe';
+import { BodyLobbyPipe } from '../socket/pipes/body-lobby.pipe';
 import { DataBody, MatchBody, PlayerBody, SocketBody } from '../socket/socket.interfaces';
 import { UsePipes } from '@nestjs/common';
-import { BodyPlayerPipe } from '../shared/pipes/body-player.pipe';
+import { BodyPlayerPipe } from '../socket/pipes/body-player.pipe';
 import { PlayerService } from '../shared/services/player.service';
 
 type EnterLobyBody = SocketBody & DataBody<{ lobbyId: string }> & MatchBody

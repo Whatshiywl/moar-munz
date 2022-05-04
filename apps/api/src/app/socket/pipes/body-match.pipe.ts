@@ -1,23 +1,23 @@
 import { PipeTransform, Injectable } from '@nestjs/common';
-import { DataBody, MatchBody, PlayerBody, SocketBody } from '../../socket/socket.interfaces';
-import { PlayerService } from '../services/player.service';
-import { JWTService } from '../services/jwt.service';
-import { MatchService } from '../services/match.service';
+import { DataBody, MatchBody, PlayerBody, SocketBody } from '../socket.interfaces';
+import { PlayerService } from '../../shared/services/player.service';
+import { JWTService } from '../../shared/services/jwt.service';
+import { MatchService } from '../../shared/services/match.service';
 
-type InBody = SocketBody & DataBody<{ lobbyId: string }> & PlayerBody
-type OutBody = SocketBody & DataBody<{ lobbyId: string }> & MatchBody;
+type InBody = SocketBody & DataBody<{ matchId: string }> & PlayerBody
+type OutBody = SocketBody & DataBody<{ matchId: string }> & MatchBody;
 
 @Injectable()
-export class BodyLobbyPipe implements PipeTransform<InBody, OutBody> {
+export class BodyMatchPipe implements PipeTransform<InBody, OutBody> {
 
     constructor(
         private jwtService: JWTService,
         private matchService: MatchService,
-        private playerService: PlayerService
+        private playerService: PlayerService,
     ) { }
 
     transform(body: InBody) {
-        const matchId = body.data?.lobbyId || this.getMatchIdFromPlayer(body);
+        const matchId = body.data?.matchId || this.getMatchIdFromPlayer(body);
         const match = this.matchService.getMatch(matchId);
         return { ...body, match };
     }

@@ -4,7 +4,7 @@ import { Injectable } from '@nestjs/common';
 import * as lowdb from 'lowdb';
 import * as FileSync from 'lowdb/adapters/FileSync';
 import { join } from 'path';
-import { MatchCRUD, PlayerCRUD } from '../interfaces/db.interface';
+import { MatchCRUD, PlayerCRUD } from '../shared/interfaces/db.interface';
 
 @Injectable()
 export class LowDbService implements MatchCRUD, PlayerCRUD {

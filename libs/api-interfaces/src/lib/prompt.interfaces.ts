@@ -11,10 +11,12 @@ export type Prompt<T = any> = {
 }
 
 export type PromptBody<T> = { playerId: string, prompt: Prompt<T> };
-export type PromptObj<T> = PubSubActionObj<PubSubAction<PromptBody<T>>, 'prompt'>;
+export type PromptAction<T> = PubSubAction<PromptBody<T>>;
+export type PromptObj<T> = PubSubActionObj<PromptAction<T>, 'prompt'>;
 export type PromptPayload<T> = PubSubPayload<PromptObj<T>>;
 export type PromptMessage<T> = PubSubMessage<PromptPayload<T>>;
 
-export type PromptAnswerObj<T> = PubSubActionObj<PubSubAction<PromptBody<T>>, 'prompt-answer'>;
+export type PromptAnswerAction<T> = PubSubAction<PromptBody<T>>;
+export type PromptAnswerObj<T> = PubSubActionObj<PromptAnswerAction<T>, 'prompt-answer'>;
 export type PromptAnswerPayload<T> = PubSubPayload<PromptAnswerObj<T>>;
 export type PromptAnswerMessage<T> = PubSubMessage<PromptAnswerPayload<T>>;
