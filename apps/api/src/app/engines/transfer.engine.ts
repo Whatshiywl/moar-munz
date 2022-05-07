@@ -1,5 +1,4 @@
-import { TransferPayload, TransferCompletePayload, Player, TransferAction, TransferCompleteAction } from "@moar-munz/api-interfaces";
-import { Injectable } from "@nestjs/common";
+import type { TransferPayload, TransferCompletePayload, Player, TransferAction, TransferCompleteAction } from "@moar-munz/api-interfaces";
 import { PubSubService } from "../pubsub/pubsub.service";
 import { MatchService } from "../shared/services/match.service";
 import { PlayerService } from "../shared/services/player.service";
@@ -7,7 +6,6 @@ import { SocketService } from "../socket/socket.service";
 import { Engine, Gear } from "./engine.decorators";
 
 @Engine()
-@Injectable()
 export class TransferEngine {
 
   constructor (
@@ -19,22 +17,26 @@ export class TransferEngine {
 
   @Gear('transfer')
   async onTransfer(action: TransferAction, payload: TransferPayload) {
+    const { matchId } = payload;
     const { from: fromId, to: toId, amount } = action.body;
-    if (amount < 0) {
-      return this.pubsubService.publishTransfer(toId, fromId, -amount, payload.actions['transfer-complete'].callback, payload.actions);
-    }
     const from = this.playerService.getPlayer(fromId);
     const to = this.playerService.getPlayer(toId);
+    if (from?.matchId !== matchId || to?.matchId !== matchId) return;
+    if (amount < 0) {
+      return this.pubsubService.publishTransfer(matchId, toId, fromId, -amount, payload.actions['transfer-complete'].callback, payload.actions);
+    }
     console.log(`Transfering ${amount} from ${from.name} to ${to.name}`);
-    this.pubsubService.publishDeduct(fromId, amount, 'transfer-complete', payload.actions);
+    this.pubsubService.publishDeduct(matchId, fromId, amount, 'transfer-complete', payload.actions);
   }
 
   @Gear('transfer-complete')
   async onTransferComplete(action: TransferCompleteAction, payload: TransferCompletePayload) {
+    const { matchId } = payload;
     const { body, callback } = action;
     const { from: fromId, to: toId, amount: actualAmount } = body;
     const from = this.playerService.getPlayer(fromId);
     const to = this.playerService.getPlayer(toId);
+    if (from?.matchId !== matchId || to?.matchId !== matchId) return;
     console.log(`${to.name} will receive ${actualAmount}`);
     this.playerService.addMoney(to.id, actualAmount);
     this.broadcastTransaction(to, actualAmount, from.name);

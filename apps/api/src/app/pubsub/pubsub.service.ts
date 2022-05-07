@@ -48,16 +48,17 @@ export class PubSubService implements OnModuleInit {
 
   addActions(payload: PubSubPayload, actions: PubSubActionObj) {
     const newActions = { ...payload.actions, ...actions };
-    return { action: payload.action, actions: newActions };
+    return { matchId: payload.matchId, action: payload.action, actions: newActions };
   }
 
-  publishPlay(playerId: string, forceUnlock: boolean = false) {
-    const payload = this.getPlayPayload(playerId, forceUnlock);
+  publishPlay(matchId: string, playerId: string, forceUnlock: boolean = false) {
+    const payload = this.getPlayPayload(matchId, playerId, forceUnlock);
     return this.publish(payload);
   }
 
-  getPlayPayload(playerId: string, forceUnlock: boolean = false) {
+  getPlayPayload(matchId: string, playerId: string, forceUnlock: boolean = false) {
     const payload: PlayPayload = {
+      matchId,
       action: 'play',
       actions: {
         play: {
@@ -68,8 +69,9 @@ export class PubSubService implements OnModuleInit {
     return payload;
   }
 
-  publishTransfer(from: string, to: string, amount: number, callback: string, actions: PubSubActionObj = { }) {
+  publishTransfer(matchId: string, from: string, to: string, amount: number, callback: string, actions: PubSubActionObj = { }) {
     const payload: PubSubPayload<TransferObj | TransferCompleteObj, 'transfer'> = {
+      matchId,
       action: 'transfer',
       actions: {
         ...actions,
@@ -85,8 +87,9 @@ export class PubSubService implements OnModuleInit {
     return this.publish(payload);
   }
 
-  publishDeduct(playerId: string, amount: number, callback: string, actions: PubSubActionObj = { }, origin?: string) {
+  publishDeduct(matchId: string, playerId: string, amount: number, callback: string, actions: PubSubActionObj = { }, origin?: string) {
     const payload: PubSubPayload<DeductObj | CheckBalanceObj, 'deduct'> = {
+      matchId,
       action: 'deduct',
       actions: {
         ...actions,
@@ -102,8 +105,9 @@ export class PubSubService implements OnModuleInit {
     return this.publish(payload);
   }
 
-  publishWin(playerId: string) {
+  publishWin(matchId: string, playerId: string) {
     const payload: WinPayload = {
+      matchId,
       action: 'win',
       actions: {
         win: {
@@ -122,7 +126,10 @@ export class PubSubService implements OnModuleInit {
   }
 
   publish<A extends string, B extends PubSubActionBody, C extends string, P = PubSubPayload<PubSubActionObj<PubSubAction<B, C>, A>>>(payload: P) {
-    const data = Buffer.from(JSON.stringify({ id: Math.random().toString(16).substring(2), ...payload }));
+    const data = Buffer.from(JSON.stringify({
+      id: Math.random().toString(16).substring(2),
+      ...payload
+    }));
     return this.topic.publishMessage({ data });
   }
 

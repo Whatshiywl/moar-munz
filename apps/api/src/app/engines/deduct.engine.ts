@@ -1,5 +1,5 @@
-import { Injectable } from "@nestjs/common";
-import { CheckBalanceAction, CheckBalancePayload, DeductAction, DeductPayload, Player, VictoryState } from "@moar-munz/api-interfaces";
+import type { CheckBalanceAction, CheckBalancePayload, DeductAction, DeductPayload, Player } from "@moar-munz/api-interfaces";
+import { VictoryState } from "@moar-munz/api-interfaces";
 import { SellTilesPromptFactory } from "../prompt/factories/selltiles.factory";
 import { PromptService } from "../prompt/prompt.service";
 import { MatchService } from "../shared/services/match.service";
@@ -9,7 +9,6 @@ import { SocketService } from "../socket/socket.service";
 import { Engine, Gear } from "./engine.decorators";
 
 @Engine()
-@Injectable()
 export class DeductEngine {
 
   constructor(
@@ -23,7 +22,10 @@ export class DeductEngine {
 
   @Gear('deduct')
   async onDeduct(action: DeductAction, payload: DeductPayload) {
+    const { matchId } = payload;
     const { playerId, amount } = action.body;
+    const player = this.playerService.getPlayer(playerId);
+    if (player.matchId !== matchId) return;
     this.playerService.addMoney(playerId, -amount);
     const checkBalancePayload = this.pubsubService.changeAction<CheckBalancePayload>(payload, 'check-balance');
     this.pubsubService.publish(checkBalancePayload);
@@ -31,9 +33,11 @@ export class DeductEngine {
 
   @Gear('check-balance')
   async onCheckBalance(action: CheckBalanceAction, payload: CheckBalancePayload) {
+    const { matchId } = payload;
     const { body, callback } = action;
     const { playerId, amount, origin } = body;
     const player = this.playerService.getPlayer(playerId);
+    if (player.matchId !== matchId) return;
     const balance = player.state.money;
     if (balance < 0 && this.matchService.getPlayerProperties(player).length) {
       this.promptService.publish(player, this.sellTilesPromptFactory, 'check-balance', payload.actions);
@@ -72,7 +76,7 @@ export class DeductEngine {
     });
     if (notLost.length === 1) {
       const winner = this.playerService.getPlayer(notLost[0]);
-      this.pubsubService.publishWin(winner.id);
+      this.pubsubService.publishWin(winner.matchId, winner.id);
     } else {
       this.socketService.broadcastGlobalMessage(
         playerOrder,

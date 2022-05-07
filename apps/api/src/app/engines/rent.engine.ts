@@ -1,5 +1,5 @@
-import { DeedTile, DynamicTile, AfterRentPaymentPayload, MatchState, AfterRentPaymentAction, DeedAquireConfirmedAction } from "@moar-munz/api-interfaces";
-import { Injectable } from "@nestjs/common";
+import type { DeedTile, DynamicTile, AfterRentPaymentPayload, AfterRentPaymentAction, DeedAquireConfirmedAction, DeedAquireConfirmedPayload } from "@moar-munz/api-interfaces";
+import { MatchState } from "@moar-munz/api-interfaces";
 import { AquireDeedPromptFactory } from "../prompt/factories/aquiredeed.factory";
 import { PromptService } from "../prompt/prompt.service";
 import { PubSubService } from "../pubsub/pubsub.service";
@@ -9,7 +9,6 @@ import { PlayerService } from "../shared/services/player.service";
 import { Engine, Gear } from "./engine.decorators";
 
 @Engine()
-@Injectable()
 export class RentEngine {
 
   constructor (
@@ -23,12 +22,14 @@ export class RentEngine {
 
   @Gear('after-rent-payment')
   async onAfterRentPayment(action: AfterRentPaymentAction, payload: AfterRentPaymentPayload) {
+    const { matchId } = payload;
     const { playerId } = action.body;
     const player = this.playerService.getPlayer(playerId);
+    if (player.matchId !== matchId) return;
     const tile = this.matchService.getTileWithPlayer(player) as DeedTile & DynamicTile;
     const value = 2 * this.boardService.getTileValue(tile);
-    if (player.state.money < value) return this.pubsubService.publishPlay(playerId, true);
-    const playPayload = this.pubsubService.getPlayPayload(playerId, true);
+    if (player.state.money < value) return this.pubsubService.publishPlay(matchId, playerId, true);
+    const playPayload = this.pubsubService.getPlayPayload(matchId, playerId, true);
     const deedAquirePayload = this.pubsubService.addActions(payload, {
       'deed-aquire-confirmed': {
         body: { playerId }
@@ -39,12 +40,14 @@ export class RentEngine {
   }
 
   @Gear('deed-aquire-confirmed')
-  async onDeedAquireConfirmed(action: DeedAquireConfirmedAction) {
+  async onDeedAquireConfirmed(action: DeedAquireConfirmedAction, payload: DeedAquireConfirmedPayload) {
+    const { matchId } = payload;
     const { playerId } = action.body;
     const player = this.playerService.getPlayer(playerId);
+    if (player.matchId !== matchId) return;
     const tile = this.matchService.getTileWithPlayer(player) as DeedTile & DynamicTile;
     this.matchService.setTileOwner(tile.name, player);
     this.matchService.setState(player.matchId, MatchState.MOVING);
-    this.pubsubService.publishPlay(playerId, true);
+    this.pubsubService.publishPlay(matchId, playerId, true);
   }
 }

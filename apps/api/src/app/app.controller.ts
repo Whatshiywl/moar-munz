@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 
-import { MatchOptions } from '@moar-munz/api-interfaces';
+import type { MatchOptions } from '@moar-munz/api-interfaces';
 
 import { AppService } from './app.service';
 import { UUIDService } from './shared/services/uuid.service';

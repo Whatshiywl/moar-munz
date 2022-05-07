@@ -1,11 +1,14 @@
+import { Injectable, InjectableOptions } from "@nestjs/common";
+
 export const ENGINE_METADATA = 'ENGINE_METADATA';
 
 export const GEAR_METADATA = 'GEAR_METADATA';
 export const GEAR_MESSAGE_METADATA = 'GEAR_MESSAGE_METADATA';
 
-export const Engine = () => {
-  return (target: object) => {
+export const Engine = (options?: InjectableOptions) => {
+  return (target: Function) => {
     Reflect.defineMetadata(ENGINE_METADATA, true, target);
+    Injectable(options)(target);
   };
 };
 

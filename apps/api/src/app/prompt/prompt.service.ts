@@ -42,7 +42,7 @@ export class PromptService {
   async publish<T extends void | boolean | string>(player: Player, factory: AbstractPromptFactory<T>, callback: string, actions: PubSubActionObj<any> = { }): Promise<boolean> {
     const prompt = await factory.build(player);
     if (prompt) {
-      const payload = this.promptToPayload(player.id, prompt, callback, actions);
+      const payload = this.promptToPayload(player.matchId, player.id, prompt, callback, actions);
       this.pubsubService.publish(payload);
       return false;
     } else {
@@ -54,8 +54,9 @@ export class PromptService {
     }
   }
 
-  private promptToPayload<T>(playerId: string, prompt: Prompt<T>, callback?: string, actions: PubSubActionObj<any> = { }) {
+  private promptToPayload<T>(matchId: string, playerId: string, prompt: Prompt<T>, callback?: string, actions: PubSubActionObj<any> = { }) {
     const payload: PubSubPayload<PromptObj<T> | PromptAnswerObj<T>, 'prompt'> = {
+      matchId,
       action: 'prompt',
       actions: {
         ...actions,

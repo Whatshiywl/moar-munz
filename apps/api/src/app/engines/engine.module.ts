@@ -58,6 +58,7 @@ export class EngineModule implements OnModuleInit {
   constructor(
     private discovery: DiscoveryService,
     private metadataScanner: MetadataScanner,
+    private matchService: MatchService,
     private pubsubService: PubSubService
   ) { }
 
@@ -74,9 +75,17 @@ export class EngineModule implements OnModuleInit {
         console.log(engine.name, methodName, message);
         this.pubsubService.on(message)
         .subscribe(async ({ payload, ack }) => {
-          const action = payload.actions[payload.action];
-          await method.bind(instance)(action, payload);
-          ack();
+          const { matchId } = payload;
+          if (this.matchService.isProcessing(matchId)) return;
+          this.matchService.setProcessing(matchId, true);
+          try {
+            const action = payload.actions[payload.action];
+            const result = await method.bind(instance)(action, payload);
+            if (result !== false) ack();
+          } catch (error) {
+            console.error(error);
+          }
+          this.matchService.setProcessing(matchId, false);
         });
       });
     });

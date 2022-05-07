@@ -25,7 +25,7 @@ export class LobbyService {
         this.matchService.removePlayer(match.playerOrder, player);
         this.playerService.delete(player.id);
         // TODO: publish play event instead
-        if (aiPlayer) this.pubsubService.publishPlay(aiPlayer.id);
+        if (aiPlayer) this.pubsubService.publishPlay(aiPlayer.matchId, aiPlayer.id);
     }
 
     private deletePlayer(match: Match, player: Player) {

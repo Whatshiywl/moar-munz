@@ -27,10 +27,11 @@ export class AquireDeedPromptFactory extends AbstractPromptFactory<boolean> {
   }
 
   async onAnswer(payload: PromptAnswerPayload<boolean>) {
+    const { matchId } = payload;
     const { body, callback } = payload.actions["prompt-answer"];
     const { playerId, prompt } = body;
     const end = async () => {
-      await this.pubsubService.publishPlay(playerId, (payload.actions['play'] as PlayAction).body.forceUnlock);
+      await this.pubsubService.publishPlay(matchId, playerId, (payload.actions['play'] as PlayAction).body.forceUnlock);
     };
     const player = this.playerService.getPlayer(playerId);
     if (!prompt?.answer) {
@@ -41,7 +42,7 @@ export class AquireDeedPromptFactory extends AbstractPromptFactory<boolean> {
       return end();
     }
     const value = 2 * this.boardService.getTileValue(tile);
-    this.pubsubService.publishTransfer(player.id, tile.owner, value, callback, payload.actions);
+    this.pubsubService.publishTransfer(matchId, player.id, tile.owner, value, callback, payload.actions);
   }
 
 }

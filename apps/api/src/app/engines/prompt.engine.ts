@@ -1,5 +1,4 @@
-import { PromptPayload, Player, Prompt, PromptAction } from "@moar-munz/api-interfaces";
-import { Injectable } from "@nestjs/common";
+import type { PromptPayload, Player, Prompt, PromptAction } from "@moar-munz/api-interfaces";
 import { PromptService } from "../prompt/prompt.service";
 import { AIService } from "../shared/services/ai.service";
 import { PlayerService } from "../shared/services/player.service";
@@ -7,7 +6,6 @@ import { SocketService } from "../socket/socket.service";
 import { Engine, Gear } from "./engine.decorators";
 
 @Engine()
-@Injectable()
 export class PromptEngine {
 
   constructor (
@@ -19,8 +17,10 @@ export class PromptEngine {
 
   @Gear('prompt')
   async onPrompt<T>(action: PromptAction<T>, payload: PromptPayload<T>) {
+    const { matchId } = payload;
     const { playerId } = action.body;
     const player = this.playerService.getPlayer(playerId);
+    if (player.matchId !== matchId) return;
     if (player.prompt) await this.updatePayload<T>(payload);
     else await this.promptPayload<T>(payload);
   }

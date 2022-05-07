@@ -1,12 +1,11 @@
-import { VictoryState, WinAction } from "@moar-munz/api-interfaces";
-import { Injectable } from "@nestjs/common";
+import type { WinAction, WinPayload } from "@moar-munz/api-interfaces";
+import { VictoryState } from "@moar-munz/api-interfaces";
 import { MatchService } from "../shared/services/match.service";
 import { PlayerService } from "../shared/services/player.service";
 import { SocketService } from "../socket/socket.service";
 import { Engine, Gear } from "./engine.decorators";
 
 @Engine()
-@Injectable()
 export class WinEngine {
 
   constructor (
@@ -16,9 +15,11 @@ export class WinEngine {
   ) { }
 
   @Gear('win')
-  onWin(action: WinAction) {
+  onWin(action: WinAction, payload: WinPayload) {
+    const { matchId } = payload;
     const { playerId } = action.body;
     const winner = this.playerService.getPlayer(playerId);
+    if (winner.matchId !== matchId) return;
     console.log(`${winner.name} WINS`);
     const playerOrder = this.matchService.getPlayerOrder(winner.matchId);
     this.socketService.broadcastGlobalMessage(

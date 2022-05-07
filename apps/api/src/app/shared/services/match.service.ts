@@ -44,6 +44,7 @@ export class MatchService implements OnApplicationBootstrap {
       options,
       board,
       locked: false,
+      processing: false,
       state: MatchState.LOBBY
     };
     this.db.createMatch(match);
@@ -166,7 +167,18 @@ export class MatchService implements OnApplicationBootstrap {
   private setLocked(id: string, locked: boolean) {
     const match = this.getMatch(id);
     match.locked = locked;
-    this.saveAndBroadcast(match);
+    this.saveMatch(match);
+  }
+
+  isProcessing(id: string) {
+    const match = this.getMatch(id);
+    return match.processing;
+  }
+
+  setProcessing(id: string, processing: boolean) {
+    const match = this.getMatch(id);
+    match.processing = processing;
+    this.saveMatch(match);
   }
 
   setLastDice(id: string, dice: [ number, number ]) {

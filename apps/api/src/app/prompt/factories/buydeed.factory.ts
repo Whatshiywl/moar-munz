@@ -54,7 +54,7 @@ export class BuyDeedPromptFactory extends AbstractPromptFactory<string> {
     this.matchService.setTileLevel(player.matchId, tile.name, answerValue + 1);
     const monopolies = this.getPlayerMonopolies(player);
     if (monopolies >= 4) {
-      this.pubsubService.publishWin(playerId);
+      this.pubsubService.publishWin(player.matchId, playerId);
       return false;
     }
     return true;

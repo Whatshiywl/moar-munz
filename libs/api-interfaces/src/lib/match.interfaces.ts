@@ -25,5 +25,6 @@ export interface Match {
   options: MatchOptions,
   board: Board,
   locked: boolean,
+  processing: boolean,
   state: MatchState
 }

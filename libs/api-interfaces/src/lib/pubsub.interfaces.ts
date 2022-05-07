@@ -3,6 +3,7 @@ export type PubSubAction<B extends PubSubActionBody = PubSubActionBody, C extend
 export type PubSubActionObj<T extends PubSubAction = PubSubAction, A extends string = string> = Record<A, T>;
 
 export interface PubSubPayload<O extends PubSubActionObj = PubSubActionObj, A extends (string | number | symbol) = keyof O> {
+  matchId: string,
   action: A,
   actions: O & PubSubActionObj
 };

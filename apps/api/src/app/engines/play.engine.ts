@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
 import { sample } from 'lodash';
 import { PlayerService } from '../shared/services/player.service';
 import { BoardService } from '../shared/services/board.service';
 import { SocketService } from '../socket/socket.service';
-import { MatchState, Player, VictoryState, PlayMessage, PlayAction } from '@moar-munz/api-interfaces';
+import type { Player, PlayAction, PlayPayload } from '@moar-munz/api-interfaces';
+import { VictoryState, MatchState } from '@moar-munz/api-interfaces';
 import { PromptService } from '../prompt/prompt.service';
 import { MatchService } from '../shared/services/match.service';
 import { PubSubService } from '../pubsub/pubsub.service';
@@ -15,7 +15,6 @@ import { BuyTilePromptFactory } from '../prompt/factories/buytile.factory';
 import { Engine, Gear } from './engine.decorators';
 
 @Engine()
-@Injectable()
 export class PlayEngine {
 
   private readonly diceRollInterval = 100;
@@ -61,10 +60,11 @@ export class PlayEngine {
   }
 
   @Gear('play')
-  async onPlay(action: PlayAction) {
+  async onPlay(action: PlayAction, payload: PlayPayload) {
     const { playerId, forceUnlock } = action.body;
-    if (!this.canPlay(playerId, forceUnlock)) return;
     const { matchId } = this.playerService.getPlayer(playerId);
+    if (payload.matchId !== matchId) return;
+    if (!this.canPlay(playerId, forceUnlock)) return;
     const matchState = this.matchService.getState(matchId);
     switch (matchState) {
       case MatchState.IDLE:
@@ -96,10 +96,10 @@ export class PlayEngine {
 
   private async startTurn(playerId: string, matchId: string) {
     this.matchService.lock(matchId);
-    const unlockAndPublish = await this.onStart(playerId);
+    const unlockAndPublish = await this.onStart(matchId, playerId);
     if (unlockAndPublish) {
       this.matchService.unlock(matchId);
-      this.pubsubService.publishPlay(playerId);
+      this.pubsubService.publishPlay(matchId, playerId);
     }
   }
 
@@ -107,33 +107,33 @@ export class PlayEngine {
     this.matchService.lock(matchId);
     const publish = await this.determineDice(playerId);
     this.matchService.unlock(matchId);
-    if (publish) this.pubsubService.publishPlay(playerId);
+    if (publish) this.pubsubService.publishPlay(matchId, playerId);
   }
 
   private playing(playerId: string, matchId: string) {
     this.matchService.lock(matchId);
     const publish = this.processPlay(playerId);
     this.matchService.unlock(matchId);
-    if (publish) this.pubsubService.publishPlay(playerId);
+    if (publish) this.pubsubService.publishPlay(matchId, playerId);
   }
 
   private async moving(playerId: string, matchId: string) {
     this.matchService.lock(matchId);
     const publish = await this.walkNTiles(playerId);
     this.matchService.unlock(matchId);
-    if (publish) this.pubsubService.publishPlay(playerId);
+    if (publish) this.pubsubService.publishPlay(matchId, playerId);
   }
 
   private async landing(playerId: string, matchId: string) {
     this.matchService.lock(matchId);
-    const { publish, unlock } = await this.onLand(playerId);
+    const { publish, unlock } = await this.onLand(matchId, playerId);
     if (unlock) this.matchService.unlock(matchId);
-    if (publish) this.pubsubService.publishPlay(playerId);
+    if (publish) this.pubsubService.publishPlay(matchId, playerId);
   }
 
   private async idle(playerId: string, matchId: string) {
     this.matchService.lock(matchId);
-    await this.onEnd(playerId);
+    await this.onEnd(matchId, playerId);
     this.matchService.unlock(matchId);
   }
 
@@ -166,7 +166,7 @@ export class PlayEngine {
     await this.onPass(player);
   }
 
-  private async onStart(playerId: string) {
+  private async onStart(matchId: string, playerId: string) {
     const player = this.playerService.getPlayer(playerId);
     console.log(`${player.name}'s turn started`);
     const playerState = player.state;
@@ -177,7 +177,7 @@ export class PlayEngine {
         if (this.playerService.getState(playerId)?.money < tile.cost) {
           return true;
         }
-        const payload = this.pubsubService.getPlayPayload(playerId, true);
+        const payload = this.pubsubService.getPlayPayload(matchId, playerId, true);
         this.promptService.publish(player, this.worldtourPromptFactory, 'play', payload.actions);
         return false;
       default:
@@ -243,7 +243,7 @@ export class PlayEngine {
     }
   }
 
-  private async onLand(playerId: string): Promise<{ publish: boolean, unlock: boolean }> {
+  private async onLand(matchId: string, playerId: string): Promise<{ publish: boolean, unlock: boolean }> {
     const ret = (publish: boolean, unlock = true) => ({ publish, unlock });
     const player = this.playerService.getPlayer(playerId);
     if (!player) return ret(false);
@@ -254,22 +254,22 @@ export class PlayEngine {
         this.playerService.updateState(playerId, { prison: 2 });
         break;
       case 'worldcup':
-        const payload = this.pubsubService.getPlayPayload(playerId, true);
+        const payload = this.pubsubService.getPlayPayload(matchId, playerId, true);
         this.promptService.publish(player, this.worldcupPromptFactory, 'play', payload.actions);
         return ret(false, false);
       case 'deed':
         if (!tile.owner) {
           if (tile.price > this.playerService.getState(playerId)?.money) break;
-          const payload = this.pubsubService.getPlayPayload(playerId, true);
+          const payload = this.pubsubService.getPlayPayload(matchId, playerId, true);
           this.promptService.publish(player, this.buyDeedPromptFactory, 'play', payload.actions);
         } else {
           if (tile.owner === player.id) {
-            const payload = this.pubsubService.getPlayPayload(playerId, true);
+            const payload = this.pubsubService.getPlayPayload(matchId, playerId, true);
             this.promptService.publish(player, this.improveDeedPromptFactory, 'play', payload.actions);
           } else {
             const board = this.matchService.getBoard(player.matchId);
             const cost = this.boardService.getFullRent(board, tile);
-            this.pubsubService.publishTransfer(playerId, tile.owner, cost, 'after-rent-payment', {
+            this.pubsubService.publishTransfer(matchId, playerId, tile.owner, cost, 'after-rent-payment', {
               'after-rent-payment': {
                 body: { playerId }
               }
@@ -280,15 +280,15 @@ export class PlayEngine {
       case 'company':
         if (!tile.owner) {
           if (tile.price > this.playerService.getState(playerId)?.money) break;
-          const payload = this.pubsubService.getPlayPayload(playerId, true);
+          const payload = this.pubsubService.getPlayPayload(matchId, playerId, true);
           this.promptService.publish(player, this.buyTilePromptFactory, 'play', payload.actions);
           return ret(false, false);
         } else {
           if (tile.owner !== player.id) {
             const dice = this.matchService.getLastDice(player.matchId);
             const cost = this.sumDice(dice) * tile.multiplier;
-            const playPayload = this.pubsubService.getPlayPayload(playerId, true);
-            this.pubsubService.publishTransfer(playerId, tile.owner, cost, playPayload.action, playPayload.actions);
+            const playPayload = this.pubsubService.getPlayPayload(matchId, playerId, true);
+            this.pubsubService.publishTransfer(matchId, playerId, tile.owner, cost, playPayload.action, playPayload.actions);
             return ret(false, false);
           }
         }
@@ -296,14 +296,14 @@ export class PlayEngine {
       case 'railroad':
         if (!tile.owner) {
           if (tile.price > this.playerService.getState(playerId)?.money) break;
-          const payload = this.pubsubService.getPlayPayload(playerId, true);
+          const payload = this.pubsubService.getPlayPayload(matchId, playerId, true);
           this.promptService.publish(player, this.buyTilePromptFactory, 'play', payload.actions);
           return ret(false, false);
         } else {
           if (tile.owner !== player.id) {
             const cost = this.boardService.getRawRent(tile);
-            const playPayload = this.pubsubService.getPlayPayload(playerId, true);
-            this.pubsubService.publishTransfer(playerId, tile.owner, cost, playPayload.action, playPayload.actions);
+            const playPayload = this.pubsubService.getPlayPayload(matchId, playerId, true);
+            this.pubsubService.publishTransfer(matchId, playerId, tile.owner, cost, playPayload.action, playPayload.actions);
             return ret(false, false);
           }
         }
@@ -361,7 +361,7 @@ export class PlayEngine {
     return ret(true);
   }
 
-  private async onEnd(playerId: string) {
+  private async onEnd(matchId: string, playerId: string) {
     const player = this.playerService.getPlayer(playerId);
     if (!player) return;
     const playerState = player.state;
@@ -370,7 +370,7 @@ export class PlayEngine {
       this.playerService.updateState(playerId, { playAgain: false });
       console.log(`${player.name}'s turn continues`);
       if (player.ai) {
-        this.sleep(2000).then(() => this.pubsubService.publishPlay(player.id));
+        this.sleep(2000).then(() => this.pubsubService.publishPlay(matchId, player.id));
       }
     }
     else {
@@ -379,7 +379,7 @@ export class PlayEngine {
       const nextPlayer = this.matchService.computeNextPlayer(matchId);
       if (nextPlayer.ai) {
         if (this.matchService.hasHumanPlayers(matchId)) {
-          this.sleep(2000).then(() => this.pubsubService.publishPlay(nextPlayer.id));
+          this.sleep(2000).then(() => this.pubsubService.publishPlay(matchId, nextPlayer.id));
         }
         else console.log('Abord infinite AI match!');
       }
@@ -387,13 +387,13 @@ export class PlayEngine {
   }
 
   private giveThenPlay(player: Player, amount: number, origin?: string) {
-    const payload = this.pubsubService.getPlayPayload(player.id, true);
+    const payload = this.pubsubService.getPlayPayload(player.matchId, player.id, true);
     if (amount > 0) {
       this.playerService.addMoney(player.id, amount);
       if (origin) this.broadcastTransaction(player, amount, origin);
       return { publish: true, unlock: true };
     } else {
-      this.pubsubService.publishDeduct(player.id, -amount, 'play', payload.actions, origin);
+      this.pubsubService.publishDeduct(player.matchId, player.id, -amount, 'play', payload.actions, origin);
       return { publish: false, unlock: false };
     }
   }

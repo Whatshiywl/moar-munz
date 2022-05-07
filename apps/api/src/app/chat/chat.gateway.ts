@@ -1,6 +1,6 @@
 import { WebSocketGateway, SubscribeMessage, MessageBody } from '@nestjs/websockets';
 import { UsePipes } from '@nestjs/common';
-import { SocketMessageBody } from '../socket/socket.interfaces';
+import type { SocketMessageBody } from '../socket/socket.interfaces';
 import { SocketService } from '../socket/socket.service';
 import { BodyMessagePipe } from '../socket/pipes/body-message.pipe';
 
